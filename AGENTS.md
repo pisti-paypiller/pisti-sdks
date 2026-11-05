@@ -69,7 +69,8 @@ versioned SDKs, and additive or reviewed data-preserving migrations.
 - The packages are MIT licensed and public on npm under `@pisti`. Each package
   directory keeps a copy of the root LICENSE because npm packs only that directory.
 - Releases are published only by `.github/workflows/release.yml` when a `v<version>`
-  tag is pushed (npm trusted publishing). Never publish with a stored npm token.
+  tag is pushed, through npm trusted publishing. The `NPM_TOKEN` secret exists only
+  for the first release and is deleted afterwards.
 
 ## Build
 
