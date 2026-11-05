@@ -6,7 +6,7 @@
   "license": "UNLICENSED",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/paypiller/pisti-sdks.git",
+    "url": "git+https://github.com/pisti-paypiller/pisti-sdks.git",
     "directory": "react"
   },
   "engines": {
