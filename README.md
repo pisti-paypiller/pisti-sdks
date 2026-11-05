@@ -55,9 +55,9 @@ secret and revoke the token.
 2. Run `npm install` so `package-lock.json` matches, then commit and push.
 3. Tag and push: `git tag v0.7.1 && git push origin v0.7.1`.
 
-A published version can never be reused; fix a bad release with a new version. npm adds
-provenance only for packages built from a public repository. The packages stay below
-`1.0.0` until the first production release.
+Each release carries npm provenance, which links every published version to the commit and
+workflow run that built it. A published version can never be reused; fix a bad release
+with a new version. The packages stay below `1.0.0` until the first production release.
 
 ## License
 

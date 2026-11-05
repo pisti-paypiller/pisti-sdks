@@ -66,7 +66,7 @@ versioned SDKs, and additive or reviewed data-preserving migrations.
 - Never send the secret key to a browser, and keep session verification offline
   (signed JWTs) in the server packages.
 - Keep each package README in step with its exported API.
-- The packages are MIT licensed and public on npm under `@pisti`. Each package
+- This repository is public. The packages are MIT licensed and public on npm under `@pisti`. Each package
   directory keeps a copy of the root LICENSE because npm packs only that directory.
 - Releases are published only by `.github/workflows/release.yml` when a `v<version>`
   tag is pushed, through npm trusted publishing. The `NPM_TOKEN` secret exists only
