@@ -35,8 +35,6 @@ gives the signed-in user Manage account and Sign out.
 npm install @pisti-paypiller/react
 ```
 
-Until the packages are published, run `npm ci && npm run pack` at the pisti-sdks root and install the tarballs.
-
 ```sh
 VITE_PISTI_PUBLISHABLE_KEY=pk_test_…
 ```

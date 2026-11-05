@@ -31,7 +31,6 @@ Requires Node.js 22.12 or later and Express 5. It is built on
 npm install @pisti-paypiller/express
 ```
 
-Until the packages are published, run `npm ci && npm run pack` at the pisti-sdks root and install the tarballs.
 Copy the keys from the console (your application → Home and API keys):
 
 ```sh
