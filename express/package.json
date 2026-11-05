@@ -4,6 +4,11 @@
   "description": "Pisti for Express: pistiMiddleware(), getAuth(req), requireAuth(), pistiClient and webhook verification.",
   "type": "module",
   "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paypiller/pisti-sdks.git",
+    "directory": "express"
+  },
   "engines": {
     "node": ">=22.12.0"
   },

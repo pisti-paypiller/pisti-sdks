@@ -4,6 +4,11 @@
   "description": "Pisti backend SDK: verify session tokens, authenticate Fetch API requests, the management API and webhooks. Framework-agnostic.",
   "type": "module",
   "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paypiller/pisti-sdks.git",
+    "directory": "backend"
+  },
   "engines": {
     "node": ">=22.12.0"
   },

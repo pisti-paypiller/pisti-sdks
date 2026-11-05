@@ -4,6 +4,11 @@
   "description": "Pisti for React: provider, hooks, prebuilt sign-in, sign-up, user and organization components.",
   "type": "module",
   "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paypiller/pisti-sdks.git",
+    "directory": "react"
+  },
   "engines": {
     "node": ">=22.12.0"
   },
