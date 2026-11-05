@@ -69,8 +69,7 @@ versioned SDKs, and additive or reviewed data-preserving migrations.
 - This repository is public. The packages are MIT licensed and public on npm under `@pisti-paypiller`. Each package
   directory keeps a copy of the root LICENSE because npm packs only that directory.
 - Releases are published only by `.github/workflows/release.yml` when a `v<version>`
-  tag is pushed, through npm trusted publishing. The `NPM_TOKEN` secret exists only
-  for the first release and is deleted afterwards.
+  tag is pushed, through npm trusted publishing. Never add an npm token.
 
 ## Build
 

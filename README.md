@@ -32,28 +32,17 @@ which belongs to the npm organization `pisti-paypiller`. Releases are published 
 [release workflow](.github/workflows/release.yml), which runs when a `v<version>` tag is
 pushed, checks that the tag matches every package version, builds, and publishes all three.
 
-**First release.** npm can only trust a workflow for a package that already exists, so the
-first release authenticates with a token:
+**Trusted publishing.** npm trusts only GitHub Actions runs of `release.yml` in
+`pisti-paypiller/pisti-sdks` to publish these packages, so no npm token exists. This is set
+per package on npmjs.com under Settings → Trusted publishing, with publishing access set to
+"Require two-factor authentication and disallow tokens".
 
-1. On npmjs.com, create a granular access token with read and write access to the
-   `@pisti-paypiller` scope (organization `pisti-paypiller`), "Bypass two-factor authentication" enabled, and
-   a short expiry.
-2. In this repository, add it as the Actions secret `NPM_TOKEN`:
-   `gh secret set NPM_TOKEN --repo pisti-paypiller/pisti-sdks` (paste the token when asked).
-3. Push the tag for the current version: `git tag v0.7.0 && git push origin v0.7.0`.
-
-**Trusted publishing.** After the first release, open each package on npmjs.com, go to
-Settings → Trusted publishing, and add GitHub Actions with organization
-`pisti-paypiller`, repository `pisti-sdks` and workflow `release.yml`. Set publishing access
-to "Require two-factor authentication and disallow tokens", then delete the `NPM_TOKEN`
-secret and revoke the token.
-
-**Every later release.**
+**Releasing.**
 
 1. Set the same new `version` in `backend`, `express` and `react`, and set `@pisti-paypiller/express`'s
    dependency on `@pisti-paypiller/backend` to that exact version.
 2. Run `npm install` so `package-lock.json` matches, then commit and push.
-3. Tag and push: `git tag v0.7.1 && git push origin v0.7.1`.
+3. Tag and push: `git tag v0.7.2 && git push origin v0.7.2`.
 
 Each release carries npm provenance, which links every published version to the commit and
 workflow run that built it. A published version can never be reused; fix a bad release

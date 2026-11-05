@@ -1,6 +1,6 @@
 {
   "name": "@pisti-paypiller/express",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Pisti for Express: pistiMiddleware(), getAuth(req), requireAuth(), pistiClient and webhook verification.",
   "type": "module",
   "license": "MIT",
@@ -36,7 +36,7 @@
     "prepack": "npm run build"
   },
   "dependencies": {
-    "@pisti-paypiller/backend": "0.7.0"
+    "@pisti-paypiller/backend": "0.7.1"
   },
   "peerDependencies": {
     "express": "^5.0.0"

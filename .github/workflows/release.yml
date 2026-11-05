@@ -3,10 +3,8 @@ name: Release
 # Publishes @pisti-paypiller/backend, @pisti-paypiller/express and @pisti-paypiller/react to npm when a
 # version tag such as v0.7.1 is pushed, with provenance.
 #
-# npm trusted publishing authenticates this workflow through GitHub's OIDC token.
-# npm can only trust a package that already exists, so the very first release uses
-# the NPM_TOKEN repository secret instead; delete that secret once trusted
-# publishing is set up for all three packages.
+# npm trusted publishing authenticates this workflow through GitHub's OIDC token,
+# so no npm token is stored anywhere.
 on:
   push:
     tags:
@@ -50,5 +48,3 @@ jobs:
 
       - name: Publish
         run: npm publish --workspaces --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
