@@ -1,0 +1,49 @@
+name: Release
+
+# Publishes @pisti/backend, @pisti/express and @pisti/react to npm when a
+# version tag such as v0.7.1 is pushed. npm trusted publishing authenticates this
+# workflow through GitHub's OIDC token, so no npm token is stored, and npm adds
+# provenance to each package automatically.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - name: Check the tag matches every package version
+        run: |
+          node -e '
+            const tag = process.env.GITHUB_REF_NAME.replace(/^v/, "");
+            const read = (dir) => JSON.parse(require("fs").readFileSync(dir + "/package.json", "utf8"));
+            const packages = ["backend", "express", "react"].map(read);
+            const wrong = packages.filter((p) => p.version !== tag).map((p) => p.name + "@" + p.version);
+            const backendDependency = read("express").dependencies["@pisti/backend"];
+            if (backendDependency !== tag) wrong.push("@pisti/express depends on @pisti/backend@" + backendDependency);
+            if (wrong.length) { console.error("Tag v" + tag + " does not match: " + wrong.join(", ")); process.exit(1); }
+          '
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - run: npm publish --workspaces

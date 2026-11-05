@@ -3,11 +3,14 @@
   "version": "0.7.0",
   "description": "Pisti backend SDK: verify session tokens, authenticate Fetch API requests, the management API and webhooks. Framework-agnostic.",
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/pisti-paypiller/pisti-sdks.git",
     "directory": "backend"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "engines": {
     "node": ">=22.12.0"

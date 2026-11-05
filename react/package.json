@@ -3,11 +3,14 @@
   "version": "0.7.0",
   "description": "Pisti for React: provider, hooks, prebuilt sign-in, sign-up, user and organization components.",
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/pisti-paypiller/pisti-sdks.git",
     "directory": "react"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "engines": {
     "node": ">=22.12.0"

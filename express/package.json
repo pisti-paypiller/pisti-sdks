@@ -3,11 +3,14 @@
   "version": "0.7.0",
   "description": "Pisti for Express: pistiMiddleware(), getAuth(req), requireAuth(), pistiClient and webhook verification.",
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/pisti-paypiller/pisti-sdks.git",
     "directory": "express"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "engines": {
     "node": ">=22.12.0"
