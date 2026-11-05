@@ -1,0 +1,15 @@
+{
+  "name": "pisti-sdks",
+  "private": true,
+  "description": "Pisti customer SDKs: @pisti/backend, @pisti/express and @pisti/react.",
+  "workspaces": [
+    "backend",
+    "express",
+    "react"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "check": "npm run check --workspaces --if-present",
+    "pack": "npm pack --workspaces --pack-destination ."
+  }
+}

@@ -1,0 +1,517 @@
+.pisti-ui {
+    --pisti-surface: var(--pisti-color-background, var(--card, #fff));
+    --pisti-text: var(--pisti-color-text, var(--foreground, #18181b));
+    --pisti-muted: var(--pisti-color-muted, var(--muted-foreground, #62626d));
+    --pisti-border: var(--pisti-color-border, var(--border, #dedee4));
+    --pisti-accent: var(--pisti-brand, #1d1d1a);
+    --pisti-accent-text: var(--pisti-brand-text, #fafaf7);
+    --pisti-radius: 0.5rem;
+    color: var(--pisti-text);
+    font: inherit;
+    font-family: var(--pisti-font, inherit);
+    line-height: 1.5;
+    max-width: 52rem;
+    min-width: 0;
+    text-align: start;
+}
+.pisti-ui *,
+.pisti-ui *::before,
+.pisti-ui *::after {
+    box-sizing: border-box;
+}
+.pisti-ui h1,
+.pisti-ui h2,
+.pisti-ui h3,
+.pisti-ui h4 {
+    line-height: 1.25;
+    margin: 0 0 0.75rem;
+}
+.pisti-ui h1 {
+    font-size: 1.5rem;
+    letter-spacing: -0.025em;
+}
+.pisti-ui h2 {
+    font-size: 1.125rem;
+}
+.pisti-ui h3 {
+    font-size: 1rem;
+}
+.pisti-ui p {
+    margin: 0.5rem 0 1rem;
+}
+.pisti-ui input,
+.pisti-ui select,
+.pisti-ui button {
+    font: inherit;
+}
+.pisti-ui input:not([type="checkbox"]),
+.pisti-ui select {
+    width: 100%;
+    min-height: 2.65rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--pisti-border);
+    border-radius: var(--pisti-radius);
+    background: var(--pisti-surface);
+    color: var(--pisti-text);
+}
+.pisti-ui input[type="checkbox"] {
+    width: 1rem;
+    height: 1rem;
+    accent-color: var(--pisti-accent);
+}
+.pisti-ui label {
+    display: grid;
+    gap: 0.4rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+.pisti-ui button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 2.5rem;
+    padding: 0.5rem 0.85rem;
+    border: 1px solid transparent;
+    border-radius: var(--pisti-radius);
+    background: var(--pisti-accent);
+    color: var(--pisti-accent-text);
+    cursor: pointer;
+    font-weight: 500;
+}
+.pisti-ui .pisti-secondary {
+    background: var(--pisti-surface);
+    color: var(--pisti-text);
+    border-color: var(--pisti-border);
+}
+.pisti-ui .pisti-danger {
+    background: #b42332;
+    color: #fff;
+}
+.pisti-ui button:disabled,
+.pisti-ui fieldset:disabled {
+    opacity: 0.65;
+    cursor: default;
+}
+.pisti-ui :focus-visible {
+    outline: 3px solid var(--pisti-accent);
+    outline-offset: 3px;
+}
+.pisti-ui a {
+    color: var(--pisti-accent);
+    text-underline-offset: 0.2em;
+}
+.pisti-ui .pisti-muted {
+    color: var(--pisti-muted);
+    font-size: 0.875rem;
+    font-weight: 400;
+}
+.pisti-form {
+    margin: 1.25rem 0;
+}
+.pisti-form fieldset {
+    display: grid;
+    gap: 1rem;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+.pisti-form legend {
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+.pisti-form button {
+    justify-self: start;
+}
+.pisti-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+.pisti-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+.pisti-navigation {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 1.25rem 0;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--pisti-border);
+}
+.pisti-navigation [aria-current="page"] {
+    border-color: var(--pisti-accent);
+    color: var(--pisti-accent);
+}
+.pisti-section {
+    padding-top: 1.5rem;
+    margin-top: 1.5rem;
+    border-top: 1px solid var(--pisti-border);
+}
+.pisti-ui details > summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+.pisti-ui details[open] > summary {
+    margin-bottom: 1rem;
+}
+.pisti-notice {
+    padding: 1rem;
+    margin: 1rem 0;
+    border: 1px solid var(--pisti-border);
+    border-radius: 0.65rem;
+    overflow-wrap: anywhere;
+}
+.pisti-error {
+    border-color: #dc6270;
+}
+.pisti-error button {
+    margin-inline-start: 0.75rem;
+}
+.pisti-ui pre {
+    font-size: 0.875rem;
+    overflow-x: auto;
+}
+.pisti-list {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0;
+}
+.pisti-list > li {
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--pisti-border);
+    overflow-wrap: anywhere;
+}
+.pisti-list p {
+    margin-bottom: 0;
+}
+.pisti-list select {
+    width: auto;
+}
+.pisti-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+.pisti-user-button {
+    position: relative;
+    width: fit-content;
+}
+.pisti-menu {
+    position: absolute;
+    inset-inline-end: 0;
+    z-index: 20;
+    display: grid;
+    gap: 0.75rem;
+    min-width: 15rem;
+    max-width: min(22rem, 90vw);
+    padding: 1rem;
+    border: 1px solid var(--pisti-border);
+    border-radius: 0.75rem;
+    background: var(--pisti-surface);
+    box-shadow: 0 12px 32px #0002;
+}
+.pisti-menu p {
+    overflow-wrap: anywhere;
+}
+@media (prefers-color-scheme: dark) {
+    .pisti-ui {
+        --pisti-surface: var(--pisti-color-background, var(--card, #19191e));
+        --pisti-text: var(--pisti-color-text, var(--foreground, #f4f4f5));
+        --pisti-muted: var(--pisti-color-muted, var(--muted-foreground, #aaaab4));
+        --pisti-border: var(--pisti-color-border, var(--border, #393940));
+        --pisti-accent: var(--pisti-brand, #ecece5);
+        --pisti-accent-text: var(--pisti-brand-text, #141513);
+    }
+}
+.dark .pisti-ui,
+.pisti-ui[data-theme="dark"] {
+    --pisti-surface: var(--pisti-color-background, var(--card, #19191e));
+    --pisti-text: var(--pisti-color-text, var(--foreground, #f4f4f5));
+    --pisti-muted: var(--pisti-color-muted, var(--muted-foreground, #aaaab4));
+    --pisti-border: var(--pisti-color-border, var(--border, #393940));
+    --pisti-accent: var(--pisti-brand, #ecece5);
+    --pisti-accent-text: var(--pisti-brand-text, #141513);
+}
+.light .pisti-ui,
+.pisti-ui[data-theme="light"] {
+    --pisti-surface: var(--pisti-color-background, var(--card, #fff));
+    --pisti-text: var(--pisti-color-text, var(--foreground, #18181b));
+    --pisti-muted: var(--pisti-color-muted, var(--muted-foreground, #62626d));
+    --pisti-border: var(--pisti-color-border, var(--border, #dedee4));
+    --pisti-accent: var(--pisti-brand, #1d1d1a);
+    --pisti-accent-text: var(--pisti-brand-text, #fafaf7);
+}
+@media (max-width: 35rem) {
+    .pisti-grid {
+        grid-template-columns: 1fr;
+    }
+    .pisti-list > li {
+        align-items: start;
+        flex-direction: column;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .pisti-ui *,
+    .pisti-ui *::before,
+    .pisti-ui *::after {
+        scroll-behavior: auto;
+        animation: none;
+        transition: none;
+    }
+}
+
+.pisti-reverification {
+    width: min(28rem, calc(100vw - 2rem));
+    max-height: 90vh;
+    overflow: auto;
+    padding: 1.5rem;
+    border: 1px solid var(--pisti-border);
+    border-radius: 1rem;
+    background: var(--pisti-surface);
+}
+.pisti-reverification::backdrop {
+    background: #0008;
+}
+
+/* Sign-in and sign-up cards */
+.pisti-card {
+    width: min(25rem, 100%);
+    margin-inline: auto;
+    padding: 2rem 2rem 1.25rem;
+    border: 1px solid var(--pisti-border);
+    border-radius: calc(var(--pisti-radius) * 1.5);
+    background: var(--pisti-surface);
+    box-shadow:
+        0 1px 2px rgb(0 0 0 / 0.04),
+        0 12px 32px -16px rgb(0 0 0 / 0.18);
+}
+.pisti-card-header h1 {
+    margin: 0;
+    font-size: 1.2rem;
+    letter-spacing: -0.015em;
+}
+.pisti-card-header p {
+    margin: 0.35rem 0 0;
+}
+.pisti-card .pisti-form {
+    display: grid;
+    gap: 1rem;
+    margin: 1.5rem 0 0;
+}
+.pisti-card .pisti-form > button,
+.pisti-card > button {
+    width: 100%;
+    justify-self: stretch;
+}
+.pisti-card-footer {
+    margin: 1.5rem -2rem 0;
+    padding: 1rem 2rem 0;
+    border-top: 1px solid var(--pisti-border);
+    color: var(--pisti-muted);
+    font-size: 0.875rem;
+    text-align: center;
+}
+.pisti-secured {
+    margin: 1rem 0 0 !important;
+    color: var(--pisti-muted);
+    font-size: 0.7rem;
+    text-align: center;
+}
+.pisti-field {
+    display: grid;
+    gap: 0.4rem;
+}
+.pisti-field-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+.pisti-hint {
+    font-size: 0.75rem !important;
+}
+.pisti-ui input.pisti-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.15rem;
+    letter-spacing: 0.4em;
+    text-align: center;
+}
+.pisti-ui .pisti-link {
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--pisti-text);
+    font-weight: 500;
+    text-decoration: underline;
+    text-decoration-color: var(--pisti-border);
+    text-underline-offset: 0.25em;
+}
+.pisti-ui .pisti-link:hover {
+    text-decoration-color: currentColor;
+}
+.pisti-ui .pisti-small {
+    color: var(--pisti-muted);
+    font-size: 0.75rem;
+}
+.pisti-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    font-size: 0.875rem;
+}
+.pisti-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+.pisti-codes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.35rem 1.25rem;
+    margin: 1.25rem 0;
+    padding: 0.85rem 1rem;
+    border-radius: var(--pisti-radius);
+    background: color-mix(in srgb, var(--pisti-border) 35%, transparent);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.8rem;
+    list-style: none;
+}
+.pisti-setup {
+    display: grid;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+}
+.pisti-setup code {
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--pisti-radius);
+    background: color-mix(in srgb, var(--pisti-border) 35%, transparent);
+    font-size: 0.8rem;
+    overflow-wrap: anywhere;
+}
+.pisti-card .pisti-notice {
+    margin: 0;
+    padding: 0.65rem 0.8rem;
+    font-size: 0.875rem;
+}
+.pisti-modal {
+    max-width: calc(100vw - 2rem);
+    max-height: calc(100vh - 2rem);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    overflow: visible;
+}
+.pisti-modal::backdrop {
+    background: rgb(0 0 0 / 0.45);
+}
+.pisti-modal-panel {
+    position: relative;
+    width: min(52rem, calc(100vw - 2rem));
+    max-height: calc(100vh - 2rem);
+    overflow: auto;
+    padding: 1.5rem;
+    border-radius: calc(var(--pisti-radius) * 1.5);
+    background: var(--pisti-surface, #fff);
+}
+.pisti-modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1.25rem;
+}
+.pisti-user-button > summary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    list-style: none;
+}
+.pisti-avatar {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--pisti-accent);
+    color: var(--pisti-accent-text);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+.pisti-user-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+.pisti-user-button > summary::-webkit-details-marker {
+    display: none;
+}
+.pisti-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.pisti-user-button[open] > summary {
+    margin-bottom: 0;
+}
+.pisti-menu {
+    top: calc(100% + 0.5rem);
+    gap: 0.25rem;
+    padding: 0.5rem;
+}
+.pisti-menu-identity {
+    display: grid;
+    gap: 0.1rem;
+    padding: 0.5rem 0.6rem 0.65rem;
+    margin-bottom: 0.25rem;
+    border-bottom: 1px solid var(--pisti-border);
+    font-size: 0.875rem;
+    overflow-wrap: anywhere;
+}
+.pisti-ui .pisti-menu-item {
+    justify-content: flex-start;
+    width: 100%;
+    min-height: 2.1rem;
+    background: transparent;
+    color: var(--pisti-text);
+    font-size: 0.875rem;
+}
+.pisti-ui .pisti-menu-item:hover {
+    background: color-mix(in srgb, var(--pisti-border) 45%, transparent);
+}
+@media (max-width: 30rem) {
+    .pisti-card {
+        padding: 1.5rem 1.25rem 1rem;
+    }
+    .pisti-card-footer {
+        margin-inline: -1.25rem;
+    }
+    .pisti-pair {
+        grid-template-columns: 1fr;
+    }
+}
+
+.pisti-secret {
+    display: block;
+    overflow-wrap: anywhere;
+    padding: 0.5rem 0.625rem;
+    border: 1px solid var(--pisti-border);
+    border-radius: calc(var(--pisti-radius) * 0.75);
+    font-size: 0.8125rem;
+    user-select: all;
+}
