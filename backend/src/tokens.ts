@@ -29,7 +29,7 @@ import type {
     VerifyTokenOptions,
 } from "./types.js";
 
-/** Cookies and parameters shared with @pisti/react and the Frontend API. */
+/** Cookies and parameters shared with @pisti-paypiller/react and the Frontend API. */
 export const SESSION_COOKIE = "__session";
 export const CLIENT_UAT_COOKIE = "__client_uat";
 export const HANDSHAKE_PARAMETER = "__pisti_handshake";

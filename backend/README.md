@@ -1,12 +1,12 @@
-# @pisti/backend
+# @pisti-paypiller/backend
 
 The framework-free Pisti server SDK, shaped like `@clerk/backend`: authenticate any Fetch API
 `Request` (session cookies with the handshake, session tokens, API keys, M2M and OAuth tokens),
 call the backend API and verify webhooks. Express apps should use
-[`@pisti/express`](../express/README.md), which is built on this package.
+[`@pisti-paypiller/express`](../express/README.md), which is built on this package.
 
 ```ts
-import { createPistiClient } from "@pisti/backend";
+import { createPistiClient } from "@pisti-paypiller/backend";
 
 const pisti = createPistiClient({
     secretKey: process.env.PISTI_SECRET_KEY,
@@ -51,7 +51,7 @@ Every option falls back to an environment variable:
 
 `authenticateRequest` reads `Authorization: Bearer` first, then the `__session` cookie.
 
-**Session cookies and the handshake.** `@pisti/react` keeps `__session` (a 60-second session
+**Session cookies and the handshake.** `@pisti-paypiller/react` keeps `__session` (a 60-second session
 token) and `__client_uat` (the last sign-in time) on your origin. When a page request arrives
 with an expired or missing session cookie but `__client_uat` says the visitor is signed in, the
 state is `status: "handshake"`: respond with a `307` and `state.headers`. The browser goes through
@@ -63,7 +63,7 @@ redirected; they are signed out until the browser SDK refreshes the cookie.
 
 | `acceptsToken` | Token | `toAuth()` |
 | --- | --- | --- |
-| `"session_token"` (default) | Session token from `@pisti/react` | `userId`, `sessionId`, `orgId`, `orgRole`, `orgSlug`, `orgPermissions`, `sessionClaims`, `factorVerificationAge`, `has()`, `getToken()` |
+| `"session_token"` (default) | Session token from `@pisti-paypiller/react` | `userId`, `sessionId`, `orgId`, `orgRole`, `orgSlug`, `orgPermissions`, `sessionClaims`, `factorVerificationAge`, `has()`, `getToken()` |
 | `"api_key"` | An end user's `ak_…` key, created with `<APIKeys />`; verified with the backend API, and a successful verification is reused for up to 10 seconds per process | `id`, `name`, `subject`, `userId`, `scopes`, `claims` |
 | `"m2m_token"` | Client-credentials token from a confidential OAuth application | `id`, `subject`, `machineId`, `scopes`, `claims` |
 | `"oauth_token"` | Access token Pisti issued to an OAuth application for a user | `id`, `userId`, `clientId`, `scopes`, `claims` |
@@ -78,7 +78,7 @@ the reverification presets `"strict_mfa"`, `"strict"`, `"moderate"` and `"lax"` 
 ## Backend API
 
 ```ts
-import { createPistiClient, PistiManagementError } from "@pisti/backend";
+import { createPistiClient, PistiManagementError } from "@pisti-paypiller/backend";
 
 const pisti = createPistiClient();
 const user = await pisti.users.getUser(userId);
@@ -111,7 +111,7 @@ need a signed-in user or console member.
 ## Webhooks
 
 ```ts
-import { verifyWebhook } from "@pisti/backend/webhooks";
+import { verifyWebhook } from "@pisti-paypiller/backend/webhooks";
 
 export async function POST(request: Request) {
     try {

@@ -1,10 +1,10 @@
-# @pisti/express
+# @pisti-paypiller/express
 
 Pisti for Express 5, shaped like `@clerk/express`. It reads its configuration from environment
 variables, so most apps need two lines:
 
 ```ts
-import { pistiMiddleware, getAuth } from "@pisti/express";
+import { pistiMiddleware, getAuth } from "@pisti-paypiller/express";
 
 app.use(pistiMiddleware());
 app.get("/api/me", (req, res) => {
@@ -20,15 +20,15 @@ app.get("/api/me", (req, res) => {
 | `getAuth(req, { acceptsToken? })` | The auth object: `isAuthenticated`, `userId`, `sessionId`, `orgId`, `orgRole`, `orgSlug`, `orgPermissions`, `sessionClaims`, `factorVerificationAge`, `has()`, `getToken()`; or an API key, M2M or OAuth token object when accepted | `getAuth(req, { acceptsToken })` |
 | `requireAuth(options?)` | 401 for signed-out requests (or a redirect for pages), 403 when `permission`, `role` or `reverification` fails. Takes `acceptsToken`. | `requireAuth()` |
 | `pistiClient` | Backend API client from `PISTI_SECRET_KEY`: `await pistiClient.users.getUser(userId)` | `clerkClient` |
-| `verifyWebhook(req)` from `@pisti/express/webhooks` | Checks a signed webhook delivery and returns the event | `verifyWebhook(req)` |
+| `verifyWebhook(req)` from `@pisti-paypiller/express/webhooks` | Checks a signed webhook delivery and returns the event | `verifyWebhook(req)` |
 
 Requires Node.js 22.12 or later and Express 5. It is built on
-[`@pisti/backend`](../backend/README.md), which works without Express.
+[`@pisti-paypiller/backend`](../backend/README.md), which works without Express.
 
 ## 1. Install and configure
 
 ```sh
-npm install @pisti/express
+npm install @pisti-paypiller/express
 ```
 
 Until the packages are published, run `npm ci && npm run pack` at the pisti-sdks root and install the tarballs.
@@ -50,7 +50,7 @@ Each value can also be passed as an option, for example
 
 ```ts
 import express from "express";
-import { pistiMiddleware, requireAuth, getAuth, pistiClient } from "@pisti/express";
+import { pistiMiddleware, requireAuth, getAuth, pistiClient } from "@pisti-paypiller/express";
 
 const app = express();
 app.use(express.json());
@@ -84,7 +84,7 @@ app.post("/api/payouts", (req, res) => {
 app.get("/settings", requireAuth({ signInUrl: "/sign-in" }), renderSettings);
 ```
 
-The middleware reads the token from the `__session` cookie, which `@pisti/react` keeps fresh on
+The middleware reads the token from the `__session` cookie, which `@pisti-paypiller/react` keeps fresh on
 your app's origin, or from `Authorization: Bearer` for APIs on another domain
 (`useAuthenticatedFetch()` in React sends it). It checks the signature, issuer, expiry, that the
 token belongs to your environment and, when configured, the requesting origin. An expired or
@@ -92,7 +92,7 @@ invalid cookie leaves the request signed out; an invalid bearer token answers 40
 
 `requireAuth()` answers with RFC 9457 problem details: `401 signed_out`, or `403 forbidden` or
 `reverification_required`. With `signInUrl` (or `PISTI_SIGN_IN_URL`), browser page requests
-are redirected there with `redirect_url` set, and `@pisti/react` sends people back after
+are redirected there with `redirect_url` set, and `@pisti-paypiller/react` sends people back after
 sign-in.
 
 Reverification presets match Clerk's: `"strict_mfa"` (both factors within 10 minutes),
@@ -142,7 +142,7 @@ A machine service gets its M2M token from `POST /connect/token` with
 ## 3. Backend API
 
 ```ts
-import { pistiClient, PistiManagementError } from "@pisti/express";
+import { pistiClient, PistiManagementError } from "@pisti-paypiller/express";
 
 const user = await pistiClient.users.getUser(userId);
 const { items, nextCursor } = await pistiClient.users.getUserList({ limit: 50, search: "alex" });
@@ -156,13 +156,13 @@ await pistiClient.organizations.createOrganizationInvitation(orgId, { email, rol
 ```
 
 `pistiClient` is created from `PISTI_SECRET_KEY` and `PISTI_PUBLISHABLE_KEY` the first time you
-use it. See [`@pisti/backend`](../backend/README.md#backend-api) for every resource and its errors.
+use it. See [`@pisti-paypiller/backend`](../backend/README.md#backend-api) for every resource and its errors.
 
 ## 4. Webhooks
 
 ```ts
 import express from "express";
-import { verifyWebhook } from "@pisti/express/webhooks";
+import { verifyWebhook } from "@pisti-paypiller/express/webhooks";
 
 // Register before app.use(express.json()) so the body stays raw.
 app.post("/api/webhooks", express.raw({ type: "application/json" }), async (req, res) => {

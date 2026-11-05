@@ -1,6 +1,6 @@
 # pisti-sdks
 
-The Pisti customer SDKs: `@pisti/backend`, `@pisti/express` and `@pisti/react`.
+The Pisti customer SDKs: `@pisti-paypiller/backend`, `@pisti-paypiller/express` and `@pisti-paypiller/react`.
 
 For structural exploration use the installed codebase-memory skill. Check exact
 path coverage and read current source when the graph is stale.
@@ -10,7 +10,7 @@ path coverage and read current source when the graph is stale.
 Pisti is five independent repositories: pisti-backend, pisti-apps, pisti-sdks,
 pisti-examples and pisti-docs. Each one builds and runs on its own. They connect
 only over HTTP, through the API described by pisti-backend `openapi/v1.json`, and
-through the published `@pisti/*` npm packages.
+through the published `@pisti-paypiller/*` npm packages.
 
 - Never reference another repository's files by relative path, mount, include or
   `file:` dependency, and never assume a sibling checkout exists.
@@ -56,17 +56,17 @@ versioned SDKs, and additive or reviewed data-preserving migrations.
 
 ## Packages
 
-- `backend` (`@pisti/backend`) is the framework-free server core. `express`
-  (`@pisti/express`) builds on it. `react` (`@pisti/react`) is the browser SDK and
+- `backend` (`@pisti-paypiller/backend`) is the framework-free server core. `express`
+  (`@pisti-paypiller/express`) builds on it. `react` (`@pisti-paypiller/react`) is the browser SDK and
   talks only to the Frontend API (`/v1/fapi/{id}`).
-- The three packages share one version and are released together. `@pisti/express`
-  depends on `@pisti/backend` by exact version; npm workspaces link it locally.
+- The three packages share one version and are released together. `@pisti-paypiller/express`
+  depends on `@pisti-paypiller/backend` by exact version; npm workspaces link it locally.
 - The root `package.json` is a private workspace manifest with the single lock file.
   Each package keeps its own build scripts and `tsconfig.json`.
 - Never send the secret key to a browser, and keep session verification offline
   (signed JWTs) in the server packages.
 - Keep each package README in step with its exported API.
-- This repository is public. The packages are MIT licensed and public on npm under `@pisti`. Each package
+- This repository is public. The packages are MIT licensed and public on npm under `@pisti-paypiller`. Each package
   directory keeps a copy of the root LICENSE because npm packs only that directory.
 - Releases are published only by `.github/workflows/release.yml` when a `v<version>`
   tag is pushed, through npm trusted publishing. The `NPM_TOKEN` secret exists only

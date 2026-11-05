@@ -14,7 +14,7 @@ import {
     type CheckAuthorizationParams,
     type PistiClient,
     type TokenType,
-} from "@pisti/backend";
+} from "@pisti-paypiller/backend";
 
 declare global {
     // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -35,7 +35,7 @@ export interface PistiMiddlewareOptions {
     authorizedParties?: string[] | undefined;
     /** PEM public key for networkless verification. Defaults to `PISTI_JWT_KEY`. */
     jwtKey?: string | undefined;
-    /** Session cookie written by @pisti/react. Defaults to `__session`. */
+    /** Session cookie written by @pisti-paypiller/react. Defaults to `__session`. */
     cookieName?: string | undefined;
 }
 
@@ -201,7 +201,7 @@ function sendProblem(req: Request, res: Response, error: unknown): void {
         });
 }
 
-export { createPistiClient, verifyToken, PistiError, PistiManagementError } from "@pisti/backend";
+export { createPistiClient, verifyToken, PistiError, PistiManagementError } from "@pisti-paypiller/backend";
 export type {
     AuthObject,
     SignedInAuthObject,
@@ -217,4 +217,4 @@ export type {
     ApiKeyAuthObject,
     M2MAuthObject,
     OAuthAuthObject,
-} from "@pisti/backend";
+} from "@pisti-paypiller/backend";

@@ -1,7 +1,7 @@
 {
   "name": "pisti-sdks",
   "private": true,
-  "description": "Pisti customer SDKs: @pisti/backend, @pisti/express and @pisti/react.",
+  "description": "Pisti customer SDKs: @pisti-paypiller/backend, @pisti-paypiller/express and @pisti-paypiller/react.",
   "workspaces": [
     "backend",
     "express",

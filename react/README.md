@@ -1,12 +1,12 @@
-# @pisti/react
+# @pisti-paypiller/react
 
 Pisti for React, shaped like `@clerk/react`: one provider, prebuilt sign-in and account
 components, and hooks. It talks to your environment's Frontend API directly from the browser;
 the publishable key is the only required setting. Supports React 18.3 and 19.
 
 ```tsx
-import { PistiProvider, Show, SignInButton, SignUpButton, UserButton } from "@pisti/react";
-import "@pisti/react/styles.css";
+import { PistiProvider, Show, SignInButton, SignUpButton, UserButton } from "@pisti-paypiller/react";
+import "@pisti-paypiller/react/styles.css";
 
 export function App() {
     return (
@@ -32,7 +32,7 @@ gives the signed-in user Manage account and Sign out.
 ## Install
 
 ```sh
-npm install @pisti/react
+npm install @pisti-paypiller/react
 ```
 
 Until the packages are published, run `npm ci && npm run pack` at the pisti-sdks root and install the tarballs.
@@ -48,7 +48,7 @@ your app's origin under Domains & paths in the console.
 
 ```tsx
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router";
-import { PistiProvider, SignIn, SignUp, Show, RedirectToSignIn } from "@pisti/react";
+import { PistiProvider, SignIn, SignUp, Show, RedirectToSignIn } from "@pisti-paypiller/react";
 
 function PistiWithRouter({ children }: { children: React.ReactNode }) {
     const navigate = useNavigate();
@@ -150,7 +150,7 @@ origin, so same-site API routes receive it automatically. It also writes `__clie
 session's sign-in time (or `0` when signed out), which lets server-rendered pages refresh an
 expired cookie with a handshake instead of treating the visitor as signed out. For APIs on another domain use
 `useAuthenticatedFetch()` or `getToken()`. Verify the token on the server with
-[`@pisti/express`](../express/README.md) or [`@pisti/backend`](../backend/README.md).
+[`@pisti-paypiller/express`](../express/README.md) or [`@pisti-paypiller/backend`](../backend/README.md).
 `<Show>` and `isSignedIn` only control rendering; your API must enforce access.
 
 ## Deploying

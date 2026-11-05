@@ -1,5 +1,5 @@
 {
-  "name": "@pisti/react",
+  "name": "@pisti-paypiller/react",
   "version": "0.7.0",
   "description": "Pisti for React: provider, hooks, prebuilt sign-in, sign-up, user and organization components.",
   "type": "module",

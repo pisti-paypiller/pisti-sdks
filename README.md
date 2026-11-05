@@ -4,9 +4,9 @@ The Pisti customer SDKs.
 
 | Package | Purpose |
 | --- | --- |
-| [`@pisti/react`](react/README.md) | `<PistiProvider>`, `<Show>`, hooks, prebuilt sign-in, sign-up, user and organization components |
-| [`@pisti/express`](express/README.md) | `pistiMiddleware()`, `getAuth(req)`, `requireAuth()`, `pistiClient` and webhook verification for Express 5 |
-| [`@pisti/backend`](backend/README.md) | Framework-free core: `createPistiClient()`, `authenticateRequest()`, `verifyToken()`, backend API and webhooks |
+| [`@pisti-paypiller/react`](react/README.md) | `<PistiProvider>`, `<Show>`, hooks, prebuilt sign-in, sign-up, user and organization components |
+| [`@pisti-paypiller/express`](express/README.md) | `pistiMiddleware()`, `getAuth(req)`, `requireAuth()`, `pistiClient` and webhook verification for Express 5 |
+| [`@pisti-paypiller/backend`](backend/README.md) | Framework-free core: `createPistiClient()`, `authenticateRequest()`, `verifyToken()`, backend API and webhooks |
 
 The packages talk to the Pisti API (pisti-backend) only over HTTP; its contract is
 pisti-backend `openapi/v1.json`. They share one version and are released together.
@@ -21,14 +21,14 @@ npm ci
 npm run build
 ```
 
-`npm run pack` writes `pisti-backend-<version>.tgz`, `pisti-express-<version>.tgz`
-and `pisti-react-<version>.tgz` to this directory. Install those tarballs in an app
+`npm run pack` writes `pisti-paypiller-backend-<version>.tgz`, `pisti-paypiller-express-<version>.tgz`
+and `pisti-paypiller-react-<version>.tgz` to this directory. Install those tarballs in an app
 to try changes before they are published.
 
 ## Publish
 
-The packages are MIT licensed and published publicly to npm under the `@pisti` scope,
-which belongs to the npm organization `pisti`. Releases are published only by the
+The packages are MIT licensed and published publicly to npm under the `@pisti-paypiller` scope,
+which belongs to the npm organization `pisti-paypiller`. Releases are published only by the
 [release workflow](.github/workflows/release.yml), which runs when a `v<version>` tag is
 pushed, checks that the tag matches every package version, builds, and publishes all three.
 
@@ -36,7 +36,7 @@ pushed, checks that the tag matches every package version, builds, and publishes
 first release authenticates with a token:
 
 1. On npmjs.com, create a granular access token with read and write access to the
-   `@pisti` scope (organization `pisti`), "Bypass two-factor authentication" enabled, and
+   `@pisti-paypiller` scope (organization `pisti-paypiller`), "Bypass two-factor authentication" enabled, and
    a short expiry.
 2. In this repository, add it as the Actions secret `NPM_TOKEN`:
    `gh secret set NPM_TOKEN --repo pisti-paypiller/pisti-sdks` (paste the token when asked).
@@ -50,8 +50,8 @@ secret and revoke the token.
 
 **Every later release.**
 
-1. Set the same new `version` in `backend`, `express` and `react`, and set `@pisti/express`'s
-   dependency on `@pisti/backend` to that exact version.
+1. Set the same new `version` in `backend`, `express` and `react`, and set `@pisti-paypiller/express`'s
+   dependency on `@pisti-paypiller/backend` to that exact version.
 2. Run `npm install` so `package-lock.json` matches, then commit and push.
 3. Tag and push: `git tag v0.7.1 && git push origin v0.7.1`.
 

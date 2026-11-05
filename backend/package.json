@@ -1,5 +1,5 @@
 {
-  "name": "@pisti/backend",
+  "name": "@pisti-paypiller/backend",
   "version": "0.7.0",
   "description": "Pisti backend SDK: verify session tokens, authenticate Fetch API requests, the management API and webhooks. Framework-agnostic.",
   "type": "module",

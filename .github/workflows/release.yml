@@ -1,6 +1,6 @@
 name: Release
 
-# Publishes @pisti/backend, @pisti/express and @pisti/react to npm when a
+# Publishes @pisti-paypiller/backend, @pisti-paypiller/express and @pisti-paypiller/react to npm when a
 # version tag such as v0.7.1 is pushed, with provenance.
 #
 # npm trusted publishing authenticates this workflow through GitHub's OIDC token.
@@ -39,8 +39,8 @@ jobs:
             const read = (dir) => JSON.parse(require("fs").readFileSync(dir + "/package.json", "utf8"));
             const packages = ["backend", "express", "react"].map(read);
             const wrong = packages.filter((p) => p.version !== tag).map((p) => p.name + "@" + p.version);
-            const backendDependency = read("express").dependencies["@pisti/backend"];
-            if (backendDependency !== tag) wrong.push("@pisti/express depends on @pisti/backend@" + backendDependency);
+            const backendDependency = read("express").dependencies["@pisti-paypiller/backend"];
+            if (backendDependency !== tag) wrong.push("@pisti-paypiller/express depends on @pisti-paypiller/backend@" + backendDependency);
             if (wrong.length) { console.error("Tag v" + tag + " does not match: " + wrong.join(", ")); process.exit(1); }
           '
 
