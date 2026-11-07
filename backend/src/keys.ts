@@ -3,7 +3,10 @@ export interface PublishableKeyInfo {
     /** The environment's Frontend API, for example https://api.pisti.com/v1/fapi/fa_123. */
     frontendApi: URL;
     frontendApiId: string;
-    /** The token issuer whose published keys sign session tokens. */
+    /** The Pisti API base URL, for example https://api.pisti.com/. */
+    apiUrl: URL;
+    /** This environment's own token issuer, for example https://api.pisti.com/i/fa_123. Its published keys sign
+     * the environment's session, OAuth and M2M tokens, and no other environment's. */
     issuer: URL;
 }
 
@@ -37,14 +40,15 @@ export function parsePublishableKey(key: string): PublishableKeyInfo {
         throw new Error("The publishable key is malformed.");
     const environment = match[1] as "test" | "live";
     trustedUrl(frontendApi.origin, environment === "test");
-    const issuer = new URL(
+    const apiUrl = new URL(
         frontendApi.pathname.slice(
             0,
             frontendApi.pathname.length - `v1/fapi/${frontendApiId}`.length,
         ),
         frontendApi.origin,
     );
-    return { environment, frontendApi, frontendApiId, issuer };
+    const issuer = new URL(`i/${frontendApiId}`, apiUrl);
+    return { environment, frontendApi, frontendApiId, apiUrl, issuer };
 }
 
 export function trustedUrl(value: string, development: boolean): URL {

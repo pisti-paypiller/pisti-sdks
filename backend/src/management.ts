@@ -156,7 +156,7 @@ type RequestResource = <T>(
 
 /** Server-side client for one environment: request authentication and the management API. */
 export class PistiClient {
-    readonly #issuer: URL;
+    readonly #apiUrl: URL;
     readonly #secretKey: string | undefined;
     readonly #publishableKey: string;
     readonly #authorizedParties: string[] | undefined;
@@ -185,10 +185,10 @@ export class PistiClient {
                 throw new Error("PISTI_SECRET_KEY doesn’t look like a Pisti secret key (sk_test_… or sk_live_…).");
             if ((key.environment === "live") !== secretKey.startsWith("sk_live_"))
                 throw new Error("The secret key and publishable key belong to different environments.");
-            if (key.issuer.protocol === "http:" && secretKey.startsWith("sk_live_"))
+            if (key.apiUrl.protocol === "http:" && secretKey.startsWith("sk_live_"))
                 throw new Error("Production credentials require HTTPS.");
         }
-        this.#issuer = key.issuer;
+        this.#apiUrl = key.apiUrl;
         this.#secretKey = secretKey;
         this.#publishableKey = publishableKey;
         this.#authorizedParties = options.authorizedParties;
@@ -274,7 +274,7 @@ export class PistiClient {
         const timeout = AbortSignal.timeout(this.#timeoutMs);
         try {
             response = await fetch(
-                new URL(path.slice(1), this.#issuer),
+                new URL(path.slice(1), this.#apiUrl),
                 {
                     method,
                     headers: {

@@ -41,9 +41,9 @@ Every option falls back to an environment variable:
 
 | Option | Variable | Used for |
 | --- | --- | --- |
-| `publishableKey` | `PISTI_PUBLISHABLE_KEY` | Finding the issuer and checking the token's environment. Required. |
+| `publishableKey` | `PISTI_PUBLISHABLE_KEY` | Finding the environment's issuer (`{api}/i/{frontendApiId}`) and checking the token's environment. Required. |
 | `secretKey` | `PISTI_SECRET_KEY` | The backend API and verifying API keys |
-| `jwtKey` | `PISTI_JWT_KEY` | Networkless verification with the PEM public key from the console (API keys → JWT public key). Without it, signing keys are fetched once and cached. |
+| `jwtKey` | `PISTI_JWT_KEY` | Networkless verification with the PEM public key from the console (API keys → JWT public key). Replace it after rotating the environment's signing keys. Without it, the environment's signing keys are fetched from its issuer, cached, and refetched when a rotated key appears. |
 | `authorizedParties` | `PISTI_AUTHORIZED_PARTIES` (comma-separated) | Origins allowed to have requested session tokens. Recommended in production. |
 | `signingSecret` (webhooks) | `PISTI_WEBHOOK_SIGNING_SECRET` | Webhook signatures |
 
@@ -100,7 +100,7 @@ await pisti.apiKeys.revokeApiKey(keyId, { revocationReason: "Leaked in a log" })
 `getUser`, `getUserList` and `createUser` return the same `User`: `id`, `firstName`, `lastName`,
 `fullName`, `imageUrl`, `hasImage`, `primaryEmailAddressId`, `emailAddresses`, `status`,
 `banned`, `locked`, the metadata objects and timestamps. `getInstance()` returns the
-environment, including its `jwtKey`.
+environment, including its `issuerUrl` and `jwtKey`.
 
 Pass `{ signal }` to cancel; `timeoutMs` defaults to 10 seconds; mutations are never retried
 automatically. Errors are `PistiManagementError` with `status`, `requestId`, `code`,

@@ -47,7 +47,8 @@ function publishableKeyFrom(value: string | undefined): string {
     return key;
 }
 
-// Signing keys are fetched once per issuer and cached for the life of the process.
+// Each environment is its own issuer with its own keys. The key set is discovered once per issuer and cached for the
+// life of the process; jose refetches it when a token names a key it hasn't seen, so key rotation needs no restart.
 function signingKeys(issuer: URL, development: boolean): Promise<JWTVerifyGetKey> {
     let keys = keySets.get(issuer.href);
     if (!keys) {
@@ -61,7 +62,7 @@ function signingKeys(issuer: URL, development: boolean): Promise<JWTVerifyGetKey
 }
 
 async function discoverKeys(issuer: URL, development: boolean): Promise<JWTVerifyGetKey> {
-    const discovery = new URL(".well-known/openid-configuration", issuer);
+    const discovery = new URL(`${issuer.href}/.well-known/openid-configuration`);
     let metadata: { issuer?: unknown; jwks_uri?: unknown };
     try {
         const response = await fetch(discovery, { signal: AbortSignal.timeout(10_000), redirect: "error" });
@@ -73,8 +74,8 @@ async function discoverKeys(issuer: URL, development: boolean): Promise<JWTVerif
     if (metadata.issuer !== issuer.href || typeof metadata.jwks_uri !== "string")
         throw new PistiError(503, "Pisti's discovery document does not match the publishable key.", "service_unavailable");
     const jwks = trustedUrl(metadata.jwks_uri, development);
-    if (jwks.origin !== issuer.origin)
-        throw new PistiError(503, "Pisti's signing keys must come from its issuer.", "service_unavailable");
+    if (!jwks.href.startsWith(`${issuer.href}/`))
+        throw new PistiError(503, "Pisti's signing keys must come from this environment's issuer.", "service_unavailable");
     return createRemoteJWKSet(jwks, { timeoutDuration: 10_000, cooldownDuration: 30_000 });
 }
 

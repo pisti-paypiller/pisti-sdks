@@ -14,7 +14,10 @@ export interface ManagedInstance {
     environment: "development" | "staging" | "production";
     audience: string;
     publishableKey: string;
-    /** PEM public key for networkless session token verification (`jwtKey`). */
+    /** This environment's token issuer: discovery and JWKS live under it. */
+    issuerUrl: string;
+    /** PEM public key of the current signing key, for networkless session token verification (`jwtKey`).
+     * It changes when the environment's signing keys rotate. */
     jwtKey: string;
     signupEnabled: boolean;
 }
