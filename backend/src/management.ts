@@ -814,7 +814,7 @@ export class ManagementOrganizations {
             { ...input, roleId: Number(integerId(input.roleId)) },
             options,
         );
-    reissueOrganizationInvitation = (
+    resendOrganizationInvitation = (
         id: string,
         invitationId: string,
         input: { expectedExpiresAt: string; lifetimeDays?: number },
@@ -822,7 +822,7 @@ export class ManagementOrganizations {
     ): Promise<InvitationResult> =>
         this.request(
             "POST",
-            `/organizations/${integerId(id)}/invitations/${integerId(invitationId)}/reissue`,
+            `/organizations/${integerId(id)}/invitations/${integerId(invitationId)}/resend`,
             input,
             options,
         );

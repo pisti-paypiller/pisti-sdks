@@ -93,7 +93,7 @@ await pisti.apiKeys.revokeApiKey(keyId, { revocationReason: "Leaked in a log" })
 | `users` | `getUserList`, `getUserListAll`, `getCount`, `getUser`, `createUser`, `updateUser`, `deleteUser`, `banUser`, `unbanUser`, `lockUser`, `unlockUser`, `getUserEmailAddressList`, `addEmailAddress`, `setEmailVerification`, `setPrimaryEmail`, `removeEmailAddress`, `getUserExternalAccountList` |
 | `sessions` | `getSessionList({ userId, status })`, `getSession`, `revokeSession` |
 | `apiKeys` | `getApiKeyList({ userId, includeRevoked })`, `getApiKey`, `updateApiKey(id, { scopes, claims })`, `revokeApiKey`, `verifySecret` |
-| `organizations` | `getOrganizationList`, `getOrganization`, `createOrganization`, `updateOrganization`, `deleteOrganization`, `getOrganizationMembershipList`, `updateOrganizationMembership`, `deleteOrganizationMembership`, `getOrganizationInvitationList`, `createOrganizationInvitation`, `reissueOrganizationInvitation`, `revokeOrganizationInvitation`, `getRoleList`, `createRole`, `updateRole`, `deleteRole`, `getPermissionList` |
+| `organizations` | `getOrganizationList`, `getOrganization`, `createOrganization`, `updateOrganization`, `deleteOrganization`, `getOrganizationMembershipList`, `updateOrganizationMembership`, `deleteOrganizationMembership`, `getOrganizationInvitationList`, `createOrganizationInvitation`, `resendOrganizationInvitation`, `revokeOrganizationInvitation`, `getRoleList`, `createRole`, `updateRole`, `deleteRole`, `getPermissionList` |
 | `webhooks` | `catalog`, `endpoints`, `createEndpoint`, `updateEndpoint`, `archiveEndpoint`, `rotateSecret`, `sendTest`, `deliveries`, `delivery`, `replay` |
 | `externalProviders` | `list`, `create`, `update`, `delete` |
 
