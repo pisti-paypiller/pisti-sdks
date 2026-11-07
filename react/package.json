@@ -1,6 +1,6 @@
 {
   "name": "@pisti-paypiller/react",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "Pisti for React: provider, hooks, prebuilt sign-in, sign-up, user and organization components.",
   "type": "module",
   "license": "MIT",

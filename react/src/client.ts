@@ -121,6 +121,9 @@ function withEnvironmentDefaults(options: PistiNavigationOptions): PistiNavigati
 export function parsePublishableKey(key: string | undefined): {
     frontendApi: URL;
     frontendApiId: string;
+    /** The Pisti API base URL. */
+    apiUrl: URL;
+    /** This environment's own token issuer, `{apiUrl}/i/{frontendApiId}`. */
     issuer: URL;
     development: boolean;
 } {
@@ -145,11 +148,12 @@ export function parsePublishableKey(key: string | undefined): {
     const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(frontendApi.hostname);
     if (frontendApi.protocol !== "https:" && !(development && loopback))
         throw new Error("Pisti requires HTTPS outside local development.");
-    const issuer = new URL(
+    const apiUrl = new URL(
         frontendApi.pathname.slice(0, -`v1/fapi/${frontendApiId}`.length),
         frontendApi.origin,
     );
-    return { frontendApi, frontendApiId, issuer, development };
+    const issuer = new URL(`i/${frontendApiId}`, apiUrl);
+    return { frontendApi, frontendApiId, apiUrl, issuer, development };
 }
 
 function decodeClaims(token: string): Record<string, unknown> {
@@ -176,6 +180,9 @@ function decodeClaims(token: string): Record<string, unknown> {
 export class PistiClient {
     readonly publishableKey: string;
     readonly frontendApi: URL;
+    /** The Pisti API base URL; account routes live under it. */
+    readonly apiUrl: URL;
+    /** This environment's token issuer. */
     readonly issuer: URL;
     readonly development: boolean;
     readonly account = new AccountResource(
@@ -217,6 +224,7 @@ export class PistiClient {
         this.publishableKey = publishableKey!;
         this.frontendApi = key.frontendApi;
         this.frontendApiId = key.frontendApiId;
+        this.apiUrl = key.apiUrl;
         this.issuer = key.issuer;
         this.development = key.development;
         this.storageKey = `pisti_client:${key.frontendApiId}`;
@@ -720,7 +728,7 @@ export class PistiClient {
     private async resource<T>(method: string, path: string, body?: unknown): Promise<T> {
         const identity = this.snapshot.sessionId;
         if (!identity) throw new PistiClientError("Sign in before managing your account.", 401);
-        const response = await this.authenticatedFetch(new URL(path, this.issuer), {
+        const response = await this.authenticatedFetch(new URL(path, this.apiUrl), {
             method,
             headers: {
                 Accept: "application/json",

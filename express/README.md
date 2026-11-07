@@ -85,8 +85,9 @@ app.get("/settings", requireAuth({ signInUrl: "/sign-in" }), renderSettings);
 
 The middleware reads the token from the `__session` cookie, which `@pisti-paypiller/react` keeps fresh on
 your app's origin, or from `Authorization: Bearer` for APIs on another domain
-(`useAuthenticatedFetch()` in React sends it). It checks the signature, issuer, expiry, that the
-token belongs to your environment and, when configured, the requesting origin. An expired or
+(`useAuthenticatedFetch()` in React sends it). It checks the signature against your environment's
+own keys, its issuer, expiry, that the token belongs to your environment and, when configured, the
+requesting origin. A token from another environment fails on both issuer and signature. An expired or
 invalid cookie leaves the request signed out; an invalid bearer token answers 401.
 
 `requireAuth()` answers with RFC 9457 problem details: `401 signed_out`, or `403 forbidden` or
@@ -185,7 +186,8 @@ duplicates.
 - Set the variables above in your host's environment. Use the production environment's
   `pk_live_` / `sk_live_` keys; they require HTTPS.
 - Verification is stateless and works on servers, containers and serverless functions alike.
-  Signing keys are fetched once per process and cached.
+  Each environment's signing keys are fetched from its issuer once per process, cached, and
+  refetched when a token is signed with a newly rotated key.
 - Never send `PISTI_SECRET_KEY` to a browser.
 
 See `sdk.md` in the pisti-docs repository for how the pieces fit, and `pisti-demo`
