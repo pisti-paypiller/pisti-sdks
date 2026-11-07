@@ -1,6 +1,6 @@
 {
   "name": "@pisti-paypiller/backend",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Pisti backend SDK: verify session tokens, authenticate Fetch API requests, the management API and webhooks. Framework-agnostic.",
   "type": "module",
   "license": "MIT",
