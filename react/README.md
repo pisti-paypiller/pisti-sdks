@@ -156,5 +156,5 @@ expired cookie with a handshake instead of treating the visitor as signed out. F
 The SDK is static browser code; build and host your app anywhere. For production, use the
 `pk_live_` key, serve over HTTPS, and add your app's origin under Domains & paths.
 
-See `sdk.md` in the pisti-docs repository for how the pieces fit, and `pisti-demo`
+See `docs/sdk.md` in pisti-sdks for how the pieces fit, and `pisti-demo`
 in the pisti-examples repository for a working example.

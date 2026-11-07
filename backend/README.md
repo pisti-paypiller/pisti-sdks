@@ -131,4 +131,4 @@ tolerance) on the raw body. Pass `{ signingSecret: [current, previous] }` while 
 `{ expectedInstanceId }` to pin events to one environment. Store `event.id` to ignore
 duplicates.
 
-See `sdk.md` in the pisti-docs repository for how the pieces fit.
+See `docs/sdk.md` in pisti-sdks for how the pieces fit.

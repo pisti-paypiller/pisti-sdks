@@ -7,15 +7,15 @@ path coverage and read current source when the graph is stale.
 
 ## Repositories
 
-Pisti is five independent repositories: pisti-backend, pisti-apps, pisti-sdks,
-pisti-examples and pisti-docs. Each one builds and runs on its own. They connect
+Pisti is four independent repositories: pisti-backend, pisti-apps, pisti-sdks and
+pisti-examples. Each one builds and runs on its own. They connect
 only over HTTP, through the API described by pisti-backend `openapi/v1.json`, and
 through the published `@pisti-paypiller/*` npm packages.
 
 - Never reference another repository's files by relative path, mount, include or
   `file:` dependency, and never assume a sibling checkout exists.
 - Refer to another repository's files in prose as `<repository>/<path>`, for example
-  `pisti-docs/portals.md`.
+  `pisti-apps/docs/portals.md`.
 
 ## Project stage: development (pre-production)
 
@@ -26,12 +26,12 @@ release, choose the correct design over compatibility:
   allowed. Do not add compatibility shims, deprecated aliases, dual code paths or
   legacy fallbacks unless asked.
 - A breaking API change starts in pisti-backend and regenerates `openapi/v1.json`.
-  Then pisti-sdks, pisti-apps, pisti-examples and pisti-docs are updated, each in
+  Then pisti-sdks, pisti-apps and pisti-examples are updated, each in
   its own repository. Use the same branch name in every affected repository and
   link the changes to each other.
 - Remove dead code and obsolete scripts instead of keeping them "for history".
 - Fix root causes and redesign weak flows when needed; record anything deferred in
-  `pisti-docs/roadmap.md`.
+  `pisti-backend/docs/roadmap.md`.
 
 When the first production release is cut, replace this section with production
 rules: a versioned public API (a new `/v2` instead of breaking `/v1`), semantically
@@ -39,12 +39,12 @@ versioned SDKs, and additive or reviewed data-preserving migrations.
 
 ## Documentation
 
-- pisti-docs describes the system as it is now; its README.md is the index. When a
+- The guides in pisti-backend/docs, pisti-apps/docs and pisti-sdks/docs describe the system as it is now; pisti-backend/docs/README.md is the index. When a
   change alters behavior, the API, configuration or the schema, update the relevant
-  guide in pisti-docs as well. Do not add changelogs, history, review logs or
+  guide as well. Do not add changelogs, history, review logs or
   implementation diaries.
-- `pisti-docs/roadmap.md` is the single list of known gaps and pre-production work.
-- READMEs in this repository cover only its own components and point to pisti-docs
+- `pisti-backend/docs/roadmap.md` is the single list of known gaps and pre-production work.
+- READMEs in this repository cover only its own components and point to the shared
   guides by name for shared topics.
 
 ## API contract
