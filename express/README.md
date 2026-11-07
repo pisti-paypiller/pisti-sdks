@@ -190,5 +190,5 @@ duplicates.
   refetched when a token is signed with a newly rotated key.
 - Never send `PISTI_SECRET_KEY` to a browser.
 
-See `sdk.md` in the pisti-docs repository for how the pieces fit, and `pisti-demo`
+See `docs/sdk.md` in pisti-sdks for how the pieces fit, and `pisti-demo`
 in the pisti-examples repository for a working example.

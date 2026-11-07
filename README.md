@@ -10,7 +10,7 @@ The Pisti customer SDKs.
 
 The packages talk to the Pisti API (pisti-backend) only over HTTP; its contract is
 pisti-backend `openapi/v1.json`. They share one version and are released together.
-See pisti-docs `sdk.md` for how they fit together.
+See `docs/sdk.md` in pisti-sdks for how they fit together.
 
 ## Build
 
