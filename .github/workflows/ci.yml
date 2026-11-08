@@ -32,5 +32,7 @@ jobs:
 
       - run: npm run check
 
+      - run: npm test
+
       - name: Pack (dry run)
         run: npm pack --workspaces --dry-run

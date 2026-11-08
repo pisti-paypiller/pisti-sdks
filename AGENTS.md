@@ -75,5 +75,8 @@ versioned SDKs, and additive or reviewed data-preserving migrations.
 
 - `npm ci && npm run build` at the repository root builds every package in
   dependency order; `npm run pack` writes installable tarballs. Files use LF line
-  endings. Do not add tests, test helpers, or test scripts unless explicitly
-  requested.
+  endings.
+- `npm test` runs the Vitest suites in each package's `test/` directory. They run
+  offline: tokens are signed with keys generated per run and verified through
+  `jwtKey`. Every check that rejects a token, handshake or webhook has a test;
+  keep it that way when changing verification.

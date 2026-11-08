@@ -10,6 +10,7 @@
   "scripts": {
     "build": "npm run build --workspaces",
     "check": "npm run check --workspaces --if-present",
-    "pack": "npm pack --workspaces --pack-destination ."
+    "pack": "npm pack --workspaces --pack-destination .",
+    "test": "npm run test --workspaces --if-present"
   }
 }

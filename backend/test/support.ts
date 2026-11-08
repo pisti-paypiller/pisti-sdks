@@ -1,0 +1,62 @@
+import { exportSPKI, generateKeyPair, SignJWT, type CryptoKey, type JWTPayload } from "jose";
+
+/** The Frontend API id every test environment uses. */
+export const FRONTEND_API_ID = "fa_test123";
+export const API_ORIGIN = "http://localhost:3000";
+export const ISSUER = `${API_ORIGIN}/i/${FRONTEND_API_ID}`;
+export const APP_ORIGIN = "http://localhost:5173";
+
+/** A development publishable key for the test environment, built the way the backend encodes it. */
+export function publishableKey(frontendApiId = FRONTEND_API_ID, environment: "test" | "live" = "test"): string {
+    const origin = environment === "test" ? API_ORIGIN : "https://api.example.com";
+    const encoded = Buffer.from(`${origin}/v1/fapi/${frontendApiId}$`, "utf8").toString("base64url");
+    return `pk_${environment}_${encoded}`;
+}
+
+export interface SigningKey {
+    privateKey: CryptoKey;
+    /** The PEM public key, passed to the SDK as `jwtKey` so verification never touches the network. */
+    pem: string;
+}
+
+export async function signingKey(algorithm: "RS256" | "ES256" = "RS256"): Promise<SigningKey> {
+    const { privateKey, publicKey } = await generateKeyPair(algorithm, { extractable: true });
+    return { privateKey, pem: await exportSPKI(publicKey) };
+}
+
+export interface TokenOptions {
+    algorithm?: "RS256" | "ES256";
+    type?: string;
+    issuer?: string;
+    audience?: string;
+    expiresInSeconds?: number;
+    issuedAt?: number;
+}
+
+const now = () => Math.floor(Date.now() / 1000);
+
+/** Signs a JWT with the given claims and the defaults of a Pisti session token. */
+export function sign(key: SigningKey, claims: JWTPayload, options: TokenOptions = {}): Promise<string> {
+    const issuedAt = options.issuedAt ?? now();
+    const jwt = new SignJWT(claims)
+        .setProtectedHeader({ alg: options.algorithm ?? "RS256", typ: options.type ?? "JWT" })
+        .setIssuer(options.issuer ?? ISSUER)
+        .setIssuedAt(issuedAt)
+        .setExpirationTime(issuedAt + (options.expiresInSeconds ?? 60));
+    if (options.audience) jwt.setAudience(options.audience);
+    return jwt.sign(key.privateKey);
+}
+
+/** The claims of a valid session token for the test environment. */
+export function sessionClaims(overrides: JWTPayload = {}): JWTPayload {
+    return {
+        sub: "user_1",
+        sid: "sess_1",
+        instance_id: "ins_1",
+        ptyp: "session",
+        fid: FRONTEND_API_ID,
+        azp: APP_ORIGIN,
+        auth_time: now(),
+        ...overrides,
+    };
+}
