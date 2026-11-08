@@ -37,7 +37,7 @@ An application environment has two kinds of key:
    background. `useAuthenticatedFetch()` also sends it as a bearer header.
 4. `pistiMiddleware()` from `@pisti-paypiller/express` (configured from `PISTI_PUBLISHABLE_KEY`)
    verifies the token offline against the environment's issuer and its published signing keys
-   (discovery and JWKS under the issuer), checks `ptyp`, `fid`
+   (discovery and JWKS under the issuer), checks the `session+jwt` type, the `pisti:session` audience, `ptyp`, `fid`
    and optional authorized parties, and exposes a Clerk-shaped auth object through
    `getAuth(req)`: `isAuthenticated`, `userId`, `sessionId`, `orgId`, `orgRole`,
    `sessionClaims`, `factorVerificationAge` and `has({ permission, role, reverification })`.
@@ -62,7 +62,8 @@ Besides session tokens, backends can accept three bearer tokens with `acceptsTok
   your API as a machine.
 - **OAuth access tokens**: issued to OAuth applications on a user's behalf.
 
-M2M and OAuth tokens are JWTs verified offline like session tokens and told apart by `ptyp`.
+M2M and OAuth tokens are JWTs verified offline like session tokens. They must be typed `at+jwt`
+and are told apart by `ptyp`.
 With `jwtKey` (`PISTI_JWT_KEY`, the console's JWT public key) no JWT verification needs the
 network; replace it after rotating the environment's signing keys. Without it, the SDKs cache
 the environment's JWKS and refetch it when a token carries a new `kid`.

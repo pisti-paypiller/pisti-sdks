@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { PistiError } from "../src/errors.js";
 import { authenticateRequest, authObject, HANDSHAKE_PARAMETER, verifyToken } from "../src/tokens.js";
 import type { SessionClaims } from "../src/types.js";
-import { APP_ORIGIN, publishableKey, sessionClaims, sign, signingKey, type SigningKey } from "./support.js";
+import { APP_ORIGIN, KINDS, publishableKey, sessionClaims, sign, signingKey, type SigningKey } from "./support.js";
 
 let key: SigningKey;
 let otherKey: SigningKey;
@@ -55,6 +55,16 @@ describe("verifyToken", () => {
     it.each(["oauth", "m2m", "handshake", undefined])("rejects a token whose ptyp is %s", async (ptyp) => {
         const token = await sign(key, sessionClaims({ ptyp }));
         expect((await rejection(verifyToken(token, options()))).message).toMatch(/not a session token/);
+    });
+
+    it.each([
+        ["an OAuth access token type", { type: KINDS.access.type }],
+        ["the generic JWT type", { type: "JWT" }],
+        ["the access token audience", { audience: KINDS.access.audience }],
+        ["the handshake audience", { audience: KINDS.handshake.audience }],
+    ])("rejects a session token with %s", async (_, kind) => {
+        const token = await sign(key, sessionClaims(), kind);
+        expect((await rejection(verifyToken(token, options()))).code).toBe("invalid_token");
     });
 
     it("rejects a token issued to an origin that is not an authorized party", async () => {
@@ -117,8 +127,24 @@ describe("authenticateRequest", () => {
         expect(state.toAuth().userId).toBe("user_1");
     });
 
+    it("signs in a machine with a valid M2M access token", async () => {
+        const token = await sign(key, { sub: "cli_1", ptyp: "m2m", fid: "fa_test123" }, KINDS.access);
+        const state = await authenticateRequest(request({ authorization: `Bearer ${token}` }), { ...options(), acceptsToken: "m2m_token" });
+
+        expect(state.status).toBe("signed-in");
+        expect(state.toAuth().subject).toBe("cli_1");
+    });
+
+    it("rejects an M2M token that carries the session token type", async () => {
+        const token = await sign(key, { sub: "cli_1", ptyp: "m2m", fid: "fa_test123" });
+        const state = await authenticateRequest(request({ authorization: `Bearer ${token}` }), { ...options(), acceptsToken: "m2m_token" });
+
+        expect(state.status).toBe("signed-out");
+        expect(state.reason).toBe("token-invalid");
+    });
+
     it("refuses a token type the endpoint does not accept", async () => {
-        const token = await sign(key, sessionClaims({ ptyp: "m2m" }));
+        const token = await sign(key, sessionClaims({ ptyp: "m2m" }), KINDS.access);
         const state = await authenticateRequest(request({ authorization: `Bearer ${token}` }), options());
 
         expect(state.status).toBe("signed-out");
@@ -163,7 +189,7 @@ describe("authenticateRequest", () => {
     });
 
     it("rejects a handshake addressed to another app origin", async () => {
-        const handshake = await sign(key, { ptyp: "handshake", fid: "fa_test123", azp: "http://localhost:9999", client_uat: 1 });
+        const handshake = await sign(key, { ptyp: "handshake", fid: "fa_test123", azp: "http://localhost:9999", client_uat: 1 }, KINDS.handshake);
         const url = `${APP_ORIGIN}/dashboard?${HANDSHAKE_PARAMETER}=${handshake}`;
         const state = await authenticateRequest(request({}, url), options());
 

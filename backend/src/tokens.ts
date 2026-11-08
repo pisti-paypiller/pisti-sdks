@@ -35,6 +35,18 @@ export const CLIENT_UAT_COOKIE = "__client_uat";
 export const HANDSHAKE_PARAMETER = "__pisti_handshake";
 const REDIRECT_LOOP_COOKIE = "__pisti_redirect_loop";
 
+/**
+ * How each kind of Pisti JWT is typed (RFC 8725 explicit typing). Every kind is signed with the environment's keys,
+ * so verification always pins the JOSE `typ` header and, where the kind has a fixed one, the audience.
+ */
+const JWT_KINDS = {
+    session: { name: "session token", typ: "session+jwt", audience: "pisti:session" },
+    handshake: { name: "handshake", typ: "handshake+jwt", audience: "pisti:handshake" },
+    oauth: { name: "OAuth access token", typ: "at+jwt", audience: undefined },
+    m2m: { name: "machine token", typ: "at+jwt", audience: undefined },
+} as const;
+type JwtKind = (typeof JWT_KINDS)[keyof typeof JWT_KINDS];
+
 const keySets = new Map<string, Promise<JWTVerifyGetKey>>();
 const pemKeys = new Map<string, Promise<CryptoKey>>();
 
@@ -95,23 +107,31 @@ function verificationKey(key: PublishableKeyInfo, jwtKey: string | undefined): P
     return imported;
 }
 
-/** Verifies any Pisti-signed JWT for this environment and returns its payload. */
-async function verifyJwt(token: string, key: PublishableKeyInfo, options: VerifyTokenOptions, kind: string): Promise<JWTPayload> {
-    if (!token || token.length > 16_384) throw new PistiError(401, `The ${kind} is missing or too large.`, "invalid_token");
+/** Verifies a Pisti-signed JWT of one kind for this environment and returns its payload. */
+async function verifyJwt(token: string, key: PublishableKeyInfo, options: VerifyTokenOptions, kind: JwtKind): Promise<JWTPayload> {
+    const { name } = kind;
+    if (!token || token.length > 16_384) throw new PistiError(401, `The ${name} is missing or too large.`, "invalid_token");
     const verifier = await verificationKey(key, options.jwtKey);
     let payload: JWTPayload;
     try {
-        const verifyOptions = { issuer: key.issuer.href, algorithms: ["RS256"], clockTolerance: 5, requiredClaims: ["exp", "iat"] };
+        const verifyOptions = {
+            issuer: key.issuer.href,
+            typ: kind.typ,
+            ...(kind.audience ? { audience: kind.audience } : {}),
+            algorithms: ["RS256"],
+            clockTolerance: 5,
+            requiredClaims: ["exp", "iat"],
+        };
         ({ payload } =
             typeof verifier === "function"
                 ? await jwtVerify(token, verifier, verifyOptions)
                 : await jwtVerify(token, verifier, verifyOptions));
     } catch (error) {
         if (error instanceof PistiError) throw error;
-        if (error instanceof joseErrors.JWTExpired) throw new PistiError(401, `The ${kind} has expired.`, "token_expired");
-        throw new PistiError(401, `The ${kind} is invalid.`, "invalid_token");
+        if (error instanceof joseErrors.JWTExpired) throw new PistiError(401, `The ${name} has expired.`, "token_expired");
+        throw new PistiError(401, `The ${name} is invalid.`, "invalid_token");
     }
-    if (payload.fid !== key.frontendApiId) throw new PistiError(401, `The ${kind} belongs to another environment.`, "invalid_token");
+    if (payload.fid !== key.frontendApiId) throw new PistiError(401, `The ${name} belongs to another environment.`, "invalid_token");
     return payload;
 }
 
@@ -131,7 +151,7 @@ function authorizedParties(options: VerifyTokenOptions, development: boolean): s
 export async function verifyToken(token: string, options: VerifyTokenOptions = {}): Promise<SessionClaims> {
     const key = parsePublishableKey(publishableKeyFrom(options.publishableKey));
     const parties = authorizedParties(options, key.environment === "test");
-    const payload = await verifyJwt(token, key, options, "session token");
+    const payload = await verifyJwt(token, key, options, JWT_KINDS.session);
     if (payload.ptyp !== "session" || typeof payload.sub !== "string" || typeof payload.sid !== "string")
         throw new PistiError(401, "This is not a session token.", "invalid_token");
     if (parties && (typeof payload.azp !== "string" || !parties.includes(payload.azp)))
@@ -231,7 +251,7 @@ async function verifyMachineJwt(
     key: PublishableKeyInfo,
     options: VerifyTokenOptions,
 ): Promise<AuthenticatedOAuthToken | AuthenticatedM2MToken> {
-    const payload = await verifyJwt(token, key, options, type === "m2m_token" ? "machine token" : "OAuth access token");
+    const payload = await verifyJwt(token, key, options, type === "m2m_token" ? JWT_KINDS.m2m : JWT_KINDS.oauth);
     if (payload.ptyp !== (type === "m2m_token" ? "m2m" : "oauth") || typeof payload.sub !== "string")
         throw new PistiError(401, "The token type doesn't match.", "invalid_token");
     const claims = Object.freeze({ ...payload });
@@ -409,7 +429,7 @@ async function completeHandshake(
 ): Promise<RequestState<AuthObject>> {
     let payload: JWTPayload;
     try {
-        payload = await verifyJwt(handshake, key, options, "handshake");
+        payload = await verifyJwt(handshake, key, options, JWT_KINDS.handshake);
     } catch (error) {
         if (!(error instanceof PistiError)) throw error;
         return state("signed-out", signedOutAuthObject, { reason: "handshake-invalid", message: error.message });

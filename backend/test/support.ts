@@ -35,16 +35,23 @@ export interface TokenOptions {
 
 const now = () => Math.floor(Date.now() / 1000);
 
-/** Signs a JWT with the given claims and the defaults of a Pisti session token. */
+/** The JOSE type and audience the backend gives each kind of token. */
+export const KINDS = {
+    session: { type: "session+jwt", audience: "pisti:session" },
+    handshake: { type: "handshake+jwt", audience: "pisti:handshake" },
+    access: { type: "at+jwt", audience: "urn:instance:test" },
+} as const;
+
+/** Signs a JWT with the given claims, typed as a session token unless the options say otherwise. */
 export function sign(key: SigningKey, claims: JWTPayload, options: TokenOptions = {}): Promise<string> {
     const issuedAt = options.issuedAt ?? now();
-    const jwt = new SignJWT(claims)
-        .setProtectedHeader({ alg: options.algorithm ?? "RS256", typ: options.type ?? "JWT" })
+    return new SignJWT(claims)
+        .setProtectedHeader({ alg: options.algorithm ?? "RS256", typ: options.type ?? KINDS.session.type })
         .setIssuer(options.issuer ?? ISSUER)
+        .setAudience(options.audience ?? KINDS.session.audience)
         .setIssuedAt(issuedAt)
-        .setExpirationTime(issuedAt + (options.expiresInSeconds ?? 60));
-    if (options.audience) jwt.setAudience(options.audience);
-    return jwt.sign(key.privateKey);
+        .setExpirationTime(issuedAt + (options.expiresInSeconds ?? 60))
+        .sign(key.privateKey);
 }
 
 /** The claims of a valid session token for the test environment. */
