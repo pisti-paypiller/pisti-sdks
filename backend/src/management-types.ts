@@ -142,7 +142,7 @@ export interface DirectoryExternalAccount {
     createdAt: string;
 }
 
-export type SessionStatus = "active" | "revoked" | "expired";
+export type SessionStatus = "active" | "expired" | "signed_out" | "revoked";
 
 export interface Session {
     id: string;

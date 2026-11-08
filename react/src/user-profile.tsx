@@ -1,4 +1,4 @@
-import { useCallback, useId, useState, type FormEvent } from "react";
+import { useCallback, useId, useState, type FormEvent, type ReactNode } from "react";
 import { APIKeys } from "./api-keys.js";
 import { useAccount, useAuth } from "./context.js";
 import type { AuthenticatorEnrollment, SecurityProof } from "./resources.js";
@@ -34,16 +34,21 @@ function downloadRecoveryCodes(codes: string[]) {
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/** Collects the proof that every security change needs in the same request: the current password or
+ * an email code, plus an authenticator or recovery code when one is enrolled. `children` holds the
+ * operation's own fields, read from the form passed to `onSubmit`. */
 function ProofForm({
     label,
     onSubmit,
     message,
-    allowRecent = true,
+    hasPassword = true,
+    children,
 }: {
     label: string;
-    onSubmit: (proof: SecurityProof) => Promise<void>;
+    onSubmit: (proof: SecurityProof, form: HTMLFormElement) => Promise<void>;
     message: string;
-    allowRecent?: boolean;
+    hasPassword?: boolean | undefined;
+    children?: ReactNode;
 }) {
     const account = useAccount();
     const id = useId();
@@ -54,12 +59,15 @@ function ProofForm({
         const form = event.currentTarget;
         void action.run(async () => {
             const code = value(form, "factor");
-            await onSubmit({
-                ...(requestId
-                    ? { requestId, emailCode: value(form, "emailCode") }
-                    : { password: value(form, "password") }),
-                ...(code ? { code } : {}),
-            });
+            await onSubmit(
+                {
+                    ...(requestId
+                        ? { requestId, emailCode: value(form, "emailCode") }
+                        : { password: value(form, "password") }),
+                    ...(code ? { code } : {}),
+                },
+                form,
+            );
             form.reset();
             setRequestId(null);
         }, message);
@@ -68,6 +76,7 @@ function ProofForm({
         <form onSubmit={submit} className="pisti-form">
             <fieldset disabled={action.isPending}>
                 <legend>{label}</legend>
+                {children}
                 {requestId ? (
                     <label htmlFor={id + "-email"}>
                         Email verification code
@@ -81,7 +90,7 @@ function ProofForm({
                             required
                         />
                     </label>
-                ) : (
+                ) : hasPassword ? (
                     <label htmlFor={id + "-password"}>
                         Current password
                         <input
@@ -93,6 +102,10 @@ function ProofForm({
                             required
                         />
                     </label>
+                ) : (
+                    <p className="pisti-muted">
+                        Confirm it's you with a code sent to your verified email.
+                    </p>
                 )}
                 <button
                     type="button"
@@ -107,7 +120,9 @@ function ProofForm({
                 >
                     {requestId
                         ? "Send a new email code"
-                        : "Use an email code instead"}
+                        : hasPassword
+                          ? "Use an email code instead"
+                          : "Send an email code"}
                 </button>
                 <label htmlFor={id + "-factor"}>
                     Authenticator or recovery code
@@ -122,25 +137,9 @@ function ProofForm({
                     Enter your second factor if an authenticator is already
                     enrolled.
                 </p>
-                <button type="submit">
+                <button type="submit" disabled={!hasPassword && !requestId}>
                     {action.isPending ? "Verifying…" : label}
                 </button>
-                {allowRecent && (
-                    <button
-                        type="button"
-                        className="pisti-secondary"
-                        onClick={(event) => {
-                            const form = event.currentTarget.form;
-                            void action.run(async () => {
-                                await onSubmit({});
-                                form?.reset();
-                                setRequestId(null);
-                            }, message);
-                        }}
-                    >
-                        Use recent verification
-                    </button>
-                )}
             </fieldset>
             <ActionNotice action={action} />
         </form>
@@ -445,7 +444,7 @@ function AccountSecurity() {
             <AccountPasskeys />
             <AccountConnections />
             <ProofForm
-                allowRecent={false}
+                hasPassword={query.data?.hasPassword}
                 label="Verify identity"
                 message="Your identity has been verified."
                 onSubmit={async (proof) => {
@@ -465,6 +464,7 @@ function AccountSecurity() {
                 </p>
                 {!enrollment && (
                     <ProofForm
+                        hasPassword={query.data?.hasPassword}
                         label={
                             query.data?.authenticatorEnabled
                                 ? "Replace authenticator"
@@ -551,6 +551,7 @@ function AccountSecurity() {
                             once; wait for a fresh code between operations.
                         </p>
                         <ProofForm
+                            hasPassword={query.data.hasPassword}
                             label="Generate new recovery codes"
                             message="Previous recovery codes have been replaced."
                             onSubmit={async (proof) => {
@@ -566,6 +567,7 @@ function AccountSecurity() {
                         />
                         {!query.data.authenticatorRequired && (
                             <ProofForm
+                                hasPassword={query.data.hasPassword}
                                 label="Remove authenticator and sign out"
                                 message="Authenticator removed."
                                 onSubmit={async (proof) => {
@@ -611,75 +613,31 @@ function AccountSecurity() {
                     <p className="pisti-muted">
                         Changing your password signs out your other devices; this one stays signed in.
                     </p>
-                    <form
-                        className="pisti-form"
-                        onSubmit={(event) => {
-                            event.preventDefault();
-                            const form = event.currentTarget;
-                            void action.run(async () => {
-                                if (query.data?.hasPassword)
-                                    await account.changePassword(
-                                        value(form, "currentPassword"),
-                                        value(form, "password"),
-                                        value(form, "code") || undefined,
-                                    );
-                                else
-                                    await account.setPassword(
-                                        value(form, "password"),
-                                    );
-                                form.reset();
-                            });
-                        }}
+                    <ProofForm
+                        hasPassword={query.data.hasPassword}
+                        label={
+                            query.data.hasPassword
+                                ? "Change password and sign out"
+                                : "Set password and sign out"
+                        }
+                        message="Your password has been saved."
+                        onSubmit={(proof, form) =>
+                            account.setPassword(value(form, "password"), proof)
+                        }
                     >
-                        <fieldset disabled={action.isPending}>
-                            <legend>Change password</legend>
-                            {query.data.hasPassword && (
-                                <label htmlFor={id + "-current"}>
-                                    Current password
-                                    <input
-                                        id={id + "-current"}
-                                        name="currentPassword"
-                                        type="password"
-                                        maxLength={128}
-                                        autoComplete="current-password"
-                                        required
-                                    />
-                                </label>
-                            )}
-                            <label htmlFor={id + "-new"}>
-                                New password
-                                <input
-                                    id={id + "-new"}
-                                    name="password"
-                                    type="password"
-                                    minLength={15}
-                                    maxLength={128}
-                                    autoComplete="new-password"
-                                    required
-                                />
-                            </label>
-                            {query.data.hasPassword && (
-                                <label htmlFor={id + "-password-factor"}>
-                                    Authenticator or recovery code
-                                    <input
-                                        id={id + "-password-factor"}
-                                        name="code"
-                                        maxLength={64}
-                                        autoComplete="one-time-code"
-                                    />
-                                </label>
-                            )}
-                            {!query.data.hasPassword && (
-                                <p className="pisti-muted">
-                                    Verify your identity when prompted to add a
-                                    password.
-                                </p>
-                            )}
-                            <button type="submit">
-                                Change password and sign out
-                            </button>
-                        </fieldset>
-                    </form>
+                        <label htmlFor={id + "-new"}>
+                            New password
+                            <input
+                                id={id + "-new"}
+                                name="password"
+                                type="password"
+                                minLength={15}
+                                maxLength={128}
+                                autoComplete="new-password"
+                                required
+                            />
+                        </label>
+                    </ProofForm>
                 </details>
             )}
             <details className="pisti-section">
@@ -690,39 +648,33 @@ function AccountSecurity() {
                     all sessions will end.
                 </p>
                 {!emailRequest ? (
-                    <form
-                        className="pisti-form"
-                        onSubmit={(event) => {
-                            event.preventDefault();
-                            const form = event.currentTarget;
-                            void action.run(async () => {
-                                setEmailRequest(
-                                    (
-                                        await account.requestEmailChange(
-                                            value(form, "email"),
-                                        )
-                                    ).requestId,
-                                );
-                            }, "Check your new email for a code.");
+                    <ProofForm
+                        hasPassword={query.data?.hasPassword}
+                        label="Send verification code"
+                        message="Check your new email for a code."
+                        onSubmit={async (proof, form) => {
+                            setEmailRequest(
+                                (
+                                    await account.requestEmailChange(
+                                        value(form, "email"),
+                                        proof,
+                                    )
+                                ).requestId,
+                            );
                         }}
                     >
-                        <fieldset disabled={action.isPending}>
-                            <label htmlFor={id + "-email"}>
-                                New email
-                                <input
-                                    id={id + "-email"}
-                                    name="email"
-                                    type="email"
-                                    maxLength={254}
-                                    autoComplete="email"
-                                    required
-                                />
-                            </label>
-                            <button type="submit">
-                                Send verification code
-                            </button>
-                        </fieldset>
-                    </form>
+                        <label htmlFor={id + "-email"}>
+                            New email
+                            <input
+                                id={id + "-email"}
+                                name="email"
+                                type="email"
+                                maxLength={254}
+                                autoComplete="email"
+                                required
+                            />
+                        </label>
+                    </ProofForm>
                 ) : (
                     <form
                         className="pisti-form"
