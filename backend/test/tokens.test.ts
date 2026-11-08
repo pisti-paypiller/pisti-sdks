@@ -93,8 +93,8 @@ describe("verifyToken", () => {
     });
 
     it("rejects a token signed with an algorithm the environment does not use", async () => {
-        const es256 = await signingKey("ES256");
-        const token = await sign(es256, sessionClaims(), { algorithm: "ES256" });
+        const rsa = await signingKey("RS256");
+        const token = await sign(rsa, sessionClaims(), { algorithm: "RS256" });
         expect((await rejection(verifyToken(token, options()))).code).toBe("invalid_token");
     });
 

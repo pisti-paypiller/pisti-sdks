@@ -104,7 +104,7 @@ function verificationKey(key: PublishableKeyInfo, jwtKey: string | undefined): P
         // Environment variables often carry the PEM on one line with literal \n.
         const blocks = pem.replaceAll("\\n", "\n").match(PEM_BLOCK) ?? [];
         const keys = blocks.length >= 1 && blocks.length <= 3
-            ? Promise.all(blocks.map((block) => importSPKI(block, "RS256")))
+            ? Promise.all(blocks.map((block) => importSPKI(block, "ES256")))
             : Promise.reject(new Error("No PEM blocks."));
         imported = keys.catch(() => {
             pemKeys.delete(pem);
@@ -142,7 +142,7 @@ async function verifyJwt(token: string, key: PublishableKeyInfo, options: Verify
             issuer: key.issuer.href,
             typ: kind.typ,
             ...(kind.audience ? { audience: kind.audience } : {}),
-            algorithms: ["RS256"],
+            algorithms: ["ES256"],
             clockTolerance: 5,
             requiredClaims: ["exp", "iat"],
         });

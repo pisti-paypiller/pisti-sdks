@@ -19,7 +19,7 @@ export interface SigningKey {
     pem: string;
 }
 
-export async function signingKey(algorithm: "RS256" | "ES256" = "RS256"): Promise<SigningKey> {
+export async function signingKey(algorithm: "RS256" | "ES256" = "ES256"): Promise<SigningKey> {
     const { privateKey, publicKey } = await generateKeyPair(algorithm, { extractable: true });
     return { privateKey, pem: await exportSPKI(publicKey) };
 }
@@ -45,7 +45,7 @@ export const KINDS = {
 export function sign(key: SigningKey, claims: JWTPayload, options: TokenOptions = {}): Promise<string> {
     const issuedAt = options.issuedAt ?? now();
     return new SignJWT(claims)
-        .setProtectedHeader({ alg: options.algorithm ?? "RS256", typ: options.type ?? KINDS.session.type })
+        .setProtectedHeader({ alg: options.algorithm ?? "ES256", typ: options.type ?? KINDS.session.type })
         .setIssuer(options.issuer ?? ISSUER)
         .setAudience(options.audience ?? KINDS.session.audience)
         .setIssuedAt(issuedAt)
