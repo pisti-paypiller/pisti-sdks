@@ -159,7 +159,7 @@ export interface Session {
     abandonAt: string;
     authenticatedAt: string;
     mfaAuthenticatedAt: string | null;
-    revokedAt: string | null;
+    endedAt: string | null;
     createdAt: string;
 }
 
