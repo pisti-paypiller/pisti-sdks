@@ -110,6 +110,11 @@ ${key.pem}`;
         await expect(verifyToken(await sign(key, sessionClaims()), { ...options(), jwtKey: "not a key" })).rejects.toThrow(/PEM/);
     });
 
+    it("requires authorized parties for production keys", async () => {
+        const live = { publishableKey: publishableKey("fa_test123", "live"), jwtKey: key.pem };
+        await expect(verifyToken(await sign(key, sessionClaims()), live)).rejects.toThrow(/authorized parties/);
+    });
+
     it("rejects oversized and empty tokens before verifying them", async () => {
         expect((await rejection(verifyToken("", options()))).code).toBe("invalid_token");
         expect((await rejection(verifyToken("a".repeat(16_385), options()))).code).toBe("invalid_token");

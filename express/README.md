@@ -37,7 +37,7 @@ Copy the keys from the console (your application → Home and API keys):
 PISTI_PUBLISHABLE_KEY=pk_test_…                     # required: where to verify tokens
 PISTI_SECRET_KEY=sk_test_…                          # for pistiClient
 PISTI_WEBHOOK_SIGNING_SECRET=whsec_…                # for verifyWebhook
-PISTI_AUTHORIZED_PARTIES=https://app.example.com    # recommended in production
+PISTI_AUTHORIZED_PARTIES=https://app.example.com    # required with pk_live_ keys
 PISTI_SIGN_IN_URL=/sign-in                          # optional: where requireAuth() sends pages
 PISTI_JWT_KEY="-----BEGIN PUBLIC KEY-----\n…"       # optional: verify without fetching signing keys
 ```

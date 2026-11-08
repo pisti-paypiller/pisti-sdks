@@ -14,7 +14,9 @@ export interface SessionClaims {
     instance_id: string;
     /** The environment's Frontend API id. */
     fid: string;
+    /** Present only when the environment includes profile claims in session tokens (console → Settings). */
     email?: string;
+    /** Present only when the environment includes profile claims in session tokens (console → Settings). */
     name?: string;
     auth_time?: number;
     mfa_authenticated_at?: number;

@@ -171,6 +171,11 @@ function authorizedParties(options: VerifyTokenOptions, development: boolean): s
 export async function verifyToken(token: string, options: VerifyTokenOptions = {}): Promise<SessionClaims> {
     const key = parsePublishableKey(publishableKeyFrom(options.publishableKey));
     const parties = authorizedParties(options, key.environment === "test");
+    // Without authorized parties, a session token minted for any allowed origin of the environment would be accepted.
+    if (!parties && key.environment === "live")
+        throw new Error(
+            "Production keys need authorized parties: set PISTI_AUTHORIZED_PARTIES to your app's origins (comma-separated) or pass { authorizedParties }.",
+        );
     const payload = await verifyJwt(token, key, options, JWT_KINDS.session);
     if (payload.ptyp !== "session" || typeof payload.sub !== "string" || typeof payload.sid !== "string")
         throw new PistiError(401, "This is not a session token.", "invalid_token");
