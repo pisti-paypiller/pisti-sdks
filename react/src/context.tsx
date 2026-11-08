@@ -37,7 +37,7 @@ export interface PistiProviderProps extends PistiClientOptions {
     children: ReactNode;
     /** Colors, radius and font for every Pisti component. */
     appearance?: PistiAppearance;
-    /** Handles `?pisti_invitation=` organization invitation links before rendering your app. Defaults to true. */
+    /** Handles `#pisti_invitation=` organization invitation links before rendering your app. Defaults to true. */
     handleInvitations?: boolean;
 }
 
@@ -122,13 +122,16 @@ function InvitationGate({ client, children }: { client: PistiClient; children: R
     const [token, setToken] = useState<string | null>(null);
     const [pending, setPending] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    // The token arrives in the fragment, so it never reaches your server's logs or a Referer header.
     useEffect(() => {
-        setToken(new URL(window.location.href).searchParams.get("pisti_invitation"));
+        setToken(new URLSearchParams(window.location.hash.slice(1)).get("pisti_invitation"));
     }, []);
     if (!token) return children;
     const clear = () => {
         const url = new URL(window.location.href);
-        url.searchParams.delete("pisti_invitation");
+        const fragment = new URLSearchParams(url.hash.slice(1));
+        fragment.delete("pisti_invitation");
+        url.hash = fragment.toString();
         window.history.replaceState(window.history.state, "", url.href);
         setToken(null);
     };

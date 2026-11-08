@@ -61,7 +61,7 @@ export interface AccountSession {
     current: boolean;
     device: string;
     ipAddress: string | null;
-    status: "active" | "expired" | "revoked";
+    status: "active" | "expired" | "signed_out" | "revoked";
     idleExpiresAt: string;
 }
 export interface UserApiKey {
@@ -216,29 +216,22 @@ export class AccountResource {
     };
     revokeAllSessions = (): Promise<void> =>
         this.request("POST", "/v1/account/sessions/revoke-all");
-    changePassword = (
-        currentPassword: string,
-        password: string,
-        code?: string,
-    ): Promise<void> =>
-        this.request("POST", "/v1/account/password", {
-            currentPassword,
-            password,
-            ...(code ? { code } : {}),
-        });
-    setPassword = (
-        password: string,
-        proof: SecurityProof = {},
-    ): Promise<void> =>
+    /** Sets or changes the password. `proof` is the current password, or an email code from
+     * `requestReauthentication()`, plus a second factor when an authenticator is enrolled. */
+    setPassword = (password: string, proof: SecurityProof): Promise<void> =>
         this.request("POST", "/v1/account/password", {
             password,
-            ...(proof.password ? { currentPassword: proof.password } : {}),
-            ...(proof.code ? { code: proof.code } : {}),
-            ...(proof.requestId ? { requestId: proof.requestId } : {}),
-            ...(proof.emailCode ? { emailCode: proof.emailCode } : {}),
+            ...credentialProof(proof),
         });
-    requestEmailChange = (identifier: string): Promise<VerificationRequest> =>
-        this.request("POST", "/v1/account/email/request", { identifier });
+    /** Sends a code to the new address. Needs the same proof as `setPassword`. */
+    requestEmailChange = (
+        identifier: string,
+        proof: SecurityProof,
+    ): Promise<VerificationRequest> =>
+        this.request("POST", "/v1/account/email/request", {
+            identifier,
+            ...credentialProof(proof),
+        });
     completeEmailChange = (requestId: string, code: string): Promise<void> =>
         this.request("POST", "/v1/account/email/complete", { requestId, code });
     requestDeactivation = (): Promise<VerificationRequest> =>
@@ -392,4 +385,14 @@ export class OrganizationResource {
     /** Deletes the organization. Only an owner can; every membership and pending invitation ends with it. */
     delete = (id: string): Promise<void> =>
         this.request("DELETE", `/v1/account/organizations/${integerId(id)}`);
+}
+
+/** Credential-changing routes name the current password `currentPassword`. */
+function credentialProof(proof: SecurityProof) {
+    return {
+        ...(proof.password ? { currentPassword: proof.password } : {}),
+        ...(proof.code ? { code: proof.code } : {}),
+        ...(proof.requestId ? { requestId: proof.requestId } : {}),
+        ...(proof.emailCode ? { emailCode: proof.emailCode } : {}),
+    };
 }

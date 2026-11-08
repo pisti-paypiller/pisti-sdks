@@ -104,7 +104,7 @@ Each prop falls back to an environment variable, so most apps pass none.
 | `allowedRedirectOrigins` | — | Your app's origin |
 | `routerPush`, `routerReplace` | — | Full page navigation |
 | `appearance` | — | `{ variables: { colorPrimary, colorPrimaryText, colorBackground, colorText, colorTextSecondary, colorBorder, borderRadius, fontFamily } }` |
-| `handleInvitations` | — | `true`: handles `?pisti_invitation=` organization invitation links |
+| `handleInvitations` | — | `true`: handles `#pisti_invitation=` organization invitation links |
 
 ## Components
 
