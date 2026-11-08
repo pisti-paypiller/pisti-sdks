@@ -236,6 +236,18 @@ export class PistiClient {
         });
     }
 
+    /**
+     * Redeems the nonce a handshake redirect brought back for the browser's session token (null when signed out) and
+     * its last sign-in time. `authenticateRequest` calls this; apps don't need to.
+     */
+    redeemHandshake(
+        nonce: string,
+        origin: string,
+        options: ManagementRequestOptions = {},
+    ): Promise<{ sessionToken: string | null; clientUat: string }> {
+        return this.#request("POST", "/v1/handshake/redeem", { nonce, origin }, options);
+    }
+
     /** The environment the secret key belongs to. */
     getInstance(options: ManagementRequestOptions = {}): Promise<ManagedInstance> {
         return this.#request<ManagedInstance>("GET", "/v1/instance", undefined, options);

@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { PistiError } from "../src/errors.js";
 import { authenticateRequest, authObject, HANDSHAKE_PARAMETER, verifyToken } from "../src/tokens.js";
 import type { SessionClaims } from "../src/types.js";
@@ -12,7 +12,28 @@ beforeAll(async () => {
     otherKey = await signingKey();
 });
 
+const SECRET_KEY = `sk_test_${"a".repeat(16)}.${"b".repeat(64)}`;
 const options = () => ({ publishableKey: publishableKey(), jwtKey: key.pem, authorizedParties: [APP_ORIGIN] });
+const withSecretKey = () => ({ ...options(), secretKey: SECRET_KEY });
+
+afterEach(() => {
+    vi.unstubAllGlobals();
+});
+
+/** Answers the SDK's handshake redemption, the only Pisti API call these tests make, and records what it was sent. */
+function stubRedemption(status: number, data: unknown) {
+    const calls: { url: string; body: unknown; authorization: string | null }[] = [];
+    vi.stubGlobal("fetch", async (input: URL | string, init: RequestInit) => {
+        calls.push({
+            url: String(input),
+            body: JSON.parse(String(init.body)),
+            authorization: new Headers(init.headers).get("authorization"),
+        });
+        const body = status < 400 ? { data, meta: { requestId: "req_1" } } : { title: "Invalid", status, code: "invalid_handshake" };
+        return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+    });
+    return calls;
+}
 
 async function rejection(promise: Promise<unknown>): Promise<PistiError> {
     const error = await promise.then(
@@ -61,7 +82,6 @@ describe("verifyToken", () => {
         ["an OAuth access token type", { type: KINDS.access.type }],
         ["the generic JWT type", { type: "JWT" }],
         ["the access token audience", { audience: KINDS.access.audience }],
-        ["the handshake audience", { audience: KINDS.handshake.audience }],
     ])("rejects a session token with %s", async (_, kind) => {
         const token = await sign(key, sessionClaims(), kind);
         expect((await rejection(verifyToken(token, options()))).code).toBe("invalid_token");
@@ -175,11 +195,22 @@ describe("authenticateRequest", () => {
         const token = await sign(key, sessionClaims(), { issuedAt: Math.floor(Date.now() / 1000) - 600 });
         const state = await authenticateRequest(
             request({ cookie: `__session=${token}; __client_uat=1`, "sec-fetch-dest": "document" }),
-            options(),
+            withSecretKey(),
         );
 
         expect(state.status).toBe("handshake");
         expect(state.headers.get("location")).toMatch(/\/v1\/fapi\/fa_test123\/handshake\?redirect_url=/);
+    });
+
+    it("does not start a handshake it could not redeem without the secret key", async () => {
+        const token = await sign(key, sessionClaims(), { issuedAt: Math.floor(Date.now() / 1000) - 600 });
+        const state = await authenticateRequest(
+            request({ cookie: `__session=${token}; __client_uat=1`, "sec-fetch-dest": "document" }),
+            options(),
+        );
+
+        expect(state.status).toBe("signed-out");
+        expect(state.reason).toBe("session-token-expired");
     });
 
     it("does not redirect API calls with an expired session cookie", async () => {
@@ -193,19 +224,56 @@ describe("authenticateRequest", () => {
     it("stops after repeated handshakes instead of looping", async () => {
         const state = await authenticateRequest(
             request({ cookie: "__client_uat=1; __pisti_redirect_loop=3", "sec-fetch-dest": "document" }),
-            options(),
+            withSecretKey(),
         );
 
         expect(state.status).toBe("signed-out");
         expect(state.reason).toBe("handshake-loop");
     });
 
-    it("rejects a handshake addressed to another app origin", async () => {
-        const handshake = await sign(key, { ptyp: "handshake", fid: "fa_test123", azp: "http://localhost:9999", client_uat: 1 }, KINDS.handshake);
-        const url = `${APP_ORIGIN}/dashboard?${HANDSHAKE_PARAMETER}=${handshake}`;
-        const state = await authenticateRequest(request({}, url), options());
+    it("redeems a returned handshake with the secret key and sets the session cookies", async () => {
+        const session = await sign(key, sessionClaims());
+        const calls = stubRedemption(200, { sessionToken: session, clientUat: "1700000000" });
+        const state = await authenticateRequest(request({}, `${APP_ORIGIN}/dashboard?tab=1&${HANDSHAKE_PARAMETER}=nonce-1`), withSecretKey());
+        const cookies = state.headers.getSetCookie();
+
+        expect(calls).toEqual([
+            { url: "http://localhost:3000/v1/handshake/redeem", body: { nonce: "nonce-1", origin: APP_ORIGIN }, authorization: `Bearer ${SECRET_KEY}` },
+        ]);
+        expect(state.status).toBe("handshake");
+        expect(state.headers.get("location")).toBe(`${APP_ORIGIN}/dashboard?tab=1`);
+        expect(cookies).toContain(`__session=${session}; Path=/; Max-Age=60; SameSite=Lax`);
+        expect(cookies).toContain("__client_uat=1700000000; Path=/; Max-Age=31536000; SameSite=Lax");
+    });
+
+    it("clears the session cookie when the handshake redeems as signed out", async () => {
+        stubRedemption(200, { sessionToken: null, clientUat: "0" });
+        const state = await authenticateRequest(request({}, `${APP_ORIGIN}/?${HANDSHAKE_PARAMETER}=nonce-1`), withSecretKey());
+
+        expect(state.headers.getSetCookie()).toContain("__session=; Path=/; Max-Age=0; SameSite=Lax");
+        expect(state.headers.getSetCookie()).toContain("__client_uat=0; Path=/; Max-Age=31536000; SameSite=Lax");
+    });
+
+    it("signs out when Pisti refuses the handshake", async () => {
+        stubRedemption(400, null);
+        const state = await authenticateRequest(request({}, `${APP_ORIGIN}/?${HANDSHAKE_PARAMETER}=forged`), withSecretKey());
 
         expect(state.status).toBe("signed-out");
         expect(state.reason).toBe("handshake-invalid");
+    });
+
+    it("refuses a redeemed token that does not verify", async () => {
+        stubRedemption(200, { sessionToken: await sign(otherKey, sessionClaims()), clientUat: "1" });
+        const state = await authenticateRequest(request({}, `${APP_ORIGIN}/?${HANDSHAKE_PARAMETER}=nonce-1`), withSecretKey());
+
+        expect(state.status).toBe("signed-out");
+        expect(state.reason).toBe("handshake-invalid");
+    });
+
+    it("cannot complete a handshake without the secret key", async () => {
+        const state = await authenticateRequest(request({}, `${APP_ORIGIN}/?${HANDSHAKE_PARAMETER}=nonce-1`), options());
+
+        expect(state.status).toBe("signed-out");
+        expect(state.message).toMatch(/PISTI_SECRET_KEY/);
     });
 });

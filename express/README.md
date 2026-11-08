@@ -107,9 +107,11 @@ minute. No session store, Redis or sticky sessions are needed.
 
 Session tokens last 60 seconds and the browser SDK refreshes them while the page is open. When
 a visitor returns to a server-rendered page after the cookie expired, `pistiMiddleware()`
-answers the page request with a quick redirect through Pisti (Clerk's handshake) that sets a
-fresh `__session` cookie and comes back to the same URL. Your route only runs once the cookie
-is fresh. API requests are never redirected.
+answers the page request with a quick redirect through Pisti (Clerk's handshake). The browser
+comes back with an opaque nonce, which the middleware redeems with your secret key
+(`PISTI_SECRET_KEY`) for a fresh `__session` cookie before redirecting to the same URL, so no
+token ever travels in a URL. Your route only runs once the cookie is fresh. Without a secret key
+there is no handshake, and an expired cookie is signed out. API requests are never redirected.
 
 Behind a proxy, set `app.set("trust proxy", …)` (or keep the original `Host` header) so the
 middleware builds the return URL on your public origin.

@@ -38,7 +38,6 @@ const now = () => Math.floor(Date.now() / 1000);
 /** The JOSE type and audience the backend gives each kind of token. */
 export const KINDS = {
     session: { type: "session+jwt", audience: "pisti:session" },
-    handshake: { type: "handshake+jwt", audience: "pisti:handshake" },
     access: { type: "at+jwt", audience: "urn:instance:test" },
 } as const;
 

@@ -55,9 +55,12 @@ Every option falls back to an environment variable:
 token) and `__client_uat` (the last sign-in time) on your origin. When a page request arrives
 with an expired or missing session cookie but `__client_uat` says the visitor is signed in, the
 state is `status: "handshake"`: respond with a `307` and `state.headers`. The browser goes through
-your environment's Frontend API, which refreshes the cookie and returns to the same URL, so
-server-rendered pages never show a signed-in visitor as signed out. API requests are never
-redirected; they are signed out until the browser SDK refreshes the cookie.
+your environment's Frontend API and returns to the same URL with an opaque, one-minute nonce,
+which `authenticateRequest` redeems with your secret key for a fresh session cookie, so
+server-rendered pages never show a signed-in visitor as signed out and no token ever appears in
+a URL. The handshake needs `PISTI_SECRET_KEY` (or `{ secretKey }`); without it, expired cookies
+are treated as signed out. API requests are never redirected; they are signed out until the
+browser SDK refreshes the cookie.
 
 **Token types.** `acceptsToken` chooses what a route accepts, like Clerk:
 

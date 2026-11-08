@@ -35,6 +35,8 @@ export const SESSION_COOKIE = "__session";
 export const CLIENT_UAT_COOKIE = "__client_uat";
 export const HANDSHAKE_PARAMETER = "__pisti_handshake";
 const REDIRECT_LOOP_COOKIE = "__pisti_redirect_loop";
+const SECRET_KEY_FOR_HANDSHAKE =
+    "Refreshing the session on page loads needs your secret key. Set PISTI_SECRET_KEY or pass { secretKey }.";
 
 /**
  * How each kind of Pisti JWT is typed (RFC 8725 explicit typing). Every kind is signed with the environment's keys,
@@ -42,7 +44,6 @@ const REDIRECT_LOOP_COOKIE = "__pisti_redirect_loop";
  */
 const JWT_KINDS = {
     session: { name: "session token", typ: "session+jwt", audience: "pisti:session" },
-    handshake: { name: "handshake", typ: "handshake+jwt", audience: "pisti:handshake" },
     oauth: { name: "OAuth access token", typ: "at+jwt", audience: undefined },
     m2m: { name: "machine token", typ: "at+jwt", audience: undefined },
 } as const;
@@ -300,6 +301,19 @@ async function verifyMachineJwt(
 }
 
 const clients = new Map<string, PistiClient>();
+
+/** One management client per secret and publishable key, created on first use. */
+async function managementClient(secretKey: string, publishableKey: string) {
+    // Imported lazily: the management client itself depends on this module.
+    const { createPistiClient, PistiManagementError } = await import("./management.js");
+    const cacheKey = `${secretKey}\n${publishableKey}`;
+    let client = clients.get(cacheKey);
+    if (!client) {
+        client = createPistiClient({ secretKey, publishableKey });
+        clients.set(cacheKey, client);
+    }
+    return { client, PistiManagementError };
+}
 // Verified API keys are reused briefly, so a busy API does not call Pisti on every request. A revoked key can keep
 // working in each process for up to this long.
 const API_KEY_CACHE_MS = 10_000;
@@ -315,14 +329,7 @@ async function verifyApiKey(token: string, options: AuthenticateRequestOptions, 
     const cached = verifiedApiKeys.get(verification);
     if (cached && cached.expiresAt > Date.now()) return cached.key;
     verifiedApiKeys.delete(verification);
-    // Imported lazily: the management client itself depends on this module.
-    const { createPistiClient, PistiManagementError } = await import("./management.js");
-    const cacheKey = `${secretKey}\n${publishableKey}`;
-    let client = clients.get(cacheKey);
-    if (!client) {
-        client = createPistiClient({ secretKey, publishableKey });
-        clients.set(cacheKey, client);
-    }
+    const { client, PistiManagementError } = await managementClient(secretKey, publishableKey);
     try {
         const key = await client.apiKeys.verifySecret(token);
         const authenticated: AuthenticatedApiKey = Object.freeze({
@@ -439,29 +446,47 @@ function startHandshake(request: Request, url: URL, key: PublishableKeyInfo, rea
     return state("handshake", signedOutAuthObject, { reason, message: "Refreshing the session cookie.", headers });
 }
 
-/** Turns a returned handshake into cookies and a redirect to the clean URL. */
+function secretKeyFrom(options: AuthenticateRequestOptions): string | undefined {
+    return options.secretKey ?? process.env.PISTI_SECRET_KEY;
+}
+
+/**
+ * Turns a returned handshake into cookies and a redirect to the clean URL. The browser brings back only an opaque nonce;
+ * it is redeemed server-to-server with the secret key for the session token, so no token travels in a URL.
+ */
 async function completeHandshake(
-    handshake: string,
+    nonce: string,
     url: URL,
-    key: PublishableKeyInfo,
-    options: VerifyTokenOptions,
+    options: AuthenticateRequestOptions,
+    publishableKey: string,
 ): Promise<RequestState<AuthObject>> {
-    let payload: JWTPayload;
+    const secretKey = secretKeyFrom(options);
+    if (!secretKey)
+        return state("signed-out", signedOutAuthObject, { reason: "handshake-invalid", message: SECRET_KEY_FOR_HANDSHAKE });
+    const { client, PistiManagementError } = await managementClient(secretKey, publishableKey);
+    let redemption: { sessionToken: string | null; clientUat: string | number };
     try {
-        payload = await verifyJwt(handshake, key, options, JWT_KINDS.handshake);
+        redemption = await client.redeemHandshake(nonce, url.origin);
     } catch (error) {
-        if (!(error instanceof PistiError)) throw error;
-        return state("signed-out", signedOutAuthObject, { reason: "handshake-invalid", message: error.message });
+        if (!(error instanceof PistiManagementError) || error.status !== 400) throw error;
+        return state("signed-out", signedOutAuthObject, { reason: "handshake-invalid", message: "The handshake is invalid or has expired." });
     }
-    if (payload.ptyp !== "handshake" || payload.azp !== url.origin || typeof payload.client_uat !== "number")
-        return state("signed-out", signedOutAuthObject, { reason: "handshake-invalid", message: "The handshake is for another app." });
+    // The token comes from Pisti over TLS; verifying it anyway keeps every cookie this SDK writes to one set of checks.
+    const session = redemption.sessionToken;
+    if (session !== null) {
+        try {
+            await verifyToken(session, options);
+        } catch (error) {
+            if (!(error instanceof PistiError)) throw error;
+            return state("signed-out", signedOutAuthObject, { reason: "handshake-invalid", message: error.message });
+        }
+    }
     const secure = url.protocol === "https:";
     const clean = new URL(url);
     clean.searchParams.delete(HANDSHAKE_PARAMETER);
     const headers = new Headers({ Location: clean.href, "Cache-Control": "no-store" });
-    const session = typeof payload.session_token === "string" ? payload.session_token : null;
     headers.append("Set-Cookie", session ? cookie(SESSION_COOKIE, session, 60, secure) : cookie(SESSION_COOKIE, "", 0, secure));
-    headers.append("Set-Cookie", cookie(CLIENT_UAT_COOKIE, String(Math.trunc(payload.client_uat)), 31_536_000, secure));
+    headers.append("Set-Cookie", cookie(CLIENT_UAT_COOKIE, String(Math.trunc(Number(redemption.clientUat))), 31_536_000, secure));
     headers.append("Set-Cookie", cookie(REDIRECT_LOOP_COOKIE, "", 0, secure));
     return state("handshake", signedOutAuthObject, { reason: "handshake-complete", message: "The session cookie was refreshed.", headers });
 }
@@ -491,7 +516,7 @@ export async function authenticateRequest<T extends AcceptsToken = "session_toke
     const authorization = request.headers.get("authorization");
 
     const handshake = url.searchParams.get(HANDSHAKE_PARAMETER);
-    if (handshake && types.includes("session_token")) return (await completeHandshake(handshake, url, key, options)) as Result;
+    if (handshake && types.includes("session_token")) return (await completeHandshake(handshake, url, options, publishableKey)) as Result;
 
     if (authorization?.startsWith("Bearer ")) {
         const token = authorization.slice(7).trim();
@@ -521,9 +546,11 @@ export async function authenticateRequest<T extends AcceptsToken = "session_toke
     const uatValue = readCookie(cookies, CLIENT_UAT_COOKIE);
     const uat = uatValue === undefined ? undefined : Number(uatValue) || 0;
     const document = isDocumentRequest(request);
-    // Only page loads can take the handshake redirect; API calls are refreshed by the browser SDK.
+    // Only page loads can take the handshake redirect, and only with the secret key that redeems it; API calls are
+    // refreshed by the browser SDK.
+    const handshakes = document && secretKeyFrom(options) !== undefined;
     const refresh = (reason: string, message: string): Result =>
-        (document ? startHandshake(request, url, key, reason) : state("signed-out", signedOutAuthObject, { reason, message })) as Result;
+        (handshakes ? startHandshake(request, url, key, reason) : state("signed-out", signedOutAuthObject, { reason, message })) as Result;
 
     if (!session) {
         if (uat !== undefined && uat > 0) return refresh("client-uat-without-session-token", "The session cookie is missing.");
