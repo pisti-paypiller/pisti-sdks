@@ -185,7 +185,8 @@ export interface VerifyTokenOptions {
     authorizedParties?: string[] | undefined;
     /**
      * The PEM public key from the console (API keys → JWT public key) or `client.getInstance()`.
-     * Verifies tokens without fetching signing keys. Defaults to `PISTI_JWT_KEY`.
+     * Verifies tokens without fetching signing keys. Defaults to `PISTI_JWT_KEY`. While a rotation
+     * is under way, put the current and the next key (`nextJwtKey`) one after the other.
      */
     jwtKey?: string | undefined;
 }

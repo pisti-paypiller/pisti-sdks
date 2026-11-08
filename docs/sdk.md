@@ -65,7 +65,9 @@ Besides session tokens, backends can accept three bearer tokens with `acceptsTok
 M2M and OAuth tokens are JWTs verified offline like session tokens. They must be typed `at+jwt`
 and are told apart by `ptyp`.
 With `jwtKey` (`PISTI_JWT_KEY`, the console's JWT public key) no JWT verification needs the
-network; replace it after rotating the environment's signing keys. Without it, the SDKs cache
+network. Signing keys rotate on a schedule and the next key is published before it signs: while
+`client.getInstance()` returns a `nextJwtKey`, set `PISTI_JWT_KEY` to both PEM blocks, one after
+the other, and drop the old one after the switch. Without it, the SDKs cache
 the environment's JWKS and refetch it when a token carries a new `kid`.
 
 ## Development and production

@@ -8,6 +8,7 @@ import {
     type CryptoKey,
     type JWTPayload,
     type JWTVerifyGetKey,
+    type JWTVerifyOptions,
 } from "jose";
 import { PistiError } from "./errors.js";
 import { parsePublishableKey, trustedUrl, type PublishableKeyInfo } from "./keys.js";
@@ -48,7 +49,8 @@ const JWT_KINDS = {
 type JwtKind = (typeof JWT_KINDS)[keyof typeof JWT_KINDS];
 
 const keySets = new Map<string, Promise<JWTVerifyGetKey>>();
-const pemKeys = new Map<string, Promise<CryptoKey>>();
+const pemKeys = new Map<string, Promise<CryptoKey[]>>();
+const PEM_BLOCK = /-----BEGIN PUBLIC KEY-----[\s\S]+?-----END PUBLIC KEY-----/g;
 
 function publishableKeyFrom(value: string | undefined): string {
     const key = value ?? process.env.PISTI_PUBLISHABLE_KEY;
@@ -91,20 +93,41 @@ async function discoverKeys(issuer: URL, development: boolean): Promise<JWTVerif
     return createRemoteJWKSet(jwks, { timeoutDuration: 10_000, cooldownDuration: 30_000 });
 }
 
-// With a PEM key (jwtKey / PISTI_JWT_KEY) verification never touches the network.
-function verificationKey(key: PublishableKeyInfo, jwtKey: string | undefined): Promise<JWTVerifyGetKey | CryptoKey> {
+// With PEM keys (jwtKey / PISTI_JWT_KEY) verification never touches the network. During a rotation the value holds
+// the current and the next key, one PEM block after the other.
+function verificationKey(key: PublishableKeyInfo, jwtKey: string | undefined): Promise<JWTVerifyGetKey | CryptoKey[]> {
     const pem = jwtKey ?? process.env.PISTI_JWT_KEY;
     if (!pem) return signingKeys(key.issuer, key.environment === "test");
     let imported = pemKeys.get(pem);
     if (!imported) {
         // Environment variables often carry the PEM on one line with literal \n.
-        imported = importSPKI(pem.replaceAll("\\n", "\n"), "RS256").catch(() => {
+        const blocks = pem.replaceAll("\\n", "\n").match(PEM_BLOCK) ?? [];
+        const keys = blocks.length >= 1 && blocks.length <= 3
+            ? Promise.all(blocks.map((block) => importSPKI(block, "RS256")))
+            : Promise.reject(new Error("No PEM blocks."));
+        imported = keys.catch(() => {
             pemKeys.delete(pem);
-            throw new Error("The JWT key is not a valid PEM public key. Copy it from API keys in the Pisti console.");
+            throw new Error("The JWT key must be one to three PEM public keys. Copy it from API keys in the Pisti console.");
         });
         pemKeys.set(pem, imported);
     }
     return imported;
+}
+
+/** Verifies with a remote key set, or with each PEM key in turn until one matches the signature. */
+async function verifyWith(token: string, verifier: JWTVerifyGetKey | CryptoKey[], options: JWTVerifyOptions): Promise<JWTPayload> {
+    if (typeof verifier === "function") return (await jwtVerify(token, verifier, options)).payload;
+    let failure: unknown;
+    for (const candidate of verifier) {
+        try {
+            return (await jwtVerify(token, candidate, options)).payload;
+        } catch (error) {
+            // Only a signature mismatch means "try the next key"; any other failure is the token's own.
+            if (!(error instanceof joseErrors.JWSSignatureVerificationFailed)) throw error;
+            failure = error;
+        }
+    }
+    throw failure;
 }
 
 /** Verifies a Pisti-signed JWT of one kind for this environment and returns its payload. */
@@ -114,18 +137,14 @@ async function verifyJwt(token: string, key: PublishableKeyInfo, options: Verify
     const verifier = await verificationKey(key, options.jwtKey);
     let payload: JWTPayload;
     try {
-        const verifyOptions = {
+        payload = await verifyWith(token, verifier, {
             issuer: key.issuer.href,
             typ: kind.typ,
             ...(kind.audience ? { audience: kind.audience } : {}),
             algorithms: ["RS256"],
             clockTolerance: 5,
             requiredClaims: ["exp", "iat"],
-        };
-        ({ payload } =
-            typeof verifier === "function"
-                ? await jwtVerify(token, verifier, verifyOptions)
-                : await jwtVerify(token, verifier, verifyOptions));
+        });
     } catch (error) {
         if (error instanceof PistiError) throw error;
         if (error instanceof joseErrors.JWTExpired) throw new PistiError(401, `The ${name} has expired.`, "token_expired");

@@ -78,6 +78,18 @@ describe("verifyToken", () => {
         expect((await rejection(verifyToken(token, options()))).code).toBe("invalid_token");
     });
 
+    it("accepts tokens of either key while the jwtKey holds the current and the next one", async () => {
+        const jwtKey = `${otherKey.pem}
+${key.pem}`;
+
+        expect((await verifyToken(await sign(key, sessionClaims()), { ...options(), jwtKey })).sub).toBe("user_1");
+        expect((await verifyToken(await sign(otherKey, sessionClaims()), { ...options(), jwtKey })).sub).toBe("user_1");
+    });
+
+    it("refuses a jwtKey without a PEM public key as a configuration error", async () => {
+        await expect(verifyToken(await sign(key, sessionClaims()), { ...options(), jwtKey: "not a key" })).rejects.toThrow(/PEM/);
+    });
+
     it("rejects oversized and empty tokens before verifying them", async () => {
         expect((await rejection(verifyToken("", options()))).code).toBe("invalid_token");
         expect((await rejection(verifyToken("a".repeat(16_385), options()))).code).toBe("invalid_token");
