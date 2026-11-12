@@ -258,10 +258,10 @@ function AccountSessions() {
                                         {new Date(
                                             session.lastSeenAt,
                                         ).toLocaleString()}
-                                        {session.revokedAt ? " · Revoked" : ""}
+                                        {session.status === "revoked" ? " · Revoked" : ""}
                                     </p>
                                 </div>
-                                {!session.revokedAt && (
+                                {!session.endedAt && (
                                     <button
                                         type="button"
                                         className="pisti-secondary"

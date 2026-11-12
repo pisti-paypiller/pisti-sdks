@@ -14,7 +14,9 @@ export interface SessionClaims {
     instance_id: string;
     /** The environment's Frontend API id. */
     fid: string;
+    /** Present only when the environment includes profile claims in session tokens (console → Settings). */
     email?: string;
+    /** Present only when the environment includes profile claims in session tokens (console → Settings). */
     name?: string;
     auth_time?: number;
     mfa_authenticated_at?: number;
@@ -185,7 +187,8 @@ export interface VerifyTokenOptions {
     authorizedParties?: string[] | undefined;
     /**
      * The PEM public key from the console (API keys → JWT public key) or `client.getInstance()`.
-     * Verifies tokens without fetching signing keys. Defaults to `PISTI_JWT_KEY`.
+     * Verifies tokens without fetching signing keys. Defaults to `PISTI_JWT_KEY`. While a rotation
+     * is under way, put the current and the next key (`nextJwtKey`) one after the other.
      */
     jwtKey?: string | undefined;
 }

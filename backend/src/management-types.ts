@@ -19,6 +19,9 @@ export interface ManagedInstance {
     /** PEM public key of the current signing key, for networkless session token verification (`jwtKey`).
      * It changes when the environment's signing keys rotate. */
     jwtKey: string;
+    /** PEM public key of the next signing key while a rotation is under way, otherwise null. Add it to `jwtKey`
+     * (both PEM blocks in one value) so networkless verification keeps working when it starts signing. */
+    nextJwtKey: string | null;
     signupEnabled: boolean;
 }
 
@@ -156,7 +159,7 @@ export interface Session {
     abandonAt: string;
     authenticatedAt: string;
     mfaAuthenticatedAt: string | null;
-    revokedAt: string | null;
+    endedAt: string | null;
     createdAt: string;
 }
 

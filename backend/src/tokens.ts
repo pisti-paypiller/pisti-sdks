@@ -8,6 +8,7 @@ import {
     type CryptoKey,
     type JWTPayload,
     type JWTVerifyGetKey,
+    type JWTVerifyOptions,
 } from "jose";
 import { PistiError } from "./errors.js";
 import { parsePublishableKey, trustedUrl, type PublishableKeyInfo } from "./keys.js";
@@ -34,9 +35,23 @@ export const SESSION_COOKIE = "__session";
 export const CLIENT_UAT_COOKIE = "__client_uat";
 export const HANDSHAKE_PARAMETER = "__pisti_handshake";
 const REDIRECT_LOOP_COOKIE = "__pisti_redirect_loop";
+const SECRET_KEY_FOR_HANDSHAKE =
+    "Refreshing the session on page loads needs your secret key. Set PISTI_SECRET_KEY or pass { secretKey }.";
+
+/**
+ * How each kind of Pisti JWT is typed (RFC 8725 explicit typing). Every kind is signed with the environment's keys,
+ * so verification always pins the JOSE `typ` header and, where the kind has a fixed one, the audience.
+ */
+const JWT_KINDS = {
+    session: { name: "session token", typ: "session+jwt", audience: "pisti:session" },
+    oauth: { name: "OAuth access token", typ: "at+jwt", audience: undefined },
+    m2m: { name: "machine token", typ: "at+jwt", audience: undefined },
+} as const;
+type JwtKind = (typeof JWT_KINDS)[keyof typeof JWT_KINDS];
 
 const keySets = new Map<string, Promise<JWTVerifyGetKey>>();
-const pemKeys = new Map<string, Promise<CryptoKey>>();
+const pemKeys = new Map<string, Promise<CryptoKey[]>>();
+const PEM_BLOCK = /-----BEGIN PUBLIC KEY-----[\s\S]+?-----END PUBLIC KEY-----/g;
 
 function publishableKeyFrom(value: string | undefined): string {
     const key = value ?? process.env.PISTI_PUBLISHABLE_KEY;
@@ -79,39 +94,64 @@ async function discoverKeys(issuer: URL, development: boolean): Promise<JWTVerif
     return createRemoteJWKSet(jwks, { timeoutDuration: 10_000, cooldownDuration: 30_000 });
 }
 
-// With a PEM key (jwtKey / PISTI_JWT_KEY) verification never touches the network.
-function verificationKey(key: PublishableKeyInfo, jwtKey: string | undefined): Promise<JWTVerifyGetKey | CryptoKey> {
+// With PEM keys (jwtKey / PISTI_JWT_KEY) verification never touches the network. During a rotation the value holds
+// the current and the next key, one PEM block after the other.
+function verificationKey(key: PublishableKeyInfo, jwtKey: string | undefined): Promise<JWTVerifyGetKey | CryptoKey[]> {
     const pem = jwtKey ?? process.env.PISTI_JWT_KEY;
     if (!pem) return signingKeys(key.issuer, key.environment === "test");
     let imported = pemKeys.get(pem);
     if (!imported) {
         // Environment variables often carry the PEM on one line with literal \n.
-        imported = importSPKI(pem.replaceAll("\\n", "\n"), "RS256").catch(() => {
+        const blocks = pem.replaceAll("\\n", "\n").match(PEM_BLOCK) ?? [];
+        const keys = blocks.length >= 1 && blocks.length <= 3
+            ? Promise.all(blocks.map((block) => importSPKI(block, "ES256")))
+            : Promise.reject(new Error("No PEM blocks."));
+        imported = keys.catch(() => {
             pemKeys.delete(pem);
-            throw new Error("The JWT key is not a valid PEM public key. Copy it from API keys in the Pisti console.");
+            throw new Error("The JWT key must be one to three PEM public keys. Copy it from API keys in the Pisti console.");
         });
         pemKeys.set(pem, imported);
     }
     return imported;
 }
 
-/** Verifies any Pisti-signed JWT for this environment and returns its payload. */
-async function verifyJwt(token: string, key: PublishableKeyInfo, options: VerifyTokenOptions, kind: string): Promise<JWTPayload> {
-    if (!token || token.length > 16_384) throw new PistiError(401, `The ${kind} is missing or too large.`, "invalid_token");
+/** Verifies with a remote key set, or with each PEM key in turn until one matches the signature. */
+async function verifyWith(token: string, verifier: JWTVerifyGetKey | CryptoKey[], options: JWTVerifyOptions): Promise<JWTPayload> {
+    if (typeof verifier === "function") return (await jwtVerify(token, verifier, options)).payload;
+    let failure: unknown;
+    for (const candidate of verifier) {
+        try {
+            return (await jwtVerify(token, candidate, options)).payload;
+        } catch (error) {
+            // Only a signature mismatch means "try the next key"; any other failure is the token's own.
+            if (!(error instanceof joseErrors.JWSSignatureVerificationFailed)) throw error;
+            failure = error;
+        }
+    }
+    throw failure;
+}
+
+/** Verifies a Pisti-signed JWT of one kind for this environment and returns its payload. */
+async function verifyJwt(token: string, key: PublishableKeyInfo, options: VerifyTokenOptions, kind: JwtKind): Promise<JWTPayload> {
+    const { name } = kind;
+    if (!token || token.length > 16_384) throw new PistiError(401, `The ${name} is missing or too large.`, "invalid_token");
     const verifier = await verificationKey(key, options.jwtKey);
     let payload: JWTPayload;
     try {
-        const verifyOptions = { issuer: key.issuer.href, algorithms: ["RS256"], clockTolerance: 5, requiredClaims: ["exp", "iat"] };
-        ({ payload } =
-            typeof verifier === "function"
-                ? await jwtVerify(token, verifier, verifyOptions)
-                : await jwtVerify(token, verifier, verifyOptions));
+        payload = await verifyWith(token, verifier, {
+            issuer: key.issuer.href,
+            typ: kind.typ,
+            ...(kind.audience ? { audience: kind.audience } : {}),
+            algorithms: ["ES256"],
+            clockTolerance: 5,
+            requiredClaims: ["exp", "iat"],
+        });
     } catch (error) {
         if (error instanceof PistiError) throw error;
-        if (error instanceof joseErrors.JWTExpired) throw new PistiError(401, `The ${kind} has expired.`, "token_expired");
-        throw new PistiError(401, `The ${kind} is invalid.`, "invalid_token");
+        if (error instanceof joseErrors.JWTExpired) throw new PistiError(401, `The ${name} has expired.`, "token_expired");
+        throw new PistiError(401, `The ${name} is invalid.`, "invalid_token");
     }
-    if (payload.fid !== key.frontendApiId) throw new PistiError(401, `The ${kind} belongs to another environment.`, "invalid_token");
+    if (payload.fid !== key.frontendApiId) throw new PistiError(401, `The ${name} belongs to another environment.`, "invalid_token");
     return payload;
 }
 
@@ -131,7 +171,12 @@ function authorizedParties(options: VerifyTokenOptions, development: boolean): s
 export async function verifyToken(token: string, options: VerifyTokenOptions = {}): Promise<SessionClaims> {
     const key = parsePublishableKey(publishableKeyFrom(options.publishableKey));
     const parties = authorizedParties(options, key.environment === "test");
-    const payload = await verifyJwt(token, key, options, "session token");
+    // Without authorized parties, a session token minted for any allowed origin of the environment would be accepted.
+    if (!parties && key.environment === "live")
+        throw new Error(
+            "Production keys need authorized parties: set PISTI_AUTHORIZED_PARTIES to your app's origins (comma-separated) or pass { authorizedParties }.",
+        );
+    const payload = await verifyJwt(token, key, options, JWT_KINDS.session);
     if (payload.ptyp !== "session" || typeof payload.sub !== "string" || typeof payload.sid !== "string")
         throw new PistiError(401, "This is not a session token.", "invalid_token");
     if (parties && (typeof payload.azp !== "string" || !parties.includes(payload.azp)))
@@ -231,7 +276,7 @@ async function verifyMachineJwt(
     key: PublishableKeyInfo,
     options: VerifyTokenOptions,
 ): Promise<AuthenticatedOAuthToken | AuthenticatedM2MToken> {
-    const payload = await verifyJwt(token, key, options, type === "m2m_token" ? "machine token" : "OAuth access token");
+    const payload = await verifyJwt(token, key, options, type === "m2m_token" ? JWT_KINDS.m2m : JWT_KINDS.oauth);
     if (payload.ptyp !== (type === "m2m_token" ? "m2m" : "oauth") || typeof payload.sub !== "string")
         throw new PistiError(401, "The token type doesn't match.", "invalid_token");
     const claims = Object.freeze({ ...payload });
@@ -261,6 +306,19 @@ async function verifyMachineJwt(
 }
 
 const clients = new Map<string, PistiClient>();
+
+/** One management client per secret and publishable key, created on first use. */
+async function managementClient(secretKey: string, publishableKey: string) {
+    // Imported lazily: the management client itself depends on this module.
+    const { createPistiClient, PistiManagementError } = await import("./management.js");
+    const cacheKey = `${secretKey}\n${publishableKey}`;
+    let client = clients.get(cacheKey);
+    if (!client) {
+        client = createPistiClient({ secretKey, publishableKey });
+        clients.set(cacheKey, client);
+    }
+    return { client, PistiManagementError };
+}
 // Verified API keys are reused briefly, so a busy API does not call Pisti on every request. A revoked key can keep
 // working in each process for up to this long.
 const API_KEY_CACHE_MS = 10_000;
@@ -276,14 +334,7 @@ async function verifyApiKey(token: string, options: AuthenticateRequestOptions, 
     const cached = verifiedApiKeys.get(verification);
     if (cached && cached.expiresAt > Date.now()) return cached.key;
     verifiedApiKeys.delete(verification);
-    // Imported lazily: the management client itself depends on this module.
-    const { createPistiClient, PistiManagementError } = await import("./management.js");
-    const cacheKey = `${secretKey}\n${publishableKey}`;
-    let client = clients.get(cacheKey);
-    if (!client) {
-        client = createPistiClient({ secretKey, publishableKey });
-        clients.set(cacheKey, client);
-    }
+    const { client, PistiManagementError } = await managementClient(secretKey, publishableKey);
     try {
         const key = await client.apiKeys.verifySecret(token);
         const authenticated: AuthenticatedApiKey = Object.freeze({
@@ -400,29 +451,47 @@ function startHandshake(request: Request, url: URL, key: PublishableKeyInfo, rea
     return state("handshake", signedOutAuthObject, { reason, message: "Refreshing the session cookie.", headers });
 }
 
-/** Turns a returned handshake into cookies and a redirect to the clean URL. */
+function secretKeyFrom(options: AuthenticateRequestOptions): string | undefined {
+    return options.secretKey ?? process.env.PISTI_SECRET_KEY;
+}
+
+/**
+ * Turns a returned handshake into cookies and a redirect to the clean URL. The browser brings back only an opaque nonce;
+ * it is redeemed server-to-server with the secret key for the session token, so no token travels in a URL.
+ */
 async function completeHandshake(
-    handshake: string,
+    nonce: string,
     url: URL,
-    key: PublishableKeyInfo,
-    options: VerifyTokenOptions,
+    options: AuthenticateRequestOptions,
+    publishableKey: string,
 ): Promise<RequestState<AuthObject>> {
-    let payload: JWTPayload;
+    const secretKey = secretKeyFrom(options);
+    if (!secretKey)
+        return state("signed-out", signedOutAuthObject, { reason: "handshake-invalid", message: SECRET_KEY_FOR_HANDSHAKE });
+    const { client, PistiManagementError } = await managementClient(secretKey, publishableKey);
+    let redemption: { sessionToken: string | null; clientUat: string | number };
     try {
-        payload = await verifyJwt(handshake, key, options, "handshake");
+        redemption = await client.redeemHandshake(nonce, url.origin);
     } catch (error) {
-        if (!(error instanceof PistiError)) throw error;
-        return state("signed-out", signedOutAuthObject, { reason: "handshake-invalid", message: error.message });
+        if (!(error instanceof PistiManagementError) || error.status !== 400) throw error;
+        return state("signed-out", signedOutAuthObject, { reason: "handshake-invalid", message: "The handshake is invalid or has expired." });
     }
-    if (payload.ptyp !== "handshake" || payload.azp !== url.origin || typeof payload.client_uat !== "number")
-        return state("signed-out", signedOutAuthObject, { reason: "handshake-invalid", message: "The handshake is for another app." });
+    // The token comes from Pisti over TLS; verifying it anyway keeps every cookie this SDK writes to one set of checks.
+    const session = redemption.sessionToken;
+    if (session !== null) {
+        try {
+            await verifyToken(session, options);
+        } catch (error) {
+            if (!(error instanceof PistiError)) throw error;
+            return state("signed-out", signedOutAuthObject, { reason: "handshake-invalid", message: error.message });
+        }
+    }
     const secure = url.protocol === "https:";
     const clean = new URL(url);
     clean.searchParams.delete(HANDSHAKE_PARAMETER);
     const headers = new Headers({ Location: clean.href, "Cache-Control": "no-store" });
-    const session = typeof payload.session_token === "string" ? payload.session_token : null;
     headers.append("Set-Cookie", session ? cookie(SESSION_COOKIE, session, 60, secure) : cookie(SESSION_COOKIE, "", 0, secure));
-    headers.append("Set-Cookie", cookie(CLIENT_UAT_COOKIE, String(Math.trunc(payload.client_uat)), 31_536_000, secure));
+    headers.append("Set-Cookie", cookie(CLIENT_UAT_COOKIE, String(Math.trunc(Number(redemption.clientUat))), 31_536_000, secure));
     headers.append("Set-Cookie", cookie(REDIRECT_LOOP_COOKIE, "", 0, secure));
     return state("handshake", signedOutAuthObject, { reason: "handshake-complete", message: "The session cookie was refreshed.", headers });
 }
@@ -452,7 +521,7 @@ export async function authenticateRequest<T extends AcceptsToken = "session_toke
     const authorization = request.headers.get("authorization");
 
     const handshake = url.searchParams.get(HANDSHAKE_PARAMETER);
-    if (handshake && types.includes("session_token")) return (await completeHandshake(handshake, url, key, options)) as Result;
+    if (handshake && types.includes("session_token")) return (await completeHandshake(handshake, url, options, publishableKey)) as Result;
 
     if (authorization?.startsWith("Bearer ")) {
         const token = authorization.slice(7).trim();
@@ -482,9 +551,11 @@ export async function authenticateRequest<T extends AcceptsToken = "session_toke
     const uatValue = readCookie(cookies, CLIENT_UAT_COOKIE);
     const uat = uatValue === undefined ? undefined : Number(uatValue) || 0;
     const document = isDocumentRequest(request);
-    // Only page loads can take the handshake redirect; API calls are refreshed by the browser SDK.
+    // Only page loads can take the handshake redirect, and only with the secret key that redeems it; API calls are
+    // refreshed by the browser SDK.
+    const handshakes = document && secretKeyFrom(options) !== undefined;
     const refresh = (reason: string, message: string): Result =>
-        (document ? startHandshake(request, url, key, reason) : state("signed-out", signedOutAuthObject, { reason, message })) as Result;
+        (handshakes ? startHandshake(request, url, key, reason) : state("signed-out", signedOutAuthObject, { reason, message })) as Result;
 
     if (!session) {
         if (uat !== undefined && uat > 0) return refresh("client-uat-without-session-token", "The session cookie is missing.");

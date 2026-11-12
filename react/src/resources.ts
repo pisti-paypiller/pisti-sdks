@@ -57,7 +57,7 @@ export interface AccountSession {
     createdAt: string;
     lastSeenAt: string;
     expiresAt: string;
-    revokedAt: string | null;
+    endedAt: string | null;
     current: boolean;
     device: string;
     ipAddress: string | null;
