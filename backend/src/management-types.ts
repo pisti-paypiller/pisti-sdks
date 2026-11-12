@@ -313,6 +313,10 @@ export interface UpdateWebhookEndpointInput extends WebhookEndpointInput {
 }
 export interface ManagedWebhookEndpoint extends WebhookEndpointInput {
     id: string;
+    /** When the endpoint's current run of failed deliveries began, or null while it is healthy. */
+    failingSince: string | null;
+    /** When Pisti paused the endpoint after failing for the pause period (72 hours). Enabling it again resumes delivery. */
+    pausedAt: string | null;
     createdAt: string;
     updatedAt: string;
 }

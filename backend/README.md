@@ -134,4 +134,9 @@ tolerance) on the raw body. Pass `{ signingSecret: [current, previous] }` while 
 `{ expectedInstanceId }` to pin events to one environment. Store `event.id` to ignore
 duplicates.
 
+An endpoint that keeps failing is slowed to one delivery at a time; `webhooks.endpoints()`
+reports when that began as `failingSince`. After 72 hours of failures Pisti pauses it
+(`pausedAt`) and emails the workspace's webhook managers; enabling it again with
+`updateEndpoint` resumes delivery.
+
 See `docs/sdk.md` in pisti-sdks for how the pieces fit.
