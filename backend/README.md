@@ -41,8 +41,9 @@ Every option falls back to an environment variable:
 
 | Option | Variable | Used for |
 | --- | --- | --- |
-| `publishableKey` | `PISTI_PUBLISHABLE_KEY` | Finding the environment's issuer (`{api}/i/{frontendApiId}`) and checking the token's environment. Required. |
+| `publishableKey` | `PISTI_PUBLISHABLE_KEY` | The environment's host, which is its issuer (`https://auth.acme.com/`) and where the handshake goes. Required. |
 | `secretKey` | `PISTI_SECRET_KEY` | The backend API and verifying API keys |
+| `apiUrl` | `PISTI_API_URL` | The Pisti management API, which the secret key calls. Defaults to `https://pisti-api.paypiller.com`; set it for a self-hosted or local Pisti (`http://localhost:3000`). |
 | `jwtKey` | `PISTI_JWT_KEY` | Networkless verification with the PEM public key from the console (API keys → JWT public key). Replace it after rotating the environment's signing keys. Without it, the environment's signing keys are fetched from its issuer, cached, and refetched when a rotated key appears. |
 | `authorizedParties` | `PISTI_AUTHORIZED_PARTIES` (comma-separated) | Origins allowed to have requested session tokens. Required with production (`pk_live_`) keys. |
 | `signingSecret` (webhooks) | `PISTI_WEBHOOK_SIGNING_SECRET` | Webhook signatures |

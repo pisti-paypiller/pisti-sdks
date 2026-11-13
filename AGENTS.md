@@ -58,7 +58,7 @@ versioned SDKs, and additive or reviewed data-preserving migrations.
 
 - `backend` (`@pisti-paypiller/backend`) is the framework-free server core. `express`
   (`@pisti-paypiller/express`) builds on it. `react` (`@pisti-paypiller/react`) is the browser SDK and
-  talks only to the Frontend API (`/v1/fapi/{id}`).
+  talks only to the environment's own host (its Frontend API and account API, `/v1/…`).
 - The three packages share one version and are released together. `@pisti-paypiller/express`
   depends on `@pisti-paypiller/backend` by exact version; npm workspaces link it locally.
 - The root `package.json` is a private workspace manifest with the single lock file.

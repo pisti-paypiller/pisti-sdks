@@ -1,15 +1,16 @@
 import { exportSPKI, generateKeyPair, SignJWT, type CryptoKey, type JWTPayload } from "jose";
 
-/** The Frontend API id every test environment uses. */
-export const FRONTEND_API_ID = "fa_test123";
+/** The test environment's generated development host. */
+export const HOST_ORIGIN = "http://quiet-fox-12.pisti.localhost:3000";
+/** The management API the tests point the SDK at. */
 export const API_ORIGIN = "http://localhost:3000";
-export const ISSUER = `${API_ORIGIN}/i/${FRONTEND_API_ID}`;
+export const ISSUER = `${HOST_ORIGIN}/`;
 export const APP_ORIGIN = "http://localhost:5173";
 
 /** A development publishable key for the test environment, built the way the backend encodes it. */
-export function publishableKey(frontendApiId = FRONTEND_API_ID, environment: "test" | "live" = "test"): string {
-    const origin = environment === "test" ? API_ORIGIN : "https://api.example.com";
-    const encoded = Buffer.from(`${origin}/v1/fapi/${frontendApiId}$`, "utf8").toString("base64url");
+export function publishableKey(environment: "test" | "live" = "test"): string {
+    const origin = environment === "test" ? HOST_ORIGIN : "https://auth.example.com";
+    const encoded = Buffer.from(`${origin}$`, "utf8").toString("base64url");
     return `pk_${environment}_${encoded}`;
 }
 
@@ -60,7 +61,6 @@ export function sessionClaims(overrides: JWTPayload = {}): JWTPayload {
         sid: "sess_1",
         instance_id: "ins_1",
         ptyp: "session",
-        fid: FRONTEND_API_ID,
         azp: APP_ORIGIN,
         auth_time: now(),
         ...overrides,

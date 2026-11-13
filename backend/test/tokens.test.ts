@@ -2,7 +2,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { PistiError } from "../src/errors.js";
 import { authenticateRequest, authObject, HANDSHAKE_PARAMETER, verifyToken } from "../src/tokens.js";
 import type { SessionClaims } from "../src/types.js";
-import { APP_ORIGIN, KINDS, publishableKey, sessionClaims, sign, signingKey, type SigningKey } from "./support.js";
+import { API_ORIGIN, APP_ORIGIN, HOST_ORIGIN, KINDS, publishableKey, sessionClaims, sign, signingKey, type SigningKey } from "./support.js";
 
 let key: SigningKey;
 let otherKey: SigningKey;
@@ -14,7 +14,7 @@ beforeAll(async () => {
 
 const SECRET_KEY = `sk_test_${"a".repeat(16)}.${"b".repeat(64)}`;
 const options = () => ({ publishableKey: publishableKey(), jwtKey: key.pem, authorizedParties: [APP_ORIGIN] });
-const withSecretKey = () => ({ ...options(), secretKey: SECRET_KEY });
+const withSecretKey = () => ({ ...options(), secretKey: SECRET_KEY, apiUrl: API_ORIGIN });
 
 afterEach(() => {
     vi.unstubAllGlobals();
@@ -64,13 +64,8 @@ describe("verifyToken", () => {
     });
 
     it("rejects a token from another issuer", async () => {
-        const token = await sign(key, sessionClaims(), { issuer: "http://localhost:3000/i/fa_other" });
+        const token = await sign(key, sessionClaims(), { issuer: "http://other-env-34.pisti.localhost:3000/" });
         expect((await rejection(verifyToken(token, options()))).code).toBe("invalid_token");
-    });
-
-    it("rejects a token for another environment", async () => {
-        const token = await sign(key, sessionClaims({ fid: "fa_other" }));
-        expect((await rejection(verifyToken(token, options()))).message).toMatch(/another environment/);
     });
 
     it.each(["oauth", "m2m", "handshake", undefined])("rejects a token whose ptyp is %s", async (ptyp) => {
@@ -111,7 +106,7 @@ ${key.pem}`;
     });
 
     it("requires authorized parties for production keys", async () => {
-        const live = { publishableKey: publishableKey("fa_test123", "live"), jwtKey: key.pem };
+        const live = { publishableKey: publishableKey("live"), jwtKey: key.pem };
         await expect(verifyToken(await sign(key, sessionClaims()), live)).rejects.toThrow(/authorized parties/);
     });
 
@@ -165,7 +160,7 @@ describe("authenticateRequest", () => {
     });
 
     it("signs in a machine with a valid M2M access token", async () => {
-        const token = await sign(key, { sub: "cli_1", ptyp: "m2m", fid: "fa_test123" }, KINDS.access);
+        const token = await sign(key, { sub: "cli_1", ptyp: "m2m" }, KINDS.access);
         const state = await authenticateRequest(request({ authorization: `Bearer ${token}` }), { ...options(), acceptsToken: "m2m_token" });
 
         expect(state.status).toBe("signed-in");
@@ -173,7 +168,7 @@ describe("authenticateRequest", () => {
     });
 
     it("rejects an M2M token that carries the session token type", async () => {
-        const token = await sign(key, { sub: "cli_1", ptyp: "m2m", fid: "fa_test123" });
+        const token = await sign(key, { sub: "cli_1", ptyp: "m2m" });
         const state = await authenticateRequest(request({ authorization: `Bearer ${token}` }), { ...options(), acceptsToken: "m2m_token" });
 
         expect(state.status).toBe("signed-out");
@@ -204,7 +199,18 @@ describe("authenticateRequest", () => {
         );
 
         expect(state.status).toBe("handshake");
-        expect(state.headers.get("location")).toMatch(/\/v1\/fapi\/fa_test123\/handshake\?redirect_url=/);
+        expect(state.headers.get("location")).toMatch(new RegExp(`^${HOST_ORIGIN}/v1/handshake\\?redirect_url=`));
+    });
+
+    it("forwards a development client cookie to the handshake", async () => {
+        const token = await sign(key, sessionClaims(), { issuedAt: Math.floor(Date.now() / 1000) - 600 });
+        const client = "a".repeat(64);
+        const state = await authenticateRequest(
+            request({ cookie: `__session=${token}; __client_uat=1; __pisti_client=${client}`, "sec-fetch-dest": "document" }),
+            withSecretKey(),
+        );
+
+        expect(new URL(state.headers.get("location")!).searchParams.get("__pisti_client")).toBe(client);
     });
 
     it("does not start a handshake it could not redeem without the secret key", async () => {

@@ -1,8 +1,10 @@
 export interface ManagementClientOptions {
     /** Defaults to `PISTI_SECRET_KEY`. Needed only for the management API. Never expose it in browser code. */
     secretKey?: string | undefined;
-    /** Defaults to `PISTI_PUBLISHABLE_KEY`; it tells the client where Pisti is. */
+    /** Defaults to `PISTI_PUBLISHABLE_KEY`; it names the environment's host. */
     publishableKey?: string | undefined;
+    /** The Pisti management API. Defaults to `PISTI_API_URL`, else `https://pisti-api.paypiller.com`. */
+    apiUrl?: string | undefined;
     /** Origins allowed to have requested session tokens. Defaults to `PISTI_AUTHORIZED_PARTIES`. */
     authorizedParties?: string[] | undefined;
     timeoutMs?: number | undefined;

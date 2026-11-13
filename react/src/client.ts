@@ -117,13 +117,11 @@ function withEnvironmentDefaults(options: PistiNavigationOptions): PistiNavigati
     };
 }
 
-/** Parses `pk_test_…`/`pk_live_…`: base64url of the Frontend API URL followed by `$`. */
+/** Parses `pk_test_…`/`pk_live_…`: base64url of the environment's host URL followed by `$`. */
 export function parsePublishableKey(key: string | undefined): {
+    /** The environment's own host, where its Frontend API and account API are `/v1/…`. */
     frontendApi: URL;
-    frontendApiId: string;
-    /** The Pisti API base URL. */
-    apiUrl: URL;
-    /** This environment's own token issuer, `{apiUrl}/i/{frontendApiId}`. */
+    /** This environment's own token issuer: its host with a trailing slash. */
     issuer: URL;
     development: boolean;
 } {
@@ -140,20 +138,14 @@ export function parsePublishableKey(key: string | undefined): {
     const decoded = atob(base64 + "=".repeat((4 - (base64.length % 4)) % 4));
     if (!decoded.endsWith("$"))
         throw new Error("The publishable key is malformed.");
-    const frontendApi = new URL(decoded.slice(0, -1));
-    const frontendApiId = frontendApi.pathname.split("/").filter(Boolean).at(-1) ?? "";
-    if (!frontendApi.pathname.endsWith(`/v1/fapi/${frontendApiId}`))
+    const host = new URL(decoded.slice(0, -1));
+    if (host.pathname !== "/" || host.search || host.hash)
         throw new Error("The publishable key is malformed.");
     const development = match[1] === "test";
-    const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(frontendApi.hostname);
-    if (frontendApi.protocol !== "https:" && !(development && loopback))
+    const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(host.hostname) || host.hostname.endsWith(".localhost");
+    if (host.protocol !== "https:" && !(development && loopback))
         throw new Error("Pisti requires HTTPS outside local development.");
-    const apiUrl = new URL(
-        frontendApi.pathname.slice(0, -`v1/fapi/${frontendApiId}`.length),
-        frontendApi.origin,
-    );
-    const issuer = new URL(`i/${frontendApiId}`, apiUrl);
-    return { frontendApi, frontendApiId, apiUrl, issuer, development };
+    return { frontendApi: new URL(host.origin), issuer: new URL(`${host.origin}/`), development };
 }
 
 function decodeClaims(token: string): Record<string, unknown> {
@@ -180,8 +172,6 @@ function decodeClaims(token: string): Record<string, unknown> {
 export class PistiClient {
     readonly publishableKey: string;
     readonly frontendApi: URL;
-    /** The Pisti API base URL; account routes live under it. */
-    readonly apiUrl: URL;
     /** This environment's token issuer. */
     readonly issuer: URL;
     readonly development: boolean;
@@ -208,7 +198,6 @@ export class PistiClient {
     private timer: ReturnType<typeof setInterval> | undefined;
     private channel: BroadcastChannel | undefined;
     private readonly storageKey: string;
-    private readonly frontendApiId: string;
     private navigation: PistiNavigationOptions;
     private modal: PistiModal = null;
     private modalOptions: RedirectOptions = {};
@@ -223,11 +212,9 @@ export class PistiClient {
         const key = parsePublishableKey(publishableKey);
         this.publishableKey = publishableKey!;
         this.frontendApi = key.frontendApi;
-        this.frontendApiId = key.frontendApiId;
-        this.apiUrl = key.apiUrl;
         this.issuer = key.issuer;
         this.development = key.development;
-        this.storageKey = `pisti_client:${key.frontendApiId}`;
+        this.storageKey = `pisti_client:${key.frontendApi.host}`;
         const { publishableKey: _key, ...navigation } = options;
         this.navigation = withEnvironmentDefaults(navigation);
     }
@@ -262,7 +249,7 @@ export class PistiClient {
         };
         document.addEventListener("visibilitychange", focus);
         if (typeof BroadcastChannel !== "undefined") {
-            this.channel = new BroadcastChannel(`pisti:${this.frontendApiId}`);
+            this.channel = new BroadcastChannel(`pisti:${this.frontendApi.host}`);
             this.channel.onmessage = () => void this.load();
         }
         return () => {
@@ -571,6 +558,9 @@ export class PistiClient {
             } catch {
                 /* The HttpOnly cookie still works when storage is unavailable. */
             }
+            // Development only: a cookie on the app's own origin lets a server-rendered app pass the client to the
+            // handshake, since the environment's generated host is another site.
+            document.cookie = `__pisti_client=${state.clientToken}; Path=/; Max-Age=31536000; SameSite=Lax`;
         }
         const session =
             state.sessions.find((item) => item.id === preferred) ??
@@ -710,7 +700,7 @@ export class PistiClient {
         }
         let response: Response;
         try {
-            response = await fetch(new URL(this.frontendApi.pathname.replace(/\/?$/, "/") + path, this.frontendApi.origin), {
+            response = await fetch(new URL(`/v1/${path}`, this.frontendApi), {
                 method,
                 headers,
                 credentials: "include",
@@ -728,7 +718,8 @@ export class PistiClient {
     private async resource<T>(method: string, path: string, body?: unknown): Promise<T> {
         const identity = this.snapshot.sessionId;
         if (!identity) throw new PistiClientError("Sign in before managing your account.", 401);
-        const response = await this.authenticatedFetch(new URL(path, this.apiUrl), {
+        // The account API lives on the environment's host too.
+        const response = await this.authenticatedFetch(new URL(path, this.frontendApi), {
             method,
             headers: {
                 Accept: "application/json",

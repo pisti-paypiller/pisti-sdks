@@ -1,30 +1,29 @@
 import { describe, expect, it } from "vitest";
 import { parsePublishableKey, trustedUrl } from "../src/keys.js";
-import { FRONTEND_API_ID, publishableKey } from "./support.js";
+import { HOST_ORIGIN, publishableKey } from "./support.js";
 
 describe("parsePublishableKey", () => {
-    it("derives the Frontend API, API base URL and issuer", () => {
+    it("derives the environment's host and issuer", () => {
         const key = parsePublishableKey(publishableKey());
 
         expect(key.environment).toBe("test");
-        expect(key.frontendApiId).toBe(FRONTEND_API_ID);
-        expect(key.frontendApi.href).toBe(`http://localhost:3000/v1/fapi/${FRONTEND_API_ID}`);
-        expect(key.apiUrl.href).toBe("http://localhost:3000/");
-        expect(key.issuer.href).toBe(`http://localhost:3000/i/${FRONTEND_API_ID}`);
+        expect(key.frontendApi.origin).toBe(HOST_ORIGIN);
+        expect(key.issuer.href).toBe(`${HOST_ORIGIN}/`);
     });
 
     it.each([
         ["an unknown prefix", "sk_test_abc"],
         ["a missing payload", "pk_test_"],
-        ["a payload without the terminator", `pk_test_${Buffer.from("http://localhost:3000/v1/fapi/fa_1").toString("base64url")}`],
-        ["a payload that is not a Frontend API URL", `pk_test_${Buffer.from("http://localhost:3000/other/fa_1$").toString("base64url")}`],
-        ["an invalid Frontend API id", `pk_test_${Buffer.from("http://localhost:3000/v1/fapi/a$").toString("base64url")}`],
+        ["a payload without the terminator", `pk_test_${Buffer.from("http://localhost:3000").toString("base64url")}`],
+        ["a payload with a path", `pk_test_${Buffer.from("http://localhost:3000/v1/fapi/fa_1$").toString("base64url")}`],
+        ["a payload with a query", `pk_test_${Buffer.from("http://localhost:3000/?a=1$").toString("base64url")}`],
+        ["a payload that is not a URL", `pk_test_${Buffer.from("not a url$").toString("base64url")}`],
     ])("rejects %s", (_, value) => {
         expect(() => parsePublishableKey(value)).toThrow();
     });
 
     it("rejects a live key that points at plain HTTP", () => {
-        const encoded = Buffer.from(`http://api.example.com/v1/fapi/${FRONTEND_API_ID}$`).toString("base64url");
+        const encoded = Buffer.from("http://auth.example.com$").toString("base64url");
         expect(() => parsePublishableKey(`pk_live_${encoded}`)).toThrow(/HTTPS/);
     });
 });
