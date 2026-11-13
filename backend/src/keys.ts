@@ -1,16 +1,16 @@
 export interface PublishableKeyInfo {
     environment: "test" | "live";
-    /** The environment's Frontend API, for example https://api.pisti.com/v1/fapi/fa_123. */
+    /** The environment's own host, for example https://auth.acme.com. Its Frontend API and account API are `/v1/…` there. */
     frontendApi: URL;
-    frontendApiId: string;
-    /** The Pisti API base URL, for example https://api.pisti.com/. */
-    apiUrl: URL;
-    /** This environment's own token issuer, for example https://api.pisti.com/i/fa_123. Its published keys sign
-     * the environment's session, OAuth and M2M tokens, and no other environment's. */
+    /** This environment's own token issuer: its host with a trailing slash, for example https://auth.acme.com/. Its
+     * published keys sign the environment's session, OAuth and M2M tokens, and no other environment's. */
     issuer: URL;
 }
 
-/** Publishable keys are `pk_test_` or `pk_live_` followed by the base64url Frontend API URL and a `$`. */
+/** Where the Pisti management API lives unless `apiUrl` or `PISTI_API_URL` says otherwise. */
+export const DEFAULT_API_URL = "https://pisti-api.paypiller.com/";
+
+/** Publishable keys are `pk_test_` or `pk_live_` followed by the base64url of the environment's host URL and a `$`. */
 export function parsePublishableKey(key: string): PublishableKeyInfo {
     const match =
         typeof key === "string"
@@ -28,27 +28,24 @@ export function parsePublishableKey(key: string): PublishableKeyInfo {
     }
     if (!decoded.endsWith("$"))
         throw new Error("The publishable key is malformed.");
-    const frontendApi = new URL(decoded.slice(0, -1));
-    const segments = frontendApi.pathname.split("/").filter(Boolean);
-    const frontendApiId = segments.at(-1) ?? "";
-    if (
-        segments.length < 3 ||
-        segments.at(-2) !== "fapi" ||
-        segments.at(-3) !== "v1" ||
-        !/^[A-Za-z0-9_-]{3,64}$/.test(frontendApiId)
-    )
+    let host: URL;
+    try {
+        host = new URL(decoded.slice(0, -1));
+    } catch {
+        throw new Error("The publishable key is malformed.");
+    }
+    if (host.pathname !== "/" || host.search || host.hash)
         throw new Error("The publishable key is malformed.");
     const environment = match[1] as "test" | "live";
-    trustedUrl(frontendApi.origin, environment === "test");
-    const apiUrl = new URL(
-        frontendApi.pathname.slice(
-            0,
-            frontendApi.pathname.length - `v1/fapi/${frontendApiId}`.length,
-        ),
-        frontendApi.origin,
-    );
-    const issuer = new URL(`i/${frontendApiId}`, apiUrl);
-    return { environment, frontendApi, frontendApiId, apiUrl, issuer };
+    trustedUrl(host.origin, environment === "test");
+    return { environment, frontendApi: new URL(host.origin), issuer: new URL(`${host.origin}/`) };
+}
+
+/** The management API's base URL: `apiUrl`, else `PISTI_API_URL`, else Pisti's own. */
+export function apiUrlFrom(value: string | undefined, development: boolean): URL {
+    const url = trustedUrl(value ?? DEFAULT_API_URL, development);
+    if (url.pathname !== "/") throw new Error("The Pisti API URL must have no path, for example https://pisti-api.paypiller.com.");
+    return url;
 }
 
 export function trustedUrl(value: string, development: boolean): URL {

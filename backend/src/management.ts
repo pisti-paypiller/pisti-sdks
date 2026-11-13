@@ -1,4 +1,4 @@
-import { parsePublishableKey } from "./keys.js";
+import { apiUrlFrom, parsePublishableKey } from "./keys.js";
 import { authenticateRequest, verifyToken } from "./tokens.js";
 import type { AcceptsToken, AuthenticateRequestOptions, AuthObjectFor, RequestState, SessionClaims, VerifyTokenOptions } from "./types.js";
 import type {
@@ -185,10 +185,11 @@ export class PistiClient {
                 throw new Error("PISTI_SECRET_KEY doesn’t look like a Pisti secret key (sk_test_… or sk_live_…).");
             if ((key.environment === "live") !== secretKey.startsWith("sk_live_"))
                 throw new Error("The secret key and publishable key belong to different environments.");
-            if (key.apiUrl.protocol === "http:" && secretKey.startsWith("sk_live_"))
-                throw new Error("Production credentials require HTTPS.");
         }
-        this.#apiUrl = key.apiUrl;
+        const apiUrl = apiUrlFrom(options.apiUrl ?? process.env.PISTI_API_URL, key.environment === "test");
+        if (apiUrl.protocol === "http:" && secretKey?.startsWith("sk_live_"))
+            throw new Error("Production credentials require HTTPS.");
+        this.#apiUrl = apiUrl;
         this.#secretKey = secretKey;
         this.#publishableKey = publishableKey;
         this.#authorizedParties = options.authorizedParties;

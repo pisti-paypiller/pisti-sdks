@@ -77,7 +77,7 @@ function signingKeys(issuer: URL, development: boolean): Promise<JWTVerifyGetKey
 }
 
 async function discoverKeys(issuer: URL, development: boolean): Promise<JWTVerifyGetKey> {
-    const discovery = new URL(`${issuer.href}/.well-known/openid-configuration`);
+    const discovery = new URL(".well-known/openid-configuration", issuer);
     let metadata: { issuer?: unknown; jwks_uri?: unknown };
     try {
         const response = await fetch(discovery, { signal: AbortSignal.timeout(10_000), redirect: "error" });
@@ -89,7 +89,7 @@ async function discoverKeys(issuer: URL, development: boolean): Promise<JWTVerif
     if (metadata.issuer !== issuer.href || typeof metadata.jwks_uri !== "string")
         throw new PistiError(503, "Pisti's discovery document does not match the publishable key.", "service_unavailable");
     const jwks = trustedUrl(metadata.jwks_uri, development);
-    if (!jwks.href.startsWith(`${issuer.href}/`))
+    if (!jwks.href.startsWith(issuer.href))
         throw new PistiError(503, "Pisti's signing keys must come from this environment's issuer.", "service_unavailable");
     return createRemoteJWKSet(jwks, { timeoutDuration: 10_000, cooldownDuration: 30_000 });
 }
@@ -151,7 +151,6 @@ async function verifyJwt(token: string, key: PublishableKeyInfo, options: Verify
         if (error instanceof joseErrors.JWTExpired) throw new PistiError(401, `The ${name} has expired.`, "token_expired");
         throw new PistiError(401, `The ${name} is invalid.`, "invalid_token");
     }
-    if (payload.fid !== key.frontendApiId) throw new PistiError(401, `The ${name} belongs to another environment.`, "invalid_token");
     return payload;
 }
 
@@ -308,13 +307,13 @@ async function verifyMachineJwt(
 const clients = new Map<string, PistiClient>();
 
 /** One management client per secret and publishable key, created on first use. */
-async function managementClient(secretKey: string, publishableKey: string) {
+async function managementClient(secretKey: string, publishableKey: string, apiUrl: string | undefined) {
     // Imported lazily: the management client itself depends on this module.
     const { createPistiClient, PistiManagementError } = await import("./management.js");
-    const cacheKey = `${secretKey}\n${publishableKey}`;
+    const cacheKey = `${secretKey}\n${publishableKey}\n${apiUrl ?? ""}`;
     let client = clients.get(cacheKey);
     if (!client) {
-        client = createPistiClient({ secretKey, publishableKey });
+        client = createPistiClient({ secretKey, publishableKey, apiUrl });
         clients.set(cacheKey, client);
     }
     return { client, PistiManagementError };
@@ -334,7 +333,7 @@ async function verifyApiKey(token: string, options: AuthenticateRequestOptions, 
     const cached = verifiedApiKeys.get(verification);
     if (cached && cached.expiresAt > Date.now()) return cached.key;
     verifiedApiKeys.delete(verification);
-    const { client, PistiManagementError } = await managementClient(secretKey, publishableKey);
+    const { client, PistiManagementError } = await managementClient(secretKey, publishableKey, options.apiUrl);
     try {
         const key = await client.apiKeys.verifySecret(token);
         const authenticated: AuthenticatedApiKey = Object.freeze({
@@ -432,6 +431,9 @@ function state<T extends AnyAuthObject>(
     };
 }
 
+/** The development client token's cookie on the app's origin, and the handshake parameter that carries it. */
+export const DEVELOPMENT_CLIENT_COOKIE = "__pisti_client";
+
 function cookie(name: string, value: string, maxAge: number, secure: boolean): string {
     return `${name}=${value}; Path=/; Max-Age=${maxAge}; SameSite=Lax${secure ? "; Secure" : ""}`;
 }
@@ -444,8 +446,12 @@ function startHandshake(request: Request, url: URL, key: PublishableKeyInfo, rea
             reason: "handshake-loop",
             message: "The session couldn't be refreshed. Check that this origin is allowed under Domains in the Pisti console.",
         });
-    const target = new URL(`${key.frontendApi.href.replace(/\/$/, "")}/handshake`);
+    const target = new URL("/v1/handshake", key.frontendApi);
     target.searchParams.set("redirect_url", url.href);
+    // Development browsers have no cookie on the environment's generated host; the browser SDK keeps their client
+    // token in a cookie of the app's own origin, which travels with the handshake.
+    const developmentClient = key.environment === "test" ? readCookie(request.headers.get("cookie"), DEVELOPMENT_CLIENT_COOKIE) : undefined;
+    if (developmentClient && /^[a-f0-9]{64}$/.test(developmentClient)) target.searchParams.set(DEVELOPMENT_CLIENT_COOKIE, developmentClient);
     const headers = new Headers({ Location: target.href, "Cache-Control": "no-store" });
     headers.append("Set-Cookie", cookie(REDIRECT_LOOP_COOKIE, String(loops + 1), 5, url.protocol === "https:"));
     return state("handshake", signedOutAuthObject, { reason, message: "Refreshing the session cookie.", headers });
@@ -468,7 +474,7 @@ async function completeHandshake(
     const secretKey = secretKeyFrom(options);
     if (!secretKey)
         return state("signed-out", signedOutAuthObject, { reason: "handshake-invalid", message: SECRET_KEY_FOR_HANDSHAKE });
-    const { client, PistiManagementError } = await managementClient(secretKey, publishableKey);
+    const { client, PistiManagementError } = await managementClient(secretKey, publishableKey, options.apiUrl);
     let redemption: { sessionToken: string | null; clientUat: string | number };
     try {
         redemption = await client.redeemHandshake(nonce, url.origin);

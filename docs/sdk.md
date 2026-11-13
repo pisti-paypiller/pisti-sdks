@@ -16,28 +16,30 @@ publicly on npm under the `@pisti-paypiller` scope, with npm provenance. `pisti-
 
 An application environment has two kinds of key:
 
-- **Publishable key** (`pk_test_…` / `pk_live_…`): base64url of the environment's Frontend
-  API URL followed by `$`, for example `http://localhost:3000/v1/fapi/fa_…$`. Safe for
-  browsers. Both SDKs derive everything else from it: the Frontend API, the API base URL, the
-  environment's Frontend API id and its own issuer (`{api}/i/{frontendApiId}`).
+- **Publishable key** (`pk_test_…` / `pk_live_…`): base64url of the environment's own host
+  followed by `$`, for example `https://auth.acme.com$` in production or
+  `https://quiet-fox-12.<dev-domain>$` for a development environment. Safe for browsers. The
+  host serves the environment's Frontend API and account API (`/v1/…`), and with a trailing
+  slash it is the environment's issuer (`https://auth.acme.com/`).
 - **Secret key** (`sk_test_…` / `sk_live_…`): an environment API key created under API keys
-  in the console. It authenticates the management API (`/v1/instance`, `/v1/management/…`).
-  Never ship it to browsers.
+  in the console. It authenticates the management API (`/v1/instance`, `/v1/management/…`) at
+  `https://pisti-api.paypiller.com`, or wherever `apiUrl`/`PISTI_API_URL` points. Never ship it
+  to browsers.
 
 ## How a sign-in works
 
-1. `<PistiProvider>` (key from `VITE_PISTI_PUBLISHABLE_KEY`) loads `GET {fapi}/environment` (enabled methods, signup
-   policy, paths) and `GET {fapi}/client`, which creates the browser client and its
+1. `<PistiProvider>` (key from `VITE_PISTI_PUBLISHABLE_KEY`) loads `GET {host}/v1/environment` (enabled methods, signup
+   policy, paths) and `GET {host}/v1/client`, which creates the browser client and its
    `pisti_client` cookie on first use.
 2. `<SignIn />` and `<SignUp />` call the Frontend API step by step (password, email code,
    second factor, password reset, reactivation). A completed step creates a session that belongs to the
    browser client.
-3. The SDK requests a session token (`POST {fapi}/sessions/{id}/tokens`, about 60 seconds),
+3. The SDK requests a session token (`POST {host}/v1/sessions/{id}/tokens`, about 60 seconds),
    writes it to the `__session` cookie on the app's origin and refreshes it in the
    background. `useAuthenticatedFetch()` also sends it as a bearer header.
 4. `pistiMiddleware()` from `@pisti-paypiller/express` (configured from `PISTI_PUBLISHABLE_KEY`)
    verifies the token offline against the environment's issuer and its published signing keys
-   (discovery and JWKS under the issuer), checks the `session+jwt` type, the `pisti:session` audience, `ptyp`, `fid`
+   (discovery and JWKS under the issuer), checks the `session+jwt` type, the `pisti:session` audience, and `ptyp`,
    and optional authorized parties, and exposes a Clerk-shaped auth object through
    `getAuth(req)`: `isAuthenticated`, `userId`, `sessionId`, `orgId`, `orgRole`,
    `sessionClaims`, `factorVerificationAge` and `has({ permission, role, reverification })`.
@@ -72,11 +74,13 @@ the environment's JWKS and refetch it when a token carries a new `kid`.
 
 ## Development and production
 
-Development environments accept any `localhost` origin and, because the
-Frontend API usually runs on another port, also accept the browser client token in an
-`X-Pisti-Client` header that the SDK keeps in `localStorage`. Production environments
-accept only origins listed under Domains & paths and rely on the `SameSite=None; Secure`
-cookie alone.
+Development environments run on a generated host that is never the app's own site, so
+they accept any `localhost` origin and also take the browser client token in an
+`X-Pisti-Client` header that the SDK keeps in `localStorage`. The SDK also copies the token
+into a `__pisti_client` cookie on the app's origin; the server SDK forwards it on the
+handshake redirect, which cannot carry a header. Production environments run on the
+customer's own subdomain, accept only origins listed under Domains & paths and rely on the
+first-party `pisti_client` cookie (`SameSite=Lax`) alone.
 
 ## Backend API client
 
