@@ -72,7 +72,7 @@ the environment's JWKS and refetch it when a token carries a new `kid`.
 
 ## Development and production
 
-Development and staging environments accept any `localhost` origin and, because the
+Development environments accept any `localhost` origin and, because the
 Frontend API usually runs on another port, also accept the browser client token in an
 `X-Pisti-Client` header that the SDK keeps in `localStorage`. Production environments
 accept only origins listed under Domains & paths and rely on the `SameSite=None; Secure`

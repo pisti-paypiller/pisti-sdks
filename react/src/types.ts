@@ -74,7 +74,7 @@ export interface AuthSnapshot {
 
 export interface EnvironmentConfig {
     applicationName: string;
-    environment: "development" | "staging" | "production";
+    environment: "development" | "production";
     signIn: { password: boolean; emailCode: boolean };
     signUp: { enabled: boolean; password: boolean };
     requireMfa: boolean;
