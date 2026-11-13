@@ -11,7 +11,7 @@ export interface ManagementClientOptions {
 export interface ManagedInstance {
     id: string;
     name: string;
-    environment: "development" | "staging" | "production";
+    environment: "development" | "production";
     audience: string;
     publishableKey: string;
     /** This environment's token issuer: discovery and JWKS live under it. */
