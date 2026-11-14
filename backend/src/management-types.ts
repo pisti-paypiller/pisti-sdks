@@ -98,6 +98,8 @@ export interface User {
     firstName: string;
     lastName: string;
     fullName: string | null;
+    /** The user's username, where the environment uses them. */
+    username: string | null;
     imageUrl: string | null;
     hasImage: boolean;
     primaryEmailAddressId: string | null;
@@ -122,6 +124,8 @@ export interface CreateUserInput {
     verificationReason?: string;
     firstName?: string;
     lastName?: string;
+    /** A username, where the environment uses them: 3–64 letters, digits, dots, hyphens and underscores. */
+    username?: string;
     password?: string;
     imageUrl?: string | null;
     publicMetadata?: Metadata;

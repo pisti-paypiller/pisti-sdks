@@ -8,6 +8,8 @@ export interface PistiUser {
     lastName: string;
     fullName: string | null;
     primaryEmailAddress: EmailAddress | null;
+    /** The user's username, where the environment uses them. */
+    username: string | null;
     imageUrl: string | null;
     hasImage: boolean;
     issuer: string;
@@ -79,10 +81,12 @@ export interface EnvironmentConfig {
         password: boolean;
         emailCode: boolean;
         passkey: boolean;
+        /** Whether a username signs in, besides an email address. */
+        username: boolean;
         /** Upstream providers, each a strategy for `signIn.withProvider()`. */
         providers: { strategy: string; name: string; signUp: boolean }[];
     };
-    signUp: { enabled: boolean; password: boolean };
+    signUp: { enabled: boolean; password: boolean; username: "off" | "optional" | "required" };
     requireMfa: boolean;
     /** Whether a browser may hold several signed-in users. */
     multiSession: boolean;
@@ -114,6 +118,7 @@ export interface SecondFactorDetails {
 
 export interface SignUpInput {
     requestId: string;
+    username?: string;
     code: string;
     firstName?: string;
     lastName?: string;

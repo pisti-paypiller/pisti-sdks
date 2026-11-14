@@ -387,6 +387,123 @@ function AccountPasskeys() {
     );
 }
 
+function AccountIdentifiersSection() {
+    const account = useAccount();
+    const query = useResource(account.identifiers);
+    const action = useAction();
+    const [pending, setPending] = useState<{ requestId: string; emailAddress: string } | null>(null);
+    const data = query.data;
+    return (
+        <section className="pisti-section">
+            <h3>Email addresses</h3>
+            <p className="pisti-muted">
+                Sign in with any of them. Pisti writes to your primary address.
+            </p>
+            {query.isLoading && <Loading />}
+            <ErrorNotice error={query.error} retry={query.reload} />
+            <ActionNotice action={action} />
+            <ul className="pisti-list">
+                {data?.emailAddresses.map((address) => (
+                    <li key={address.id}>
+                        <div>
+                            {address.emailAddress}
+                            <p className="pisti-muted">
+                                {address.primary ? "Primary" : address.verified ? "Verified" : "Not verified"}
+                            </p>
+                        </div>
+                        {!address.primary && (
+                            <div className="pisti-row">
+                                {address.verified && (
+                                    <button
+                                        type="button"
+                                        className="pisti-secondary"
+                                        disabled={action.isPending}
+                                        onClick={() => void action.run(async () => {
+                                            await account.makePrimaryEmailAddress(address.id);
+                                            query.reload();
+                                        }, "Primary address changed.")}
+                                    >
+                                        Make primary
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    className="pisti-secondary"
+                                    disabled={action.isPending}
+                                    onClick={() => void action.run(async () => {
+                                        await account.removeEmailAddress(address.id);
+                                        query.reload();
+                                    }, "Address removed.")}
+                                >
+                                    Remove
+                                </button>
+                            </div>
+                        )}
+                    </li>
+                ))}
+            </ul>
+            <form
+                className="pisti-row"
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    const form = event.currentTarget;
+                    const values = new FormData(form);
+                    void action.run(async () => {
+                        if (pending) {
+                            await account.verifyEmailAddress(pending.requestId, String(values.get("code") ?? "").trim());
+                            setPending(null);
+                            query.reload();
+                        } else {
+                            const emailAddress = String(values.get("emailAddress") ?? "").trim();
+                            const sent = await account.addEmailAddress(emailAddress);
+                            setPending({ requestId: sent.requestId, emailAddress });
+                        }
+                        form.reset();
+                    }, pending ? "Address added." : "");
+                }}
+            >
+                {pending ? (
+                    <input name="code" aria-label={`Code sent to ${pending.emailAddress}`} placeholder="6-digit code" inputMode="numeric" pattern="[0-9]{6}" required />
+                ) : (
+                    <input name="emailAddress" type="email" aria-label="Email address to add" placeholder="Add an email address" required />
+                )}
+                <button type="submit" className="pisti-secondary" disabled={action.isPending}>
+                    {pending ? "Verify" : "Add"}
+                </button>
+            </form>
+            {data && data.usernameMode !== "off" && (
+                <>
+                    <h3>Username</h3>
+                    <form
+                        className="pisti-row"
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            const username = String(new FormData(event.currentTarget).get("username") ?? "").trim();
+                            void action.run(async () => {
+                                await account.setUsername(username || null);
+                                query.reload();
+                            }, username ? "Username saved." : "Username removed.");
+                        }}
+                    >
+                        <input
+                            name="username"
+                            aria-label="Username"
+                            key={data.username ?? ""}
+                            defaultValue={data.username ?? ""}
+                            minLength={3}
+                            maxLength={64}
+                            required={data.usernameMode === "required"}
+                        />
+                        <button type="submit" className="pisti-secondary" disabled={action.isPending}>
+                            Save
+                        </button>
+                    </form>
+                </>
+            )}
+        </section>
+    );
+}
+
 function AccountConnections() {
     const account = useAccount();
     const { user, reload } = useAuth();
@@ -476,6 +593,7 @@ function AccountSecurity() {
             {query.isLoading && <Loading />}
             <ErrorNotice error={query.error} retry={query.reload} />
             <ActionNotice action={action} />
+            <AccountIdentifiersSection />
             <AccountPasskeys />
             <AccountConnections />
             <ProofForm

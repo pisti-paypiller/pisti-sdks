@@ -214,6 +214,9 @@ export function SignIn({ forceRedirectUrl, fallbackRedirectUrl, signUpUrl, class
 
     const passwordEnabled = environment.signIn.password;
     const codeEnabled = environment.signIn.emailCode;
+    // Where the environment uses usernames, either one signs in.
+    const identifierLabel = environment.signIn.username ? "Email address or username" : "Email address";
+    const identifierType = environment.signIn.username ? "text" : "email";
     const signUp = environment.signUp.enabled ? (
         <>
             Don’t have an account?{" "}
@@ -396,7 +399,7 @@ export function SignIn({ forceRedirectUrl, fallbackRedirectUrl, signUpUrl, class
                 >
                     <fieldset disabled={pending}>
                         {step.name === "reset" ? (
-                            <Field label="Email address" name="identifier" type="email" autoComplete="username" defaultValue={identifier} required autoFocus />
+                            <Field label={identifierLabel} name="identifier" type={identifierType} autoComplete="username" defaultValue={identifier} required autoFocus />
                         ) : (
                             <>
                                 <CodeField label="Code from the email" />
@@ -459,7 +462,7 @@ export function SignIn({ forceRedirectUrl, fallbackRedirectUrl, signUpUrl, class
                 >
                     <fieldset disabled={pending}>
                         {step.name === "reactivate" ? (
-                            <Field label="Email address" name="identifier" type="email" autoComplete="username" defaultValue={identifier} required autoFocus />
+                            <Field label={identifierLabel} name="identifier" type={identifierType} autoComplete="username" defaultValue={identifier} required autoFocus />
                         ) : (
                             <>
                                 <CodeField label="Code from the email" />
@@ -553,7 +556,7 @@ export function SignIn({ forceRedirectUrl, fallbackRedirectUrl, signUpUrl, class
                 }}
             >
                 <fieldset disabled={pending}>
-                    <Field label="Email address" name="identifier" type="email" autoComplete="username" defaultValue={identifier} required autoFocus />
+                    <Field label={identifierLabel} name="identifier" type={identifierType} autoComplete="username" defaultValue={identifier} required autoFocus />
                     {!emailOnly && (
                         <Field
                             label="Password"
@@ -622,10 +625,11 @@ export function SignUp({ forceRedirectUrl, fallbackRedirectUrl, signInUrl, invit
         } else client.redirectAfterSignUp({ forceRedirectUrl, fallbackRedirectUrl });
     };
     const [request, setRequest] = useState<{ requestId: string; email: string } | null>(null);
-    const [details, setDetails] = useState<{ firstName: string; lastName: string; password: string }>({
+    const [details, setDetails] = useState<{ firstName: string; lastName: string; password: string; username: string }>({
         firstName: "",
         lastName: "",
         password: "",
+        username: "",
     });
     const [pending, setPending] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -719,13 +723,15 @@ export function SignUp({ forceRedirectUrl, fallbackRedirectUrl, signInUrl, invit
                     event.preventDefault();
                     const data = new FormData(event.currentTarget);
                     const email = String(data.get("email")).trim();
+                    const username = String(data.get("username") ?? "").trim();
                     setDetails({
                         firstName: String(data.get("firstName") ?? "").trim(),
                         lastName: String(data.get("lastName") ?? "").trim(),
                         password: String(data.get("password") ?? ""),
+                        username,
                     });
                     void run(async () => {
-                        const sent = await client.signUp.sendEmailCode(email, invitationToken);
+                        const sent = await client.signUp.sendEmailCode(email, invitationToken, username || undefined);
                         setRequest({ requestId: sent.requestId, email });
                     });
                 }}
@@ -736,6 +742,19 @@ export function SignUp({ forceRedirectUrl, fallbackRedirectUrl, signInUrl, invit
                         <Field label="Last name" name="lastName" autoComplete="family-name" maxLength={100} defaultValue={details.lastName} />
                     </div>
                     <Field label="Email address" name="email" type="email" autoComplete="email" required autoFocus />
+                    {environment.signUp.username !== "off" && (
+                        <Field
+                            label={environment.signUp.username === "required" ? "Username" : "Username (optional)"}
+                            name="username"
+                            autoComplete="username"
+                            minLength={3}
+                            maxLength={64}
+                            pattern="[A-Za-z0-9][A-Za-z0-9_.\-]{2,63}"
+                            defaultValue={details.username}
+                            required={environment.signUp.username === "required"}
+                            hint="Letters, digits, dots, hyphens and underscores."
+                        />
+                    )}
                     {environment.signUp.password && (
                         <Field label="Password" name="password" type="password" autoComplete="new-password" minLength={15} maxLength={128} required hint="At least 15 characters." />
                     )}

@@ -99,6 +99,11 @@ export interface ConnectedAccount {
     email: string | null;
     createdAt: string;
 }
+export interface AccountIdentifiers {
+    emailAddresses: { id: string; emailAddress: string; primary: boolean; verified: boolean }[];
+    username: string | null;
+    usernameMode: "off" | "optional" | "required";
+}
 export interface SecurityProof {
     password?: string;
     code?: string;
@@ -196,6 +201,19 @@ export class AccountResource {
             "DELETE",
             `/v1/account/security/connections/${integerId(id)}`,
         );
+    identifiers = (): Promise<AccountIdentifiers> => this.request("GET", "/v1/account/identifiers");
+    /** Sends a code to an address to add. Needs a recent sign-in. */
+    addEmailAddress = (emailAddress: string): Promise<{ requestId: string; expiresAt: string }> =>
+        this.request("POST", "/v1/account/identifiers/email", { emailAddress });
+    verifyEmailAddress = (requestId: string, code: string): Promise<void> =>
+        this.request("POST", "/v1/account/identifiers/email/verify", { requestId, code });
+    makePrimaryEmailAddress = (id: string): Promise<void> =>
+        this.request("POST", `/v1/account/identifiers/${integerId(id)}/primary`);
+    removeEmailAddress = (id: string): Promise<void> =>
+        this.request("DELETE", `/v1/account/identifiers/${integerId(id)}`);
+    /** Sets, changes or (with null) removes the username. Needs a recent sign-in. */
+    setUsername = (username: string | null): Promise<void> =>
+        this.request("PUT", "/v1/account/identifiers/username", { username });
     /** Adds a passkey: the browser creates one for this account and Pisti registers it. Needs a recent sign-in. */
     addPasskey = async (name: string): Promise<void> => {
         const started = await this.request<{ requestId: string; options: PublicKeyCredentialCreationOptionsJSON }>(

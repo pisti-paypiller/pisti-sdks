@@ -54,7 +54,10 @@ An application environment has two kinds of key:
    redirect through the Frontend API that refreshes `__session` and returns to the page.
 5. Account and organization components call `/v1/account/*` on the environment's host with
    the session token as a bearer credential, including adding passkeys
-   (`useAccount().addPasskey(name)`) and connecting providers (`useAccount().connect(id)`).
+   (`useAccount().addPasskey(name)`), connecting providers (`useAccount().connect(id)`), and
+   managing email addresses and the username (`useAccount().identifiers()`, `addEmailAddress`,
+   `verifyEmailAddress`, `makePrimaryEmailAddress`, `removeEmailAddress`, `setUsername`).
+   Where the environment uses usernames, `<SignIn />` accepts one and `<SignUp />` asks for it.
 
 See authentication (`pisti-backend/docs/authentication.md#frontend-api`) for the endpoint list and token claims.
 

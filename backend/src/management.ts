@@ -445,6 +445,13 @@ export class ManagementUsers {
         options?: ManagementRequestOptions,
     ): Promise<void> =>
         this.request("PUT", `/users/${userId(id)}`, input, options);
+    /** Sets, changes or (with null) removes the user's username. */
+    updateUsername = (
+        id: string,
+        username: string | null,
+        options?: ManagementRequestOptions,
+    ): Promise<void> =>
+        this.request("PUT", `/users/${userId(id)}/username`, { username }, options);
     private setStatus = (
         id: string,
         status: UserStatus,
