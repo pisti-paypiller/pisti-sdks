@@ -15,7 +15,9 @@ type Step =
     | { name: "reset"; identifier: string }
     | { name: "reset-code"; requestId: string; identifier: string }
     | { name: "reactivate"; identifier: string }
-    | { name: "reactivate-code"; requestId: string; identifier: string };
+    | { name: "reactivate-code"; requestId: string; identifier: string }
+    /** A provider sign-in whose provider did not confirm an email address: Pisti verifies one before creating the account. */
+    | { name: "external-email"; attemptId: string; email: string | null; sent: boolean };
 
 /** Set by the provider's modal host, so the forms close the modal instead of redirecting. */
 export const ModalContext = createContext(false);
@@ -148,6 +150,23 @@ export function SignIn({ forceRedirectUrl, fallbackRedirectUrl, signUpUrl, class
             if (options.forceRedirectUrl || options.fallbackRedirectUrl) client.redirectAfterSignIn(options);
         } else client.redirectAfterSignIn({ forceRedirectUrl, fallbackRedirectUrl });
     };
+    // Back from a provider: the attempt in the URL says what happens next.
+    const returned = useRef(false);
+    useEffect(() => {
+        if (returned.current) return;
+        returned.current = true;
+        void run(async () => {
+            const attempt = await client.handleRedirectCallback();
+            if (!attempt) return;
+            if (attempt.firstFactorVerification?.error) throw new Error(attempt.firstFactorVerification.error);
+            if (attempt.status === "needs_second_factor")
+                await handle({ status: "needs_second_factor", attemptId: attempt.id, enrollmentRequired: attempt.secondFactor?.enrollmentRequired ?? false });
+            else if (attempt.status === "missing_requirements")
+                setStep({ name: "external-email", attemptId: attempt.id, email: attempt.emailAddress ?? null, sent: false });
+            else if (attempt.status === "complete") finish();
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     // Arriving at the sign-in page already signed in continues to the app. Only the first
     // loaded state counts, so a sign-in completed here can still show recovery codes.
     const arrival = useRef(false);
@@ -459,10 +478,62 @@ export function SignIn({ forceRedirectUrl, fallbackRedirectUrl, signUpUrl, class
             </Card>
         );
 
+    if (step.name === "external-email")
+        return (
+            <Card title="Confirm your email" subtitle={step.sent ? `We sent a code to ${step.email}.` : "Your provider didn’t confirm an email address. Enter the one to use for your account."} className={className}>
+                <form
+                    className="pisti-form"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        const data = new FormData(event.currentTarget);
+                        void run(async () => {
+                            if (!step.sent) {
+                                const email = String(data.get("email")).trim();
+                                await client.signUp.update(step.attemptId, { emailAddress: email });
+                                await client.signUp.prepareVerification(step.attemptId);
+                                setStep({ ...step, email, sent: true });
+                            } else {
+                                await handle(await client.completeAttempt(await client.signUp.attemptVerification(step.attemptId, String(data.get("code")).trim())));
+                            }
+                        });
+                    }}
+                >
+                    <fieldset disabled={pending}>
+                        {step.sent ? <CodeField /> : <Field label="Email address" name="email" type="email" autoComplete="email" defaultValue={step.email ?? ""} required autoFocus />}
+                    </fieldset>
+                    <Problem error={error} />
+                    <button type="submit" disabled={pending}>{pending ? "Checking…" : "Continue"}</button>
+                </form>
+            </Card>
+        );
+
     const emailOnly = !passwordEnabled || useCode;
+    const passkeys = environment.signIn.passkey && typeof window !== "undefined" && "PublicKeyCredential" in window;
+    const alternatives = environment.signIn.providers.length > 0 || passkeys ? (
+        <div className="pisti-form">
+            {environment.signIn.providers.map((provider) => (
+                <button
+                    key={provider.strategy}
+                    type="button"
+                    className="pisti-secondary"
+                    disabled={pending}
+                    onClick={() => void run(async () => { await client.signIn.withProvider(provider.strategy); })}
+                >
+                    Continue with {provider.name}
+                </button>
+            ))}
+            {passkeys && (
+                <button type="button" className="pisti-secondary" disabled={pending} onClick={() => void run(async () => handle(await client.signIn.passkey()))}>
+                    Sign in with a passkey
+                </button>
+            )}
+            <p className="pisti-muted pisti-small" style={{ textAlign: "center" }}>or</p>
+        </div>
+    ) : null;
     return (
         <Card title={`Sign in to ${environment.applicationName}`} subtitle="Welcome back! Please sign in to continue." footer={signUp} className={className}>
             {notice && <p className="pisti-notice" role="status">{notice}</p>}
+            {alternatives}
             <form
                 className="pisti-form"
                 onSubmit={(event) => {
