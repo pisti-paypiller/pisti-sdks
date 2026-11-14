@@ -165,18 +165,10 @@ export type ResourceRequest = <T>(
     path: string,
     body?: unknown,
 ) => Promise<T>;
-const integerId = (value: string): string => {
-    if (!/^[1-9]\d{0,9}$/.test(value) || Number(value) > 2_147_483_647)
-        throw new Error("Provide a valid resource ID.");
-    return value;
-};
+/** Checks the shape of a public ID (`org_…`, `passkey_…`); the API checks that its prefix fits. */
 const publicId = (value: string): string => {
-    if (
-        !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(
-            value,
-        )
-    )
-        throw new Error("Provide a valid user ID.");
+    if (!/^[a-z]+_[0-9A-Za-z]{11}$/.test(value))
+        throw new Error("Provide a valid ID, such as org_0Hk3pQ9xZb2.");
     return value;
 };
 
@@ -199,7 +191,7 @@ export class AccountResource {
     disconnect = (id: string): Promise<void> =>
         this.request(
             "DELETE",
-            `/v1/account/security/connections/${integerId(id)}`,
+            `/v1/account/security/connections/${publicId(id)}`,
         );
     identifiers = (): Promise<AccountIdentifiers> => this.request("GET", "/v1/account/identifiers");
     /** Sends a code to an address to add. Needs a recent sign-in. */
@@ -208,9 +200,9 @@ export class AccountResource {
     verifyEmailAddress = (requestId: string, code: string): Promise<void> =>
         this.request("POST", "/v1/account/identifiers/email/verify", { requestId, code });
     makePrimaryEmailAddress = (id: string): Promise<void> =>
-        this.request("POST", `/v1/account/identifiers/${integerId(id)}/primary`);
+        this.request("POST", `/v1/account/identifiers/${publicId(id)}/primary`);
     removeEmailAddress = (id: string): Promise<void> =>
-        this.request("DELETE", `/v1/account/identifiers/${integerId(id)}`);
+        this.request("DELETE", `/v1/account/identifiers/${publicId(id)}`);
     /** Sets, changes or (with null) removes the username. Needs a recent sign-in. */
     setUsername = (username: string | null): Promise<void> =>
         this.request("PUT", "/v1/account/identifiers/username", { username });
@@ -226,7 +218,7 @@ export class AccountResource {
         });
     };
     /** Connects a sign-in provider: the browser goes to it and returns to `redirectUrl` with `__pisti_connection`. */
-    connect = async (providerId: number, redirectUrl: string = location.href): Promise<never> => {
+    connect = async (providerId: string, redirectUrl: string = location.href): Promise<never> => {
         const started = await this.request<{ url: string }>("POST", "/v1/account/security/connections", { providerId, redirectUrl });
         location.assign(started.url);
         return new Promise<never>(() => {});
@@ -234,7 +226,7 @@ export class AccountResource {
     removePasskey = (id: string): Promise<void> =>
         this.request(
             "DELETE",
-            `/v1/account/security/passkeys/${integerId(id)}`,
+            `/v1/account/security/passkeys/${publicId(id)}`,
         );
     requestReauthentication = (): Promise<VerificationRequest> =>
         this.request("POST", "/v1/account/security/reauthenticate/request");
@@ -340,7 +332,7 @@ export class OrganizationResource {
         this.request("POST", "/v1/account/organizations", input);
     setActive = (id: string | null): Promise<void> =>
         this.request("PUT", "/v1/account/organizations/active", {
-            organizationId: id === null ? null : Number(integerId(id)),
+            organizationId: id === null ? null : publicId(id),
         });
     update = (
         id: string,
@@ -348,7 +340,7 @@ export class OrganizationResource {
     ): Promise<void> =>
         this.request(
             "PUT",
-            `/v1/account/organizations/${integerId(id)}`,
+            `/v1/account/organizations/${publicId(id)}`,
             input,
         );
     membersPage = (
@@ -357,7 +349,7 @@ export class OrganizationResource {
     ): Promise<CursorPage<OrganizationMember>> =>
         this.request(
             "GET",
-            `/v1/account/organizations/${integerId(id)}/memberships?${directoryQuery(query)}`,
+            `/v1/account/organizations/${publicId(id)}/memberships?${directoryQuery(query)}`,
         );
     members = (id: string): Promise<OrganizationMember[]> =>
         readDirectory(
@@ -370,7 +362,7 @@ export class OrganizationResource {
     ): Promise<CursorPage<OrganizationInvitation>> =>
         this.request(
             "GET",
-            `/v1/account/organizations/${integerId(id)}/invitations?${directoryQuery(query)}`,
+            `/v1/account/organizations/${publicId(id)}/invitations?${directoryQuery(query)}`,
         );
     invitations = (id: string): Promise<OrganizationInvitation[]> =>
         readDirectory(
@@ -378,7 +370,7 @@ export class OrganizationResource {
             this.beginOperation(),
         );
     roles = (id: string): Promise<OrganizationRole[]> =>
-        this.request("GET", `/v1/account/organizations/${integerId(id)}/roles`);
+        this.request("GET", `/v1/account/organizations/${publicId(id)}/roles`);
     invite = (
         id: string,
         email: string,
@@ -386,8 +378,8 @@ export class OrganizationResource {
     ): Promise<{ id: string; expiresAt: string }> =>
         this.request(
             "POST",
-            `/v1/account/organizations/${integerId(id)}/invitations`,
-            { email, roleId: Number(integerId(roleId)) },
+            `/v1/account/organizations/${publicId(id)}/invitations`,
+            { email, roleId: publicId(roleId) },
         );
     acceptInvitation = (token: string): Promise<void> =>
         this.request("POST", "/v1/account/organizations/accept-invitation", {
@@ -396,7 +388,7 @@ export class OrganizationResource {
     revokeInvitation = (id: string, invitationId: string): Promise<void> =>
         this.request(
             "DELETE",
-            `/v1/account/organizations/${integerId(id)}/invitations/${integerId(invitationId)}`,
+            `/v1/account/organizations/${publicId(id)}/invitations/${publicId(invitationId)}`,
         );
     setMemberRole = (
         id: string,
@@ -405,22 +397,22 @@ export class OrganizationResource {
     ): Promise<void> =>
         this.request(
             "PUT",
-            `/v1/account/organizations/${integerId(id)}/memberships/${publicId(userId)}`,
-            { roleId: Number(integerId(roleId)) },
+            `/v1/account/organizations/${publicId(id)}/memberships/${publicId(userId)}`,
+            { roleId: publicId(roleId) },
         );
     removeMember = (id: string, userId: string): Promise<void> =>
         this.request(
             "DELETE",
-            `/v1/account/organizations/${integerId(id)}/memberships/${publicId(userId)}`,
+            `/v1/account/organizations/${publicId(id)}/memberships/${publicId(userId)}`,
         );
     leave = (id: string): Promise<void> =>
         this.request(
             "POST",
-            `/v1/account/organizations/${integerId(id)}/leave`,
+            `/v1/account/organizations/${publicId(id)}/leave`,
         );
     /** Deletes the organization. Only an owner can; every membership and pending invitation ends with it. */
     delete = (id: string): Promise<void> =>
-        this.request("DELETE", `/v1/account/organizations/${integerId(id)}`);
+        this.request("DELETE", `/v1/account/organizations/${publicId(id)}`);
 }
 
 /** Credential-changing routes name the current password `currentPassword`. */

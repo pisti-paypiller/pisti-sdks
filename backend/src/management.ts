@@ -60,28 +60,10 @@ export class PistiManagementError extends Error {
     }
 }
 
-function integerId(value: string): string {
-    if (!/^[1-9]\d{0,9}$/.test(value) || Number(value) > 2_147_483_647)
-        throw new Error("Provide a positive resource ID.");
-    return value;
-}
-
-function sessionId(value: string): string {
-    if (
-        !/^[1-9]\d{0,18}$/.test(value) ||
-        BigInt(value) > 9_223_372_036_854_775_807n
-    )
-        throw new Error("Provide a valid session ID.");
-    return value;
-}
-
-function userId(value: string): string {
-    if (
-        !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(
-            value,
-        )
-    )
-        throw new Error("Provide a valid user ID.");
+/** Checks the shape of a public ID (`user_…`, `org_…`); the API checks that its prefix fits. */
+function publicId(value: string): string {
+    if (!/^[a-z]+_[0-9A-Za-z]{11}$/.test(value))
+        throw new Error("Provide a valid ID, such as user_0Hk3pQ9xZb2.");
     return value;
 }
 
@@ -265,7 +247,7 @@ export class PistiClient {
     // The secret key identifies its environment; resolve the management path from it once.
     #instancePath(): Promise<string> {
         return (this.#basePath ??= this.getInstance()
-            .then((instance) => `/v1/management/instances/${integerId(instance.id)}`)
+            .then((instance) => `/v1/management/instances/${publicId(instance.id)}`)
             .catch((error: unknown) => {
                 this.#basePath = undefined;
                 throw error;
@@ -433,7 +415,7 @@ export class ManagementUsers {
         id: string,
         options?: ManagementRequestOptions,
     ): Promise<User> =>
-        this.request("GET", `/users/${userId(id)}`, undefined, options);
+        this.request("GET", `/users/${publicId(id)}`, undefined, options);
     createUser = (
         input: CreateUserInput,
         options?: ManagementRequestOptions,
@@ -444,20 +426,20 @@ export class ManagementUsers {
         input: UpdateUserInput,
         options?: ManagementRequestOptions,
     ): Promise<void> =>
-        this.request("PUT", `/users/${userId(id)}`, input, options);
+        this.request("PUT", `/users/${publicId(id)}`, input, options);
     /** Sets, changes or (with null) removes the user's username. */
     updateUsername = (
         id: string,
         username: string | null,
         options?: ManagementRequestOptions,
     ): Promise<void> =>
-        this.request("PUT", `/users/${userId(id)}/username`, { username }, options);
+        this.request("PUT", `/users/${publicId(id)}/username`, { username }, options);
     private setStatus = (
         id: string,
         status: UserStatus,
         options?: ManagementRequestOptions,
     ): Promise<void> =>
-        this.request("PUT", `/users/${userId(id)}/status`, { status }, options);
+        this.request("PUT", `/users/${publicId(id)}/status`, { status }, options);
     /** Disables the account and ends its sessions. */
     banUser = (id: string, options?: ManagementRequestOptions): Promise<void> =>
         this.setStatus(id, "disabled", options);
@@ -468,14 +450,14 @@ export class ManagementUsers {
     unlockUser = (id: string, options?: ManagementRequestOptions): Promise<void> =>
         this.setStatus(id, "active", options);
     deleteUser = (id: string, options?: ManagementRequestOptions): Promise<void> =>
-        this.request("DELETE", `/users/${userId(id)}`, undefined, options);
+        this.request("DELETE", `/users/${publicId(id)}`, undefined, options);
     getUserEmailAddressList = (
         id: string,
         options?: ManagementRequestOptions,
     ): Promise<EmailAddress[]> =>
         this.request(
             "GET",
-            `/users/${userId(id)}/email-addresses`,
+            `/users/${publicId(id)}/email-addresses`,
             undefined,
             options,
         );
@@ -491,7 +473,7 @@ export class ManagementUsers {
     ): Promise<{ id: string }> =>
         this.request(
             "POST",
-            `/users/${userId(id)}/email-addresses`,
+            `/users/${publicId(id)}/email-addresses`,
             input,
             options,
         );
@@ -503,7 +485,7 @@ export class ManagementUsers {
     ): Promise<void> =>
         this.request(
             "PUT",
-            `/users/${userId(id)}/email-addresses/${integerId(emailId)}`,
+            `/users/${publicId(id)}/email-addresses/${publicId(emailId)}`,
             {
                 status,
                 ...(options?.verificationReason
@@ -519,7 +501,7 @@ export class ManagementUsers {
     ): Promise<void> =>
         this.request(
             "PUT",
-            `/users/${userId(id)}/email-addresses/${integerId(emailId)}/primary`,
+            `/users/${publicId(id)}/email-addresses/${publicId(emailId)}/primary`,
             undefined,
             options,
         );
@@ -530,7 +512,7 @@ export class ManagementUsers {
     ): Promise<void> =>
         this.request(
             "DELETE",
-            `/users/${userId(id)}/email-addresses/${integerId(emailId)}`,
+            `/users/${publicId(id)}/email-addresses/${publicId(emailId)}`,
             undefined,
             options,
         );
@@ -540,7 +522,7 @@ export class ManagementUsers {
     ): Promise<DirectoryExternalAccount[]> =>
         this.request(
             "GET",
-            `/users/${userId(id)}/external-accounts`,
+            `/users/${publicId(id)}/external-accounts`,
             undefined,
             options,
         );
@@ -567,7 +549,7 @@ export class ManagementExternalProviders {
     ): Promise<ManagedExternalProvider> =>
         this.request(
             "PUT",
-            `/external-providers/${integerId(id)}`,
+            `/external-providers/${publicId(id)}`,
             input,
             options,
         );
@@ -575,7 +557,7 @@ export class ManagementExternalProviders {
     delete = (id: string, options?: ManagementRequestOptions): Promise<void> =>
         this.request(
             "DELETE",
-            `/external-providers/${integerId(id)}`,
+            `/external-providers/${publicId(id)}`,
             undefined,
             options,
         );
@@ -603,7 +585,7 @@ export class ManagementWebhooks {
     ): Promise<ManagedWebhookEndpoint> =>
         this.request(
             "PUT",
-            `/webhooks/endpoints/${integerId(id)}`,
+            `/webhooks/endpoints/${publicId(id)}`,
             input,
             options,
         );
@@ -614,7 +596,7 @@ export class ManagementWebhooks {
     ): Promise<void> =>
         this.request(
             "POST",
-            `/webhooks/endpoints/${integerId(id)}/archive`,
+            `/webhooks/endpoints/${publicId(id)}/archive`,
             { expectedUpdatedAt },
             options,
         );
@@ -625,7 +607,7 @@ export class ManagementWebhooks {
     ): Promise<WebhookSecretResult> =>
         this.request(
             "POST",
-            `/webhooks/endpoints/${integerId(id)}/rotate-secret`,
+            `/webhooks/endpoints/${publicId(id)}/rotate-secret`,
             { expectedUpdatedAt },
             options,
         );
@@ -635,7 +617,7 @@ export class ManagementWebhooks {
     ): Promise<{ id: string; eventId: string }> =>
         this.request(
             "POST",
-            `/webhooks/endpoints/${integerId(id)}/test`,
+            `/webhooks/endpoints/${publicId(id)}/test`,
             undefined,
             options,
         );
@@ -653,7 +635,7 @@ export class ManagementWebhooks {
             }).slice(1),
         );
         if (options.endpointId !== undefined)
-            query.set("endpointId", integerId(options.endpointId));
+            query.set("endpointId", publicId(options.endpointId));
         if (options.status !== undefined) query.set("status", options.status);
         return this.request(
             "GET",
@@ -668,14 +650,14 @@ export class ManagementWebhooks {
     ): Promise<WebhookDeliveryDetails> =>
         this.request(
             "GET",
-            `/webhooks/deliveries/${sessionId(id)}`,
+            `/webhooks/deliveries/${publicId(id)}`,
             undefined,
             options,
         );
     replay = (id: string, options?: ManagementRequestOptions): Promise<void> =>
         this.request(
             "POST",
-            `/webhooks/deliveries/${sessionId(id)}/replay`,
+            `/webhooks/deliveries/${publicId(id)}/replay`,
             undefined,
             options,
         );
@@ -685,7 +667,7 @@ export class ManagementApiKeys {
     constructor(private readonly request: RequestResource) {}
     getApiKeyList = (options: ApiKeyListOptions = {}): Promise<ManagementPage<ApiKey>> => {
         const query = new URLSearchParams();
-        if (options.userId !== undefined) query.set("userId", userId(options.userId));
+        if (options.userId !== undefined) query.set("userId", publicId(options.userId));
         if (options.includeRevoked) query.set("includeRevoked", "true");
         if (options.limit !== undefined) {
             if (!Number.isInteger(options.limit) || options.limit < 1 || options.limit > 100)
@@ -696,14 +678,14 @@ export class ManagementApiKeys {
         return this.request("GET", "/api-keys" + (query.size ? "?" + query : ""), undefined, options);
     };
     getApiKey = (id: string, options?: ManagementRequestOptions): Promise<ApiKey> =>
-        this.request("GET", `/api-keys/${sessionId(id)}`, undefined, options);
+        this.request("GET", `/api-keys/${publicId(id)}`, undefined, options);
     /** Sets what a key may do in your API. Only your backend grants scopes and claims; the key's owner cannot. */
     updateApiKey = (id: string, input: UpdateApiKeyInput, options?: ManagementRequestOptions): Promise<ApiKey> =>
-        this.request("PUT", `/api-keys/${sessionId(id)}`, { scopes: input.scopes, claims: input.claims ?? null }, options);
+        this.request("PUT", `/api-keys/${publicId(id)}`, { scopes: input.scopes, claims: input.claims ?? null }, options);
     revokeApiKey = (id: string, options: ManagementRequestOptions & { revocationReason?: string } = {}): Promise<void> =>
         this.request(
             "POST",
-            `/api-keys/${sessionId(id)}/revoke`,
+            `/api-keys/${publicId(id)}/revoke`,
             { revocationReason: options.revocationReason ?? null },
             options,
         );
@@ -717,7 +699,7 @@ export class ManagementSessions {
     /** Sessions in the environment, newest first. Filter by `userId` and `status`. */
     getSessionList = (options: SessionListOptions = {}): Promise<ManagementPage<Session>> => {
         const query = new URLSearchParams();
-        if (options.userId !== undefined) query.set("userId", userId(options.userId));
+        if (options.userId !== undefined) query.set("userId", publicId(options.userId));
         if (options.status !== undefined) query.set("status", options.status);
         if (options.limit !== undefined) {
             if (!Number.isInteger(options.limit) || options.limit < 1 || options.limit > 100)
@@ -728,11 +710,11 @@ export class ManagementSessions {
         return this.request("GET", "/sessions" + (query.size ? "?" + query : ""), undefined, options);
     };
     getSession = (id: string, options?: ManagementRequestOptions): Promise<Session> =>
-        this.request("GET", `/sessions/${sessionId(id)}`, undefined, options);
+        this.request("GET", `/sessions/${publicId(id)}`, undefined, options);
     revokeSession = (id: string, options?: ManagementRequestOptions): Promise<void> =>
         this.request(
             "DELETE",
-            `/sessions/${sessionId(id)}`,
+            `/sessions/${publicId(id)}`,
             undefined,
             options,
         );
@@ -758,7 +740,7 @@ export class ManagementOrganizations {
     }> =>
         this.request(
             "GET",
-            `/organizations/${integerId(id)}`,
+            `/organizations/${publicId(id)}`,
             undefined,
             options,
         );
@@ -772,11 +754,11 @@ export class ManagementOrganizations {
         input: UpdateOrganizationInput,
         options?: ManagementRequestOptions,
     ): Promise<void> =>
-        this.request("PUT", `/organizations/${integerId(id)}`, input, options);
+        this.request("PUT", `/organizations/${publicId(id)}`, input, options);
     deleteOrganization = (id: string, options?: ManagementRequestOptions): Promise<void> =>
         this.request(
             "DELETE",
-            `/organizations/${integerId(id)}`,
+            `/organizations/${publicId(id)}`,
             undefined,
             options,
         );
@@ -786,7 +768,7 @@ export class ManagementOrganizations {
     ): Promise<ManagementPage<ManagedOrganizationMember>> =>
         this.request(
             "GET",
-            `/organizations/${integerId(id)}/memberships` + listQuery(options),
+            `/organizations/${publicId(id)}/memberships` + listQuery(options),
             undefined,
             options,
         );
@@ -798,8 +780,8 @@ export class ManagementOrganizations {
     ): Promise<void> =>
         this.request(
             "PUT",
-            `/organizations/${integerId(id)}/memberships/${userId(memberId)}`,
-            { roleId: Number(integerId(roleId)) },
+            `/organizations/${publicId(id)}/memberships/${publicId(memberId)}`,
+            { roleId: publicId(roleId) },
             options,
         );
     deleteOrganizationMembership = (
@@ -809,7 +791,7 @@ export class ManagementOrganizations {
     ): Promise<void> =>
         this.request(
             "DELETE",
-            `/organizations/${integerId(id)}/memberships/${userId(memberId)}`,
+            `/organizations/${publicId(id)}/memberships/${publicId(memberId)}`,
             undefined,
             options,
         );
@@ -819,7 +801,7 @@ export class ManagementOrganizations {
     ): Promise<ManagementPage<ManagedInvitation>> =>
         this.request(
             "GET",
-            `/organizations/${integerId(id)}/invitations` + listQuery(options),
+            `/organizations/${publicId(id)}/invitations` + listQuery(options),
             undefined,
             options,
         );
@@ -830,8 +812,8 @@ export class ManagementOrganizations {
     ): Promise<InvitationResult> =>
         this.request(
             "POST",
-            `/organizations/${integerId(id)}/invitations`,
-            { ...input, roleId: Number(integerId(input.roleId)) },
+            `/organizations/${publicId(id)}/invitations`,
+            { ...input, roleId: publicId(input.roleId) },
             options,
         );
     resendOrganizationInvitation = (
@@ -842,7 +824,7 @@ export class ManagementOrganizations {
     ): Promise<InvitationResult> =>
         this.request(
             "POST",
-            `/organizations/${integerId(id)}/invitations/${integerId(invitationId)}/resend`,
+            `/organizations/${publicId(id)}/invitations/${publicId(invitationId)}/resend`,
             input,
             options,
         );
@@ -853,7 +835,7 @@ export class ManagementOrganizations {
     ): Promise<void> =>
         this.request(
             "DELETE",
-            `/organizations/${integerId(id)}/invitations/${integerId(invitationId)}`,
+            `/organizations/${publicId(id)}/invitations/${publicId(invitationId)}`,
             undefined,
             options,
         );
@@ -863,7 +845,7 @@ export class ManagementOrganizations {
     ): Promise<ManagedRole[]> =>
         this.request(
             "GET",
-            `/organizations/${integerId(id)}/roles`,
+            `/organizations/${publicId(id)}/roles`,
             undefined,
             options,
         );
@@ -874,7 +856,7 @@ export class ManagementOrganizations {
     ): Promise<{ id: string }> =>
         this.request(
             "POST",
-            `/organizations/${integerId(id)}/roles`,
+            `/organizations/${publicId(id)}/roles`,
             input,
             options,
         );
@@ -886,7 +868,7 @@ export class ManagementOrganizations {
     ): Promise<void> =>
         this.request(
             "PUT",
-            `/organizations/${integerId(id)}/roles/${integerId(roleId)}`,
+            `/organizations/${publicId(id)}/roles/${publicId(roleId)}`,
             input,
             options,
         );
@@ -897,7 +879,7 @@ export class ManagementOrganizations {
     ): Promise<void> =>
         this.request(
             "DELETE",
-            `/organizations/${integerId(id)}/roles/${integerId(roleId)}`,
+            `/organizations/${publicId(id)}/roles/${publicId(roleId)}`,
             undefined,
             options,
         );
