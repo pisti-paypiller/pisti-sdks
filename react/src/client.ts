@@ -49,6 +49,7 @@ interface SessionUserState {
     lastName: string;
     email: string;
     imageUrl: string | null;
+    username: string | null;
 }
 interface SessionState {
     id: string;
@@ -389,18 +390,22 @@ export class PistiClient {
 
     /** Sign-ups as resources (Clerk's `SignUp`): create one, verify its email, and the account is created and signed in. */
     readonly signUp = {
-        create: (input: { emailAddress?: string; password?: string; firstName?: string; lastName?: string; invitationToken?: string }): Promise<AttemptResource> =>
+        create: (input: { emailAddress?: string; password?: string; firstName?: string; lastName?: string; username?: string; invitationToken?: string }): Promise<AttemptResource> =>
             this.attempt("POST", "client/sign_ups", input),
         get: (id: string): Promise<AttemptResource> => this.attempt("GET", `client/sign_ups/${encodeURIComponent(id)}`),
-        update: (id: string, input: { emailAddress?: string; password?: string; firstName?: string; lastName?: string }): Promise<AttemptResource> =>
+        update: (id: string, input: { emailAddress?: string; password?: string; firstName?: string; lastName?: string; username?: string }): Promise<AttemptResource> =>
             this.attempt("PATCH", `client/sign_ups/${encodeURIComponent(id)}`, input),
         prepareVerification: (id: string): Promise<AttemptResource> =>
             this.attempt("POST", `client/sign_ups/${encodeURIComponent(id)}/prepare_verification`, { strategy: "email_code" }),
         attemptVerification: (id: string, code: string): Promise<AttemptResource> =>
             this.attempt("POST", `client/sign_ups/${encodeURIComponent(id)}/attempt_verification`, { strategy: "email_code", code }),
 
-        sendEmailCode: async (email: string, invitationToken?: string): Promise<{ requestId: string }> => {
-            const created = await this.signUp.create({ emailAddress: email, ...(invitationToken ? { invitationToken } : {}) });
+        sendEmailCode: async (email: string, invitationToken?: string, username?: string): Promise<{ requestId: string }> => {
+            const created = await this.signUp.create({
+                emailAddress: email,
+                ...(invitationToken ? { invitationToken } : {}),
+                ...(username ? { username } : {}),
+            });
             await this.signUp.prepareVerification(created.id);
             return { requestId: created.id };
         },
@@ -745,6 +750,7 @@ export class PistiClient {
                 firstName: session.user.firstName,
                 lastName: session.user.lastName,
                 primaryEmailAddress: session.user.email ? { emailAddress: session.user.email } : null,
+                username: session.user.username ?? null,
                 imageUrl: session.user.imageUrl,
                 hasImage: Boolean(session.user.imageUrl),
                 authenticatedAt: previous?.authenticatedAt ?? null,
