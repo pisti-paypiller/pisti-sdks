@@ -1,6 +1,7 @@
-import { useCallback, useId, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useState, type FormEvent, type ReactNode } from "react";
 import { APIKeys } from "./api-keys.js";
-import { useAccount, useAuth } from "./context.js";
+import { useAccount, useAuth, usePisti } from "./context.js";
+import type { EnvironmentConfig } from "./types.js";
 import type { AuthenticatorEnrollment, SecurityProof } from "./resources.js";
 import {
     ActionNotice,
@@ -327,17 +328,34 @@ function AccountPasskeys() {
     const query = useResource(account.passkeys);
     const action = useAction();
     if (!user) return null;
-    const destination = new URL("/account/passkeys", user.issuer);
-    destination.searchParams.set("instanceId", user.instanceId);
-    destination.searchParams.set("userId", user.id);
+    const supported = typeof window !== "undefined" && "PublicKeyCredential" in window;
     return (
         <section className="pisti-section">
             <h3>Passkeys</h3>
             <p className="pisti-muted">
-                Use a fingerprint, face, device PIN or security key. Setup opens
-                your secure authentication account center.
+                Use a fingerprint, face, device PIN or security key instead of a
+                password.
             </p>
-            <a href={destination.href}>Open secure passkey setup</a>
+            {supported && (
+                <form
+                    className="pisti-row"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        const form = event.currentTarget;
+                        const name = String(new FormData(form).get("name") ?? "").trim() || "Passkey";
+                        void action.run(async () => {
+                            await account.addPasskey(name);
+                            form.reset();
+                            query.reload();
+                        }, "Passkey added.");
+                    }}
+                >
+                    <input name="name" aria-label="Passkey name" placeholder="Name, such as My laptop" maxLength={100} />
+                    <button type="submit" className="pisti-secondary" disabled={action.isPending}>
+                        Add a passkey
+                    </button>
+                </form>
+            )}
             {query.isLoading && <Loading />}
             <ErrorNotice error={query.error} retry={query.reload} />
             <ActionNotice action={action} />
@@ -372,21 +390,38 @@ function AccountPasskeys() {
 function AccountConnections() {
     const account = useAccount();
     const { user, reload } = useAuth();
+    const environment = useEnvironmentConfig();
     const query = useResource(account.connections);
     const action = useAction();
     if (!user) return null;
-    const destination = new URL("/account/connections", user.issuer);
-    destination.searchParams.set("instanceId", user.instanceId);
-    destination.searchParams.set("userId", user.id);
+    const connected = typeof location !== "undefined" ? new URLSearchParams(location.search).get("__pisti_connection") : null;
+    const available = (environment?.signIn.providers ?? []).filter(
+        (provider) => !query.data?.some((connection) => connection.providerId === provider.strategy.slice("oauth_".length)),
+    );
     return (
         <section className="pisti-section">
             <h3>Connected accounts</h3>
             <p className="pisti-muted">
-                Connect a sign-in provider in your secure account center.
-                Disconnecting requires recent verification and ends all your
-                sessions.
+                Sign in with a provider you connect here. Connecting needs a
+                recent sign-in; disconnecting ends all your sessions.
             </p>
-            <a href={destination.href}>Manage connected accounts securely</a>
+            {connected && (
+                <p className="pisti-notice" role="status">
+                    {connected === "connected" ? "Provider connected." : connected === "connection_in_use"
+                        ? "That provider account is already connected to another user." : "The provider couldn’t be connected. Try again."}
+                </p>
+            )}
+            {available.map((provider) => (
+                <button
+                    key={provider.strategy}
+                    type="button"
+                    className="pisti-secondary"
+                    disabled={action.isPending}
+                    onClick={() => void action.run(async () => { await account.connect(Number(provider.strategy.slice("oauth_".length))); }, "")}
+                >
+                    Connect {provider.name}
+                </button>
+            ))}
             {query.isLoading && <Loading />}
             <ErrorNotice error={query.error} retry={query.reload} />
             <ActionNotice action={action} />
@@ -834,4 +869,18 @@ export function UserProfile({
             )}
         </div>
     );
+}
+
+/** The environment's configuration, loaded once per client. */
+function useEnvironmentConfig(): EnvironmentConfig | null {
+    const client = usePisti();
+    const [environment, setEnvironment] = useState<EnvironmentConfig | null>(null);
+    useEffect(() => {
+        let active = true;
+        client.loadEnvironment().then((value) => active && setEnvironment(value), () => {});
+        return () => {
+            active = false;
+        };
+    }, [client]);
+    return environment;
 }

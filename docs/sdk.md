@@ -28,13 +28,19 @@ An application environment has two kinds of key:
 
 ## How a sign-in works
 
-1. `<PistiProvider>` (key from `VITE_PISTI_PUBLISHABLE_KEY`) loads `GET {host}/v1/environment` (enabled methods, signup
-   policy, paths) and `GET {host}/v1/client`, which creates the browser client and its
-   `pisti_client` cookie on first use.
-2. `<SignIn />` and `<SignUp />` call the Frontend API step by step (password, email code,
-   second factor, password reset, reactivation). A completed step creates a session that belongs to the
-   browser client.
-3. The SDK requests a session token (`POST {host}/v1/sessions/{id}/tokens`, about 60 seconds),
+1. `<PistiProvider>` (key from `VITE_PISTI_PUBLISHABLE_KEY`) loads `GET {host}/v1/environment` (sign-in
+   methods and providers, signup policy, multi-session, paths) and `GET {host}/v1/client`, the
+   browser client's sessions.
+2. `<SignIn />` and `<SignUp />` work through sign-in and sign-up attempts, like Clerk's
+   resources: `client.signIn.create()`, `prepareFirstFactor()`, `attemptFirstFactor()`,
+   `attemptSecondFactor()`, and `client.signUp.create()`, `update()`, `prepareVerification()`,
+   `attemptVerification()` (`POST {host}/v1/client/sign_ins` and `sign_ups`). The first attempt
+   creates the browser client and its `pisti_client` cookie. Passkeys (`client.signIn.passkey()`)
+   and upstream providers (`client.signIn.withProvider("oauth_{id}")`, which returns to the page,
+   where `client.handleRedirectCallback()` finishes) are offered when the environment enables
+   them. A completed attempt creates a session in the browser client; with multi-session on, a
+   browser holds several (`client.sessions`, `client.setActive(id)`).
+3. The SDK requests a session token (`POST {host}/v1/client/sessions/{id}/tokens`, about 60 seconds),
    writes it to the `__session` cookie on the app's origin and refreshes it in the
    background. `useAuthenticatedFetch()` also sends it as a bearer header.
 4. `pistiMiddleware()` from `@pisti-paypiller/express` (configured from `PISTI_PUBLISHABLE_KEY`)
@@ -46,8 +52,9 @@ An application environment has two kinds of key:
    `authenticateRequest(request)` from `@pisti-paypiller/backend` does the same for Fetch API runtimes.
    A page request whose cookie expired gets the handshake (`pisti-backend/docs/authentication.md#handshake`): a
    redirect through the Frontend API that refreshes `__session` and returns to the page.
-5. Account and organization components call `/v1/account/*` on the API with the session
-   token as a bearer credential.
+5. Account and organization components call `/v1/account/*` on the environment's host with
+   the session token as a bearer credential, including adding passkeys
+   (`useAccount().addPasskey(name)`) and connecting providers (`useAccount().connect(id)`).
 
 See authentication (`pisti-backend/docs/authentication.md#frontend-api`) for the endpoint list and token claims.
 

@@ -62,15 +62,53 @@ interface ClientState {
     lastActiveSessionId: string | null;
     clientToken: string | null;
 }
-type Completion = {
-    status: "complete";
-    sessionId: string;
+/** A sign-in or sign-up in progress, as the Frontend API returns it. */
+export interface AttemptResource {
+    id: string;
+    object: "sign_in" | "sign_up";
+    status: "needs_first_factor" | "needs_second_factor" | "missing_requirements" | "complete";
+    identifier?: string | null;
+    emailAddress?: string | null;
+    supportedFirstFactors?: { strategy: string }[];
+    firstFactorVerification?: {
+        strategy: string;
+        status: string;
+        externalVerificationRedirectUrl: string | null;
+        passkeyOptions: PublicKeyCredentialRequestOptionsJSON | null;
+        error: string | null;
+    } | null;
+    secondFactor: SecondFactorDetails | null;
+    createdSessionId: string | null;
+    recoveryCodes: string[] | null;
+    expiresAt: string;
+}
+
+interface AttemptEnvelope {
+    response: AttemptResource;
     client: ClientState;
-    recoveryCodes?: string[] | null;
-};
-type Outcome =
-    | Completion
-    | { status: "needs_second_factor"; attemptId: string; enrollmentRequired: boolean };
+}
+
+/** WebAuthn request options as JSON (base64url buffers), the shape Pisti returns. */
+export interface PublicKeyCredentialRequestOptionsJSON {
+    challenge: string;
+    rpId?: string;
+    timeout?: number;
+    userVerification?: UserVerificationRequirement;
+    allowCredentials?: { id: string; type: "public-key"; transports?: string[] }[];
+}
+
+/** WebAuthn creation options as JSON (base64url buffers). */
+export interface PublicKeyCredentialCreationOptionsJSON {
+    challenge: string;
+    rp: { id?: string; name: string };
+    user: { id: string; name: string; displayName: string };
+    pubKeyCredParams: { type: "public-key"; alg: number }[];
+    timeout?: number;
+    excludeCredentials?: { id: string; type: "public-key"; transports?: string[] }[];
+    authenticatorSelection?: AuthenticatorSelectionCriteria;
+    attestation?: AttestationConveyancePreference;
+}
+
 
 const INITIAL: AuthSnapshot = Object.freeze({
     status: "loading",
@@ -292,54 +330,153 @@ export class PistiClient {
                   },
               ));
 
+    /** Sign-ins as resources (Clerk's `SignIn`): create one, then prepare and attempt its factors. A completed attempt
+     * signs the browser in. The step helpers below wrap these for the common flows. */
     readonly signIn = {
-        password: (identifier: string, password: string): Promise<SignInResult> =>
-            this.complete(this.fapi<Outcome>("POST", "sign_in/password", { identifier, password })),
-        sendEmailCode: (identifier: string): Promise<{ requestId: string }> =>
-            this.fapi("POST", "sign_in/email_code", { identifier }),
-        verifyEmailCode: (requestId: string, code: string): Promise<SignInResult> =>
-            this.complete(this.fapi<Outcome>("POST", "sign_in/email_code/verify", { requestId, code })),
-        secondFactorDetails: (attemptId: string): Promise<SecondFactorDetails> =>
-            this.fapi("POST", "sign_in/second_factor/details", { attemptId }),
-        completeSecondFactor: (attemptId: string, code: string, emailCode?: string): Promise<SignInResult> =>
-            this.complete(this.fapi<Outcome>("POST", "sign_in/second_factor", { attemptId, code, ...(emailCode ? { emailCode } : {}) })),
+        create: (input: { identifier?: string; strategy?: string; password?: string; redirectUrl?: string }): Promise<AttemptResource> =>
+            this.attempt("POST", "client/sign_ins", input),
+        get: (id: string): Promise<AttemptResource> => this.attempt("GET", `client/sign_ins/${encodeURIComponent(id)}`),
+        prepareFirstFactor: (id: string, strategy: "email_code" | "passkey"): Promise<AttemptResource> =>
+            this.attempt("POST", `client/sign_ins/${encodeURIComponent(id)}/prepare_first_factor`, { strategy }),
+        attemptFirstFactor: (id: string, input: { strategy: string; password?: string; code?: string; credential?: unknown }): Promise<AttemptResource> =>
+            this.attempt("POST", `client/sign_ins/${encodeURIComponent(id)}/attempt_first_factor`, input),
+        attemptSecondFactor: (id: string, input: { strategy: "totp" | "backup_code"; code: string; emailCode?: string }): Promise<AttemptResource> =>
+            this.attempt("POST", `client/${id.startsWith("sua_") ? "sign_ups" : "sign_ins"}/${encodeURIComponent(id)}/attempt_second_factor`, input),
+
+        password: async (identifier: string, password: string): Promise<SignInResult> =>
+            this.result(await this.signIn.create({ identifier, password })),
+        sendEmailCode: async (identifier: string): Promise<{ requestId: string }> => {
+            const created = await this.signIn.create({ identifier });
+            await this.signIn.prepareFirstFactor(created.id, "email_code");
+            return { requestId: created.id };
+        },
+        verifyEmailCode: async (requestId: string, code: string): Promise<SignInResult> =>
+            this.result(await this.signIn.attemptFirstFactor(requestId, { strategy: "email_code", code })),
+        secondFactorDetails: async (attemptId: string): Promise<SecondFactorDetails> => {
+            const attempt = await this.signIn.get(attemptId);
+            return { ...(attempt.secondFactor ?? { enrollmentRequired: false, setupKey: null, authenticatorUri: null, emailCodeRequired: false }),
+                expiresAt: attempt.expiresAt };
+        },
+        completeSecondFactor: async (attemptId: string, code: string, emailCode?: string): Promise<SignInResult> =>
+            this.result(await this.signIn.attemptSecondFactor(attemptId, {
+                // Authenticator codes are six digits; recovery codes are longer.
+                strategy: /^\d{6}$/.test(code.trim()) ? "totp" : "backup_code",
+                code: code.trim(),
+                ...(emailCode ? { emailCode } : {}),
+            })),
+        /** Signs in with a passkey: the browser asks the user to choose one of theirs for this application. */
+        passkey: async (): Promise<SignInResult> => {
+            const created = await this.signIn.create({ strategy: "passkey" });
+            const options = created.firstFactorVerification?.passkeyOptions;
+            if (!options) throw new PistiClientError("Passkeys aren’t available here.", 400, "strategy_not_supported");
+            const credential = await navigator.credentials.get({ publicKey: requestOptions(options) });
+            if (!credential) throw new PistiClientError("No passkey was chosen.", 400, "passkey_cancelled");
+            return this.result(await this.signIn.attemptFirstFactor(created.id, {
+                strategy: "passkey",
+                credential: assertionJson(credential as PublicKeyCredential),
+            }));
+        },
+        /** Signs in through an upstream provider (`oauth_{id}` from the environment): the browser goes there and comes
+         * back to `redirectUrl` (this page by default), where `handleRedirectCallback()` finishes. */
+        withProvider: async (strategy: string, redirectUrl: string = location.href): Promise<never> => {
+            const created = await this.signIn.create({ strategy, redirectUrl });
+            const target = created.firstFactorVerification?.externalVerificationRedirectUrl;
+            if (!target) throw new PistiClientError("That provider isn’t available here.", 400, "strategy_not_supported");
+            location.assign(target);
+            return new Promise<never>(() => {});
+        },
     };
 
+    /** Sign-ups as resources (Clerk's `SignUp`): create one, verify its email, and the account is created and signed in. */
     readonly signUp = {
-        sendEmailCode: (email: string): Promise<{ requestId: string }> =>
-            this.fapi("POST", "sign_up", { identifier: email }),
-        verify: (input: SignUpInput): Promise<SignInResult> =>
-            this.complete(this.fapi<Outcome>("POST", "sign_up/verify", input)),
+        create: (input: { emailAddress?: string; password?: string; firstName?: string; lastName?: string; invitationToken?: string }): Promise<AttemptResource> =>
+            this.attempt("POST", "client/sign_ups", input),
+        get: (id: string): Promise<AttemptResource> => this.attempt("GET", `client/sign_ups/${encodeURIComponent(id)}`),
+        update: (id: string, input: { emailAddress?: string; password?: string; firstName?: string; lastName?: string }): Promise<AttemptResource> =>
+            this.attempt("PATCH", `client/sign_ups/${encodeURIComponent(id)}`, input),
+        prepareVerification: (id: string): Promise<AttemptResource> =>
+            this.attempt("POST", `client/sign_ups/${encodeURIComponent(id)}/prepare_verification`, { strategy: "email_code" }),
+        attemptVerification: (id: string, code: string): Promise<AttemptResource> =>
+            this.attempt("POST", `client/sign_ups/${encodeURIComponent(id)}/attempt_verification`, { strategy: "email_code", code }),
+
+        sendEmailCode: async (email: string, invitationToken?: string): Promise<{ requestId: string }> => {
+            const created = await this.signUp.create({ emailAddress: email, ...(invitationToken ? { invitationToken } : {}) });
+            await this.signUp.prepareVerification(created.id);
+            return { requestId: created.id };
+        },
+        verify: async (input: SignUpInput): Promise<SignInResult> => {
+            if (input.firstName !== undefined || input.lastName !== undefined || input.password)
+                await this.signUp.update(input.requestId, {
+                    ...(input.firstName !== undefined ? { firstName: input.firstName } : {}),
+                    ...(input.lastName !== undefined ? { lastName: input.lastName } : {}),
+                    ...(input.password ? { password: input.password } : {}),
+                });
+            return this.result(await this.signUp.attemptVerification(input.requestId, input.code));
+        },
+    };
+
+    /** After a provider round trip the browser returns with `__pisti_attempt`: this reads that attempt, removes the
+     * parameter, and returns it (complete, waiting for its second factor, or a sign-up to verify), or null. */
+    readonly handleRedirectCallback = async (): Promise<AttemptResource | null> => {
+        const url = new URL(location.href);
+        const id = url.searchParams.get("__pisti_attempt");
+        if (!id) return null;
+        url.searchParams.delete("__pisti_attempt");
+        history.replaceState(history.state, "", url.href);
+        const attempt = id.startsWith("sua_") ? await this.signUp.get(id) : await this.signIn.get(id);
+        if (attempt.status === "complete") await this.result(attempt);
+        return attempt;
+    };
+
+    /** Turns an attempt from the resource methods into a step result; a completed one signs the browser in. */
+    readonly completeAttempt = (attempt: AttemptResource): Promise<SignInResult> => this.result(attempt);
+
+    /** Every user signed in to this browser (several only when the environment allows multi-session). */
+    get sessions(): { id: string; userId: string; email: string; fullName: string | null }[] {
+        return this.clientState?.sessions.map((item) => ({
+            id: item.id,
+            userId: item.user.id,
+            email: item.user.email,
+            fullName: `${item.user.firstName} ${item.user.lastName}`.trim() || null,
+        })) ?? [];
+    }
+
+    /** Makes another of this browser's sessions the active one. */
+    readonly setActive = async (sessionId: string): Promise<void> => {
+        const organizationId = this.clientState?.sessions.find((item) => item.id === sessionId)?.organizationId ?? null;
+        await this.apply(await this.fapi<ClientState>("POST", `client/sessions/${encodeURIComponent(sessionId)}/touch`, { organizationId }), sessionId);
+        await this.getToken({ skipCache: true }).catch(() => {});
+        this.channel?.postMessage("changed");
     };
 
     readonly passwordReset = {
         sendEmailCode: (identifier: string): Promise<{ requestId: string; resendAvailableAt: string }> =>
-            this.fapi("POST", "password_reset", { identifier }),
+            this.fapi("POST", "client/password_reset", { identifier }),
         complete: (input: {
             requestId: string;
             code: string;
             password: string;
             authenticatorCode?: string;
-        }): Promise<void> => this.fapi("POST", "password_reset/complete", input),
+        }): Promise<void> => this.fapi("POST", "client/password_reset/complete", input),
     };
 
     /** Restores a self-deactivated account during its 30-day grace period. The user then signs in again. */
     readonly reactivation = {
         sendEmailCode: (identifier: string): Promise<{ requestId: string; resendAvailableAt: string }> =>
-            this.fapi("POST", "reactivation", { identifier }),
+            this.fapi("POST", "client/reactivation", { identifier }),
         complete: (input: { requestId: string; code: string; authenticatorCode?: string }): Promise<void> =>
-            this.fapi("POST", "reactivation/complete", input),
+            this.fapi("POST", "client/reactivation/complete", input),
     };
 
     readonly signOut = async (): Promise<void> => {
-        await this.apply(await this.fapi<ClientState>("POST", "sign_out"));
+        await this.apply(await this.fapi<ClientState>("POST", "client/sign_out"));
         this.channel?.postMessage("changed");
     };
 
     readonly setActiveOrganization = async (organizationId: string | null): Promise<void> => {
         const sessionId = this.requireSession();
         await this.apply(
-            await this.fapi<ClientState>("POST", `sessions/${sessionId}/touch`, { organizationId }),
+            await this.fapi<ClientState>("POST", `client/sessions/${sessionId}/touch`, { organizationId }),
         );
         await this.getToken({ skipCache: true });
         this.channel?.postMessage("changed");
@@ -359,7 +496,7 @@ export class PistiClient {
             try {
                 const result = await this.fapi<{ jwt: string; expiresAt: string }>(
                     "POST",
-                    `sessions/${sessionId}/tokens`,
+                    `client/sessions/${sessionId}/tokens`,
                 );
                 if (this.snapshot.sessionId !== sessionId) return null;
                 this.token = { value: result.jwt, expiresAt: Date.parse(result.expiresAt), sessionId };
@@ -542,16 +679,30 @@ export class PistiClient {
 
     // ----- Internals -----
 
-    private async complete(request: Promise<Outcome>): Promise<SignInResult> {
-        const outcome = await request;
-        if (outcome.status !== "complete") return outcome;
-        await this.apply(outcome.client, outcome.sessionId);
-        await this.getToken({ skipCache: true }).catch(() => {});
-        this.channel?.postMessage("changed");
-        return { status: "complete", recoveryCodes: outcome.recoveryCodes ?? null };
+    private clientState: ClientState | null = null;
+    private attemptClient: ClientState | null = null;
+
+    /** Calls an attempt endpoint, keeping the browser client's token for the development header fallback. */
+    private async attempt(method: "GET" | "POST" | "PATCH", path: string, body?: unknown): Promise<AttemptResource> {
+        const envelope = await this.fapi<AttemptEnvelope>(method, path, body);
+        this.keepClientToken(envelope.client);
+        this.attemptClient = envelope.client;
+        return envelope.response;
     }
 
-    private async apply(state: ClientState, preferred?: string): Promise<void> {
+    /** Turns an attempt into a step result; a completed one signs the browser in to its new session. */
+    private async result(attempt: AttemptResource): Promise<SignInResult> {
+        if (attempt.status === "needs_second_factor")
+            return { status: "needs_second_factor", attemptId: attempt.id, enrollmentRequired: attempt.secondFactor?.enrollmentRequired ?? false };
+        if (attempt.status !== "complete")
+            throw new PistiClientError("Verify your email address to continue.", 409, "missing_requirements");
+        await this.apply(this.attemptClient ?? (await this.fapi<ClientState>("GET", "client")), attempt.createdSessionId ?? undefined);
+        await this.getToken({ skipCache: true }).catch(() => {});
+        this.channel?.postMessage("changed");
+        return { status: "complete", recoveryCodes: attempt.recoveryCodes ?? null };
+    }
+
+    private keepClientToken(state: ClientState): void {
         if (state.clientToken && this.development) {
             try {
                 localStorage.setItem(this.storageKey, state.clientToken);
@@ -562,6 +713,11 @@ export class PistiClient {
             // handshake, since the environment's generated host is another site.
             document.cookie = `__pisti_client=${state.clientToken}; Path=/; Max-Age=31536000; SameSite=Lax`;
         }
+    }
+
+    private async apply(state: ClientState, preferred?: string): Promise<void> {
+        this.keepClientToken(state);
+        this.clientState = state;
         const session =
             state.sessions.find((item) => item.id === preferred) ??
             state.sessions.find((item) => item.id === state.lastActiveSessionId) ??
@@ -687,7 +843,7 @@ export class PistiClient {
             throw new PistiClientError("The signed-in account changed. Try again.", 409, "identity_changed");
     }
 
-    private async fapi<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
+    private async fapi<T>(method: "GET" | "POST" | "PATCH", path: string, body?: unknown): Promise<T> {
         const headers = new Headers({ Accept: "application/json" });
         if (body !== undefined) headers.set("Content-Type", "application/json");
         if (this.development) {
@@ -761,4 +917,76 @@ export class PistiClient {
             );
         }
     }
+}
+
+function fromBase64Url(value: string): ArrayBuffer {
+    const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+    const binary = atob(base64 + "=".repeat((4 - (base64.length % 4)) % 4));
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
+    return bytes.buffer;
+}
+
+function toBase64Url(value: ArrayBuffer): string {
+    let binary = "";
+    for (const byte of new Uint8Array(value)) binary += String.fromCharCode(byte);
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function descriptor(item: { id: string; type: "public-key"; transports?: string[] }): PublicKeyCredentialDescriptor {
+    return { type: item.type, id: fromBase64Url(item.id), ...(item.transports ? { transports: item.transports as AuthenticatorTransport[] } : {}) };
+}
+
+/** Pisti's JSON request options as the browser's WebAuthn API takes them. */
+export function requestOptions(options: PublicKeyCredentialRequestOptionsJSON): PublicKeyCredentialRequestOptions {
+    const { challenge, allowCredentials, ...rest } = options;
+    return {
+        ...(rest as Omit<PublicKeyCredentialRequestOptions, "challenge" | "allowCredentials">),
+        challenge: fromBase64Url(challenge),
+        ...(allowCredentials ? { allowCredentials: allowCredentials.map(descriptor) } : {}),
+    };
+}
+
+/** Pisti's JSON creation options as the browser's WebAuthn API takes them. */
+export function creationOptions(options: PublicKeyCredentialCreationOptionsJSON): PublicKeyCredentialCreationOptions {
+    const { challenge, user, excludeCredentials, ...rest } = options;
+    return {
+        ...(rest as Omit<PublicKeyCredentialCreationOptions, "challenge" | "user" | "excludeCredentials">),
+        challenge: fromBase64Url(challenge),
+        user: { ...user, id: fromBase64Url(user.id) },
+        ...(excludeCredentials ? { excludeCredentials: excludeCredentials.map(descriptor) } : {}),
+    };
+}
+
+/** A passkey assertion as the JSON Pisti verifies. */
+export function assertionJson(credential: PublicKeyCredential): unknown {
+    const response = credential.response as AuthenticatorAssertionResponse;
+    return {
+        id: credential.id,
+        rawId: toBase64Url(credential.rawId),
+        type: credential.type,
+        extensions: credential.getClientExtensionResults(),
+        response: {
+            authenticatorData: toBase64Url(response.authenticatorData),
+            clientDataJSON: toBase64Url(response.clientDataJSON),
+            signature: toBase64Url(response.signature),
+            userHandle: response.userHandle ? toBase64Url(response.userHandle) : null,
+        },
+    };
+}
+
+/** A new passkey as the JSON Pisti registers. */
+export function attestationJson(credential: PublicKeyCredential): unknown {
+    const response = credential.response as AuthenticatorAttestationResponse;
+    return {
+        id: credential.id,
+        rawId: toBase64Url(credential.rawId),
+        type: credential.type,
+        extensions: credential.getClientExtensionResults(),
+        response: {
+            attestationObject: toBase64Url(response.attestationObject),
+            clientDataJSON: toBase64Url(response.clientDataJSON),
+            transports: response.getTransports?.() ?? [],
+        },
+    };
 }

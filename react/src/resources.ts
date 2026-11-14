@@ -1,3 +1,4 @@
+import { attestationJson, creationOptions, type PublicKeyCredentialCreationOptionsJSON } from "./client.js";
 export interface CursorPage<T> {
     items: T[];
     nextCursor: string | null;
@@ -195,6 +196,23 @@ export class AccountResource {
             "DELETE",
             `/v1/account/security/connections/${integerId(id)}`,
         );
+    /** Adds a passkey: the browser creates one for this account and Pisti registers it. Needs a recent sign-in. */
+    addPasskey = async (name: string): Promise<void> => {
+        const started = await this.request<{ requestId: string; options: PublicKeyCredentialCreationOptionsJSON }>(
+            "POST", "/v1/account/security/passkeys/options", { name });
+        const credential = await navigator.credentials.create({ publicKey: creationOptions(started.options) });
+        if (!credential) throw new Error("No passkey was created.");
+        await this.request("POST", "/v1/account/security/passkeys", {
+            requestId: started.requestId,
+            credential: attestationJson(credential as PublicKeyCredential),
+        });
+    };
+    /** Connects a sign-in provider: the browser goes to it and returns to `redirectUrl` with `__pisti_connection`. */
+    connect = async (providerId: number, redirectUrl: string = location.href): Promise<never> => {
+        const started = await this.request<{ url: string }>("POST", "/v1/account/security/connections", { providerId, redirectUrl });
+        location.assign(started.url);
+        return new Promise<never>(() => {});
+    };
     removePasskey = (id: string): Promise<void> =>
         this.request(
             "DELETE",

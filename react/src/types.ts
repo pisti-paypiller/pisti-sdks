@@ -75,9 +75,17 @@ export interface AuthSnapshot {
 export interface EnvironmentConfig {
     applicationName: string;
     environment: "development" | "production";
-    signIn: { password: boolean; emailCode: boolean };
+    signIn: {
+        password: boolean;
+        emailCode: boolean;
+        passkey: boolean;
+        /** Upstream providers, each a strategy for `signIn.withProvider()`. */
+        providers: { strategy: string; name: string; signUp: boolean }[];
+    };
     signUp: { enabled: boolean; password: boolean };
     requireMfa: boolean;
+    /** Whether a browser may hold several signed-in users. */
+    multiSession: boolean;
     paths: {
         signInUrl: string | null;
         signUpUrl: string | null;
@@ -99,7 +107,7 @@ export interface SecondFactorDetails {
     enrollmentRequired: boolean;
     setupKey: string | null;
     authenticatorUri: string | null;
-    expiresAt: string;
+    expiresAt?: string;
     /** After a password sign-in, adding an authenticator also needs the code Pisti emailed to the user. */
     emailCodeRequired: boolean;
 }
