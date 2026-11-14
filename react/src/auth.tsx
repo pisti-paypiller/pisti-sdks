@@ -37,6 +37,8 @@ export interface SignUpProps {
     fallbackRedirectUrl?: string | undefined;
     /** Where the "Sign in" link goes. Defaults to the provider's signInUrl, else a modal. */
     signInUrl?: string | undefined;
+    /** An organization invitation: signing up with its address joins the organization, even when sign-ups are closed. */
+    invitationToken?: string | undefined;
     className?: string | undefined;
 }
 
@@ -607,7 +609,7 @@ export function SignIn({ forceRedirectUrl, fallbackRedirectUrl, signUpUrl, class
 }
 
 /** A complete sign-up form: email verification by code, name and an optional password. */
-export function SignUp({ forceRedirectUrl, fallbackRedirectUrl, signInUrl, className }: SignUpProps) {
+export function SignUp({ forceRedirectUrl, fallbackRedirectUrl, signInUrl, invitationToken, className }: SignUpProps) {
     const client = usePisti();
     const inModal = useContext(ModalContext);
     const { isLoaded, isSignedIn } = useAuth();
@@ -667,7 +669,7 @@ export function SignUp({ forceRedirectUrl, fallbackRedirectUrl, signInUrl, class
             </button>
         </>
     );
-    if (!environment.signUp.enabled)
+    if (!environment.signUp.enabled && !invitationToken)
         return (
             <Card title="Sign-ups are closed" subtitle="Ask the app’s owner for an invitation." footer={signIn} className={className}>
                 <span />
@@ -723,7 +725,7 @@ export function SignUp({ forceRedirectUrl, fallbackRedirectUrl, signInUrl, class
                         password: String(data.get("password") ?? ""),
                     });
                     void run(async () => {
-                        const sent = await client.signUp.sendEmailCode(email);
+                        const sent = await client.signUp.sendEmailCode(email, invitationToken);
                         setRequest({ requestId: sent.requestId, email });
                     });
                 }}
