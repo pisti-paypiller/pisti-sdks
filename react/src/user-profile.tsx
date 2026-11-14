@@ -534,7 +534,7 @@ function AccountConnections() {
                     type="button"
                     className="pisti-secondary"
                     disabled={action.isPending}
-                    onClick={() => void action.run(async () => { await account.connect(Number(provider.strategy.slice("oauth_".length))); }, "")}
+                    onClick={() => void action.run(async () => { await account.connect(provider.strategy.slice("oauth_".length)); }, "")}
                 >
                     Connect {provider.name}
                 </button>

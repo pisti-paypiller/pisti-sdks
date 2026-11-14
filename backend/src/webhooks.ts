@@ -165,8 +165,8 @@ function verifyPayload(
         typeof payload === "string"
             ? Buffer.from(payload, "utf8")
             : Buffer.from(payload);
-    if (options.expectedInstanceId !== undefined && !/^[1-9]\d{0,9}$/.test(options.expectedInstanceId))
-        throw new Error("expectedInstanceId must be the environment's numeric ID.");
+    if (options.expectedInstanceId !== undefined && !/^ins_[0-9A-Za-z]{11}$/.test(options.expectedInstanceId))
+        throw new Error("expectedInstanceId must be the environment's ID (ins_…).");
     const tolerance = options.toleranceSeconds ?? 300;
     if (!Number.isInteger(tolerance) || tolerance < 1 || tolerance > 600)
         throw new Error(
@@ -189,7 +189,7 @@ function verifyPayload(
     });
     const id = header(headers, "webhook-id"),
         timestamp = header(headers, "webhook-timestamp");
-    if (!/^evt_[a-f0-9]{32}$/.test(id) || !/^\d{1,12}$/.test(timestamp))
+    if (!/^evt_[0-9A-Za-z]{11}$/.test(id) || !/^\d{1,12}$/.test(timestamp))
         throw new PistiWebhookError("invalid_headers");
     const seconds = Number(timestamp);
     if (Math.abs(Math.floor(Date.now() / 1000) - seconds) > tolerance)

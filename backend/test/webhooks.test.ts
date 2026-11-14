@@ -4,7 +4,7 @@ import { PistiWebhookError, verifyWebhookPayload } from "../src/webhooks.js";
 
 const secretBytes = randomBytes(32);
 const secret = `whsec_${secretBytes.toString("base64")}`;
-const eventId = `evt_${"a".repeat(32)}`;
+const eventId = `evt_${"a".repeat(11)}`;
 
 function delivery(overrides: { body?: object; timestamp?: number; key?: Buffer } = {}) {
     const timestamp = String(overrides.timestamp ?? Math.floor(Date.now() / 1000));
@@ -14,8 +14,8 @@ function delivery(overrides: { body?: object; timestamp?: number; key?: Buffer }
             object: "event",
             type: "user.created",
             timestamp: Date.now(),
-            instance_id: "1",
-            data: { object: "user", id: "user_1", deleted: false },
+            instance_id: "ins_00000000001",
+            data: { object: "user", id: "user_00000000001", deleted: false },
         },
     );
     const signature = createHmac("sha256", overrides.key ?? secretBytes).update(`${eventId}.${timestamp}.`).update(body).digest("base64");
@@ -41,7 +41,7 @@ describe("verifyWebhookPayload", () => {
         const event = verifyWebhookPayload(body, headers, { signingSecret: secret });
 
         expect(event.type).toBe("user.created");
-        expect(event.data.id).toBe("user_1");
+        expect(event.data.id).toBe("user_00000000001");
     });
 
     it("accepts any of several secrets while one is rotated", () => {
@@ -58,7 +58,7 @@ describe("verifyWebhookPayload", () => {
 
     it("rejects a body changed after signing", () => {
         const { body, headers } = delivery();
-        const tampered = body.replace("user_1", "user_2");
+        const tampered = body.replace("user_00000000001", "user_00000000002");
         expect(failure(() => verifyWebhookPayload(tampered, headers, { signingSecret: secret }))).toBe("invalid_signature");
     });
 
@@ -69,14 +69,14 @@ describe("verifyWebhookPayload", () => {
 
     it("rejects a payload whose id differs from the signed header", () => {
         const { body, headers } = delivery({
-            body: { id: `evt_${"b".repeat(32)}`, object: "event", type: "user.created", timestamp: 1, instance_id: "1", data: {} },
+            body: { id: `evt_${"b".repeat(11)}`, object: "event", type: "user.created", timestamp: 1, instance_id: "ins_00000000001", data: {} },
         });
         expect(failure(() => verifyWebhookPayload(body, headers, { signingSecret: secret }))).toBe("invalid_payload");
     });
 
     it("rejects events from another environment when one is expected", () => {
         const { body, headers } = delivery();
-        expect(failure(() => verifyWebhookPayload(body, headers, { signingSecret: secret, expectedInstanceId: "2" }))).toBe(
+        expect(failure(() => verifyWebhookPayload(body, headers, { signingSecret: secret, expectedInstanceId: "ins_00000000002" }))).toBe(
             "invalid_payload",
         );
     });

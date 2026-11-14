@@ -132,7 +132,7 @@ export async function POST(request: Request) {
 Events are thin: `data` holds the resource's ID and references; read the current state with
 the backend API. Verification checks the HMAC-SHA256 signature and timestamp (five minutes'
 tolerance) on the raw body. Pass `{ signingSecret: [current, previous] }` while rotating and
-`{ expectedInstanceId }` to pin events to one environment. Store `event.id` to ignore
+`{ expectedInstanceId: "ins_…" }` to pin events to one environment. Store `event.id` to ignore
 duplicates.
 
 An endpoint that keeps failing is slowed to one delivery at a time; `webhooks.endpoints()`
