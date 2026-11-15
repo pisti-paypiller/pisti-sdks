@@ -1,23 +1,31 @@
-export interface ManagementClientOptions {
-    /** Defaults to `PISTI_SECRET_KEY`. Needed only for the management API. Never expose it in browser code. */
+export interface PistiClientOptions {
+    /** Defaults to `PISTI_SECRET_KEY`. Needed only for the backend API. Never expose it in browser code. */
     secretKey?: string | undefined;
     /** Defaults to `PISTI_PUBLISHABLE_KEY`; it names the environment's host. */
     publishableKey?: string | undefined;
-    /** The Pisti management API. Defaults to `PISTI_API_URL`, else `https://pisti-api.paypiller.com`. */
+    /** The Pisti backend API. Defaults to `PISTI_API_URL`, else `https://pisti-api.paypiller.com`. */
     apiUrl?: string | undefined;
     /** Origins allowed to have requested session tokens. Defaults to `PISTI_AUTHORIZED_PARTIES`. */
     authorizedParties?: string[] | undefined;
     timeoutMs?: number | undefined;
 }
 
-export interface ManagedInstance {
+/** What redeeming a handshake nonce returns. */
+export interface HandshakeRedemption {
+    /** The browser's fresh session token, or null when it is signed out. */
+    sessionToken: string | null;
+    /** The last sign-in time, in seconds since the epoch. */
+    clientUat: number | string;
+}
+
+export interface Instance {
     id: string;
     name: string;
     environment: "development" | "production";
     audience: string;
-    publishableKey: string;
+    publishableKey: string | null;
     /** This environment's token issuer: discovery and JWKS live under it. */
-    issuerUrl: string;
+    issuerUrl: string | null;
     /** PEM public key of the current signing key, for networkless session token verification (`jwtKey`).
      * It changes when the environment's signing keys rotate. */
     jwtKey: string;
@@ -41,7 +49,7 @@ export interface ApiKey {
     /** The first characters of the secret, to help users recognise a key. */
     keyPrefix: string;
     scopes: string[];
-    claims: Record<string, unknown> | null;
+    claims: Record<string, unknown>;
     revoked: boolean;
     revocationReason: string | null;
     expired: boolean;
@@ -57,24 +65,24 @@ export interface UpdateApiKeyInput {
     claims?: Record<string, unknown> | null;
 }
 
-export interface ApiKeyListOptions extends ManagementRequestOptions {
+export interface ApiKeyListOptions extends RequestOptions {
     userId?: string;
     includeRevoked?: boolean;
     limit?: number;
     cursor?: string;
 }
 
-export interface ManagementRequestOptions {
+export interface RequestOptions {
     signal?: AbortSignal;
 }
 
-export interface ManagementListOptions extends ManagementRequestOptions {
+export interface ListOptions extends RequestOptions {
     limit?: number;
     cursor?: string;
     search?: string;
 }
 
-export interface ManagementPage<T> {
+export interface Page<T> {
     items: T[];
     nextCursor: string | null;
     hasMore: boolean;
@@ -107,6 +115,10 @@ export interface User {
     status: UserStatus;
     banned: boolean;
     locked: boolean;
+    /** When the user deactivated their account, or null. */
+    deactivatedAt: string | null;
+    /** When a deactivated account is deleted, or null. */
+    deletesAt: string | null;
     publicMetadata: Metadata;
     privateMetadata: Metadata;
     unsafeMetadata: Metadata;
@@ -121,20 +133,22 @@ export interface CreateUserInput {
     /** Set true only when your trusted source has already verified ownership. Defaults to false. */
     emailVerified?: boolean;
     /** Required for verified creation. Describe the trusted verification source (10–500 characters). */
-    verificationReason?: string;
+    verificationReason?: string | null;
     firstName?: string;
     lastName?: string;
     /** A username, where the environment uses them: 3–64 letters, digits, dots, hyphens and underscores. */
-    username?: string;
-    password?: string;
+    username?: string | null;
+    /** 15–128 characters. */
+    password?: string | null;
     imageUrl?: string | null;
-    publicMetadata?: Metadata;
-    privateMetadata?: Metadata;
-    unsafeMetadata?: Metadata;
+    publicMetadata?: Metadata | null;
+    privateMetadata?: Metadata | null;
+    unsafeMetadata?: Metadata | null;
 }
 
 export interface UpdateUserInput {
-    expectedUpdatedAt: string;
+    /** The `updatedAt` you read; the update fails if the user changed since. */
+    expectedUpdatedAt?: string | null;
     firstName: string;
     lastName: string;
     imageUrl?: string | null;
@@ -143,12 +157,48 @@ export interface UpdateUserInput {
     unsafeMetadata: Metadata;
 }
 
-export interface DirectoryExternalAccount {
+export interface AddEmailAddressInput {
+    email: string;
+    status: "verified" | "unverified";
+    isPrimary?: boolean;
+    /** Required to add a verified address (up to 500 characters). */
+    verificationReason?: string | null;
+}
+
+export interface ExternalAccount {
     id: string;
     provider: string;
     providerAccountId: string;
     email: string | null;
     createdAt: string;
+}
+
+export interface CreateExternalAccountInput {
+    /** The provider's name: letters, digits, hyphens and underscores. */
+    provider: string;
+    providerAccountId: string;
+    email?: string | null;
+}
+
+/** An organization the user belongs to. */
+export interface UserOrganization {
+    id: string;
+    name: string;
+    slug: string;
+}
+
+export interface DeletionBlocker {
+    resource: string;
+    count: number;
+    resolution: string;
+    /** Where in the console the blocker can be resolved, if anywhere. */
+    destination?: { area: string; resourceId?: string | null; tab?: string | null } | null;
+}
+
+/** What deleting a user or organization would need first. */
+export interface DeletionPlan {
+    blockers: DeletionBlocker[];
+    canDelete?: boolean;
 }
 
 export type SessionStatus = "active" | "expired" | "signed_out" | "revoked";
@@ -169,14 +219,14 @@ export interface Session {
     createdAt: string;
 }
 
-export interface SessionListOptions extends ManagementRequestOptions {
+export interface SessionListOptions extends RequestOptions {
     userId?: string;
     status?: SessionStatus;
     limit?: number;
     cursor?: string;
 }
 
-export interface ManagedOrganization {
+export interface Organization {
     id: string;
     instanceId: string;
     name: string;
@@ -188,36 +238,55 @@ export interface ManagedOrganization {
     updatedAt: string;
 }
 
+export interface OrganizationDetails {
+    organization: Organization;
+    privateMetadata: Metadata;
+}
+
 export interface CreateOrganizationInput {
     name: string;
     slug: string;
     imageUrl?: string | null;
     maxMemberships?: number | null;
-    publicMetadata?: Metadata;
-    privateMetadata?: Metadata;
+    publicMetadata?: Metadata | null;
+    privateMetadata?: Metadata | null;
 }
 
 export interface UpdateOrganizationInput extends CreateOrganizationInput {
-    expectedUpdatedAt: string;
+    /** The `updatedAt` you read; the update fails if the organization changed since. */
+    expectedUpdatedAt?: string | null;
 }
 
-export interface ManagedOrganizationMember {
+export interface OrganizationMembership {
     id: string;
     userId: string;
-    email: string;
+    email: string | null;
     roleId: string;
     roleKey: string;
     createdAt: string;
 }
 
-export interface ManagedInvitation {
+export interface OrganizationInvitation {
     id: string;
     email: string;
-    roleId: string;
+    roleId: string | null;
     status: "pending" | "accepted" | "expired" | "revoked";
     expiresAt: string;
     createdAt: string;
-    acceptedAt: string | null;
+}
+
+export interface CreateOrganizationInvitationInput {
+    email: string;
+    roleId: string;
+    /** 1–30 days. */
+    lifetimeDays?: number;
+}
+
+export interface ResendOrganizationInvitationInput {
+    /** The invitation's `expiresAt`; the resend fails if it changed since. */
+    expectedExpiresAt: string;
+    /** 1–30 days. */
+    lifetimeDays?: number;
 }
 
 export interface InvitationResult {
@@ -228,7 +297,7 @@ export interface InvitationResult {
     queuedAt: string;
 }
 
-export interface ManagedRole {
+export interface Role {
     id: string;
     key: string;
     name: string;
@@ -244,7 +313,7 @@ export interface RoleInput {
     permissionIds: string[];
 }
 
-export interface ManagedPermission {
+export interface Permission {
     id: string;
     key: string;
     name: string;
@@ -252,13 +321,7 @@ export interface ManagedPermission {
     isSystem: boolean;
 }
 
-export interface DeletionBlocker {
-    resource: string;
-    count: number;
-    resolution: string;
-}
-
-export interface ManagedExternalProvider {
+export interface ExternalProvider {
     id: string;
     name: string;
     displayName: string;
@@ -268,7 +331,7 @@ export interface ManagedExternalProvider {
     enabled: boolean;
     allowSignup: boolean;
     connectedAccounts: number;
-    callbackUrl: string;
+    callbackUrl: string | null;
     updatedAt: string;
 }
 
@@ -279,7 +342,7 @@ export interface ExternalProviderInput {
     clientId: string;
     enabled: boolean;
     allowSignup: boolean;
-    clientSecret?: string;
+    clientSecret?: string | null;
 }
 
 export interface CreateExternalProviderInput extends ExternalProviderInput {
@@ -287,7 +350,8 @@ export interface CreateExternalProviderInput extends ExternalProviderInput {
 }
 
 export interface UpdateExternalProviderInput extends ExternalProviderInput {
-    expectedUpdatedAt: string;
+    /** The `updatedAt` you read; the update fails if the provider changed since. */
+    expectedUpdatedAt?: string | null;
 }
 
 export type WebhookEventType =
@@ -311,13 +375,15 @@ export type WebhookEventType =
 export interface WebhookEndpointInput {
     name: string;
     url: string;
+    /** 1–16 event types. */
     eventTypes: WebhookEventType[];
     enabled: boolean;
 }
 export interface UpdateWebhookEndpointInput extends WebhookEndpointInput {
-    expectedUpdatedAt: string;
+    /** The `updatedAt` you read; the update fails if the endpoint changed since. */
+    expectedUpdatedAt?: string | null;
 }
-export interface ManagedWebhookEndpoint extends WebhookEndpointInput {
+export interface WebhookEndpoint extends WebhookEndpointInput {
     id: string;
     /** When the endpoint's current run of failed deliveries began, or null while it is healthy. */
     failingSince: string | null;
@@ -326,19 +392,28 @@ export interface ManagedWebhookEndpoint extends WebhookEndpointInput {
     createdAt: string;
     updatedAt: string;
 }
-export interface WebhookSecretResult {
-    endpoint: ManagedWebhookEndpoint;
-    signingSecret: string;
+/** An event the environment produced, as delivered to webhook endpoints. */
+export interface WebhookEventSummary {
+    id: string;
+    type: WebhookEventType;
+    createdAt: string;
+    data: unknown;
+}
+export interface WebhookEventListOptions extends RequestOptions {
+    limit?: number;
+    cursor?: string;
+    /** Only events of this type. */
+    type?: WebhookEventType;
 }
 export type WebhookDeliveryStatus =
     "pending" | "sending" | "retrying" | "delivered" | "failed" | "cancelled";
-export interface WebhookDeliveryListOptions extends ManagementRequestOptions {
+export interface WebhookDeliveryListOptions extends RequestOptions {
     limit?: number;
     cursor?: string;
     endpointId?: string;
     status?: WebhookDeliveryStatus;
 }
-export interface ManagedWebhookDelivery {
+export interface WebhookDelivery {
     id: string;
     eventId: string;
     eventType: string;

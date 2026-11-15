@@ -1,4 +1,4 @@
-export { createPistiClient, PistiClient, PistiManagementError } from "./management.js";
+export { createPistiClient, PistiClient, PistiAPIResponseError } from "./client.js";
 export {
     verifyToken,
     authenticateRequest,
@@ -25,7 +25,7 @@ export type {
 export { parsePublishableKey } from "./keys.js";
 export type { PublishableKeyInfo } from "./keys.js";
 export { PistiError } from "./errors.js";
-export type * from "./management-types.js";
+export type * from "./client-types.js";
 export type {
     AuthObject,
     SignedInAuthObject,

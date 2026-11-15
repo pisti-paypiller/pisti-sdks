@@ -7,7 +7,7 @@ export interface PublishableKeyInfo {
     issuer: URL;
 }
 
-/** Where the Pisti management API lives unless `apiUrl` or `PISTI_API_URL` says otherwise. */
+/** Where the Pisti backend API lives unless `apiUrl` or `PISTI_API_URL` says otherwise. */
 export const DEFAULT_API_URL = "https://pisti-api.paypiller.com/";
 
 /** Publishable keys are `pk_test_` or `pk_live_` followed by the base64url of the environment's host URL and a `$`. */
@@ -41,7 +41,7 @@ export function parsePublishableKey(key: string): PublishableKeyInfo {
     return { environment, frontendApi: new URL(host.origin), issuer: new URL(`${host.origin}/`) };
 }
 
-/** The management API's base URL: `apiUrl`, else `PISTI_API_URL`, else Pisti's own. */
+/** The backend API's base URL: `apiUrl`, else `PISTI_API_URL`, else Pisti's own. */
 export function apiUrlFrom(value: string | undefined, development: boolean): URL {
     const url = trustedUrl(value ?? DEFAULT_API_URL, development);
     if (url.pathname !== "/") throw new Error("The Pisti API URL must have no path, for example https://pisti-api.paypiller.com.");
