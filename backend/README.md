@@ -41,9 +41,9 @@ Every option falls back to an environment variable:
 
 | Option | Variable | Used for |
 | --- | --- | --- |
-| `publishableKey` | `PISTI_PUBLISHABLE_KEY` | The environment's host, which is its issuer (`https://auth.acme.com/`) and where the handshake goes. Required. |
+| `publishableKey` | `PISTI_PUBLISHABLE_KEY` | The environment's host, which is its issuer (`https://auth.acme.com/`) and where the handshake goes. Required to authenticate requests and verify tokens; a client that only calls the backend API needs just the secret key. |
 | `secretKey` | `PISTI_SECRET_KEY` | The backend API and verifying API keys |
-| `apiUrl` | `PISTI_API_URL` | The Pisti management API, which the secret key calls. Defaults to `https://pisti-api.paypiller.com`; set it for a self-hosted or local Pisti (`http://localhost:3000`). |
+| `apiUrl` | `PISTI_API_URL` | The Pisti backend API, which the secret key calls. Defaults to `https://pisti-api.paypiller.com`; set it for a self-hosted or local Pisti (`http://localhost:3000`). |
 | `jwtKey` | `PISTI_JWT_KEY` | Networkless verification with the PEM public key from the console (API keys → JWT public key). Replace it after rotating the environment's signing keys. Without it, the environment's signing keys are fetched from its issuer, cached, and refetched when a rotated key appears. |
 | `authorizedParties` | `PISTI_AUTHORIZED_PARTIES` (comma-separated) | Origins allowed to have requested session tokens. Required with production (`pk_live_`) keys. |
 | `signingSecret` (webhooks) | `PISTI_WEBHOOK_SIGNING_SECRET` | Webhook signatures |
@@ -82,7 +82,7 @@ the reverification presets `"strict_mfa"`, `"strict"`, `"moderate"` and `"lax"` 
 ## Backend API
 
 ```ts
-import { createPistiClient, PistiManagementError } from "@pisti-paypiller/backend";
+import { createPistiClient, PistiAPIResponseError } from "@pisti-paypiller/backend";
 
 const pisti = createPistiClient();
 const user = await pisti.users.getUser(userId);
@@ -94,11 +94,11 @@ await pisti.apiKeys.revokeApiKey(keyId, { revocationReason: "Leaked in a log" })
 
 | Resource | Methods |
 | --- | --- |
-| `users` | `getUserList`, `getUserListAll`, `getCount`, `getUser`, `createUser`, `updateUser`, `deleteUser`, `banUser`, `unbanUser`, `lockUser`, `unlockUser`, `getUserEmailAddressList`, `addEmailAddress`, `setEmailVerification`, `setPrimaryEmail`, `removeEmailAddress`, `getUserExternalAccountList` |
+| `users` | `getUserList`, `getUserListAll`, `getCount`, `getUser`, `createUser`, `updateUser`, `updateUsername`, `getUserDeletionPlan`, `deleteUser`, `banUser`, `unbanUser`, `lockUser`, `unlockUser`, `getUserOrganizationList`, `getUserEmailAddressList`, `addEmailAddress`, `setEmailVerification`, `setPrimaryEmail`, `removeEmailAddress`, `getUserExternalAccountList`, `createUserExternalAccount`, `deleteUserExternalAccount` |
 | `sessions` | `getSessionList({ userId, status })`, `getSession`, `revokeSession` |
 | `apiKeys` | `getApiKeyList({ userId, includeRevoked })`, `getApiKey`, `updateApiKey(id, { scopes, claims })`, `revokeApiKey`, `verifySecret` |
-| `organizations` | `getOrganizationList`, `getOrganization`, `createOrganization`, `updateOrganization`, `deleteOrganization`, `getOrganizationMembershipList`, `updateOrganizationMembership`, `deleteOrganizationMembership`, `getOrganizationInvitationList`, `createOrganizationInvitation`, `resendOrganizationInvitation`, `revokeOrganizationInvitation`, `getRoleList`, `createRole`, `updateRole`, `deleteRole`, `getPermissionList` |
-| `webhooks` | `catalog`, `endpoints`, `createEndpoint`, `updateEndpoint`, `archiveEndpoint`, `rotateSecret`, `sendTest`, `deliveries`, `delivery`, `replay` |
+| `organizations` | `getOrganizationList`, `getOrganization`, `createOrganization`, `updateOrganization`, `getOrganizationDeletionPlan`, `deleteOrganization`, `getOrganizationMembershipList`, `updateOrganizationMembership(id, userId, roleId)`, `deleteOrganizationMembership(id, userId)`, `getOrganizationInvitationList`, `createOrganizationInvitation`, `resendOrganizationInvitation`, `revokeOrganizationInvitation`, `getRoleList`, `createRole`, `updateRole`, `deleteRole`, `getPermissionList` |
+| `webhooks` | `catalog`, `endpoints`, `updateEndpoint`, `archiveEndpoint`, `sendTest`, `replayEndpoint(id, since)`, `events({ type })`, `deliveries`, `delivery`, `replay` (one delivery) |
 | `externalProviders` | `list`, `create`, `update`, `delete` |
 
 `getUser`, `getUserList` and `createUser` return the same `User`: `id`, `firstName`, `lastName`,
@@ -107,10 +107,12 @@ await pisti.apiKeys.revokeApiKey(keyId, { revocationReason: "Leaked in a log" })
 environment, including its `issuerUrl` and `jwtKey`.
 
 Pass `{ signal }` to cancel; `timeoutMs` defaults to 10 seconds; mutations are never retried
-automatically. Errors are `PistiManagementError` with `status`, `requestId`, `code`,
+automatically. Errors are `PistiAPIResponseError` with `status`, `requestId`, `code`,
 `fieldErrors`, `blockers` and `retryAfterSeconds`. The client refuses to run in a browser.
-Secret keys cannot create API keys, confidential OAuth applications or client secrets; those
-need a signed-in user or console member.
+Secret keys cannot create API keys, confidential OAuth applications, client secrets or webhook
+signing secrets; those need a signed-in user or console member. Create webhook endpoints and
+rotate their signing secrets in the console (Webhooks); the backend API lists, updates, archives,
+tests and replays them.
 
 ## Webhooks
 

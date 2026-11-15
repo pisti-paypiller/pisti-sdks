@@ -198,7 +198,7 @@ export interface AuthenticateRequestOptions extends VerifyTokenOptions {
     acceptsToken?: AcceptsToken | undefined;
     /** Verifies API keys. Defaults to `PISTI_SECRET_KEY`. */
     secretKey?: string | undefined;
-    /** The Pisti management API, which verifies API keys and redeems handshakes. Defaults to `PISTI_API_URL`, else
+    /** The Pisti backend API, which verifies API keys and redeems handshakes. Defaults to `PISTI_API_URL`, else
      * `https://pisti-api.paypiller.com`. */
     apiUrl?: string | undefined;
     /** Cookie the React SDK writes. Defaults to `__session`. */

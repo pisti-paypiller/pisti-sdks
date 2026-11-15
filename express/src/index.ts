@@ -201,7 +201,7 @@ function sendProblem(req: Request, res: Response, error: unknown): void {
         });
 }
 
-export { createPistiClient, verifyToken, PistiError, PistiManagementError } from "@pisti-paypiller/backend";
+export { createPistiClient, verifyToken, PistiError, PistiAPIResponseError } from "@pisti-paypiller/backend";
 export type {
     AuthObject,
     SignedInAuthObject,

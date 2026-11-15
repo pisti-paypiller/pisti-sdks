@@ -2,7 +2,7 @@ import { exportSPKI, generateKeyPair, SignJWT, type CryptoKey, type JWTPayload }
 
 /** The test environment's generated development host. */
 export const HOST_ORIGIN = "http://quiet-fox-12.pisti.localhost:3000";
-/** The management API the tests point the SDK at. */
+/** The backend API the tests point the SDK at. */
 export const API_ORIGIN = "http://localhost:3000";
 export const ISSUER = `${HOST_ORIGIN}/`;
 export const APP_ORIGIN = "http://localhost:5173";

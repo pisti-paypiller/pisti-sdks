@@ -22,8 +22,8 @@ An application environment has two kinds of key:
   host serves the environment's Frontend API and account API (`/v1/…`), and with a trailing
   slash it is the environment's issuer (`https://auth.acme.com/`).
 - **Secret key** (`sk_test_…` / `sk_live_…`): an environment API key created under API keys
-  in the console. It authenticates the management API (`/v1/instance`, `/v1/management/…`) at
-  `https://pisti-api.paypiller.com`, or wherever `apiUrl`/`PISTI_API_URL` points. Never ship it
+  in the console. It authenticates the backend API (`/v1/instance`, `/v1/users`, `/v1/organizations`,
+  …) at `https://pisti-api.paypiller.com`, or wherever `apiUrl`/`PISTI_API_URL` points. Never ship it
   to browsers.
 
 ## How a sign-in works
@@ -96,11 +96,15 @@ first-party `pisti_client` cookie (`SameSite=Lax`) alone.
 
 `createPistiClient({ secretKey, publishableKey })` from `@pisti-paypiller/backend` returns a
 `PistiClient`; `pistiClient` from `@pisti-paypiller/express` is one created from `PISTI_SECRET_KEY` and
-`PISTI_PUBLISHABLE_KEY` on first use. It wraps `/v1/management` with Clerk-style method names
-(`users.getUser`, `users.getUserList`, `users.getCount`, `users.banUser`,
+`PISTI_PUBLISHABLE_KEY` on first use. It wraps the backend API, whose flat routes (`/v1/users`,
+`/v1/organizations`, `/v1/sessions`, `/v1/api_keys`, `/v1/webhooks`, …) act on the secret key's own
+environment, with Clerk-style method names (`users.getUser`, `users.getUserList`, `users.getCount`, `users.banUser`,
 `sessions.getSessionList`, `apiKeys.verifySecret`, `organizations.getOrganizationList`,
 `organizations.createOrganizationInvitation`) and also offers `authenticateRequest()` and
-`verifyToken()`. Webhook events are a typed union keyed by `type`. `verifyWebhook(req)` from
+`verifyToken()`. The backend API needs only the secret key; the publishable key is needed for
+`authenticateRequest()` and `verifyToken()`. Secret keys never mint credentials: webhook endpoints are created and their
+signing secrets rotated in the console, and the client only lists, updates, archives, tests and
+replays them. Webhook events are a typed union keyed by `type`. `verifyWebhook(req)` from
 `@pisti-paypiller/express/webhooks` (or `@pisti-paypiller/backend/webhooks` for a Fetch `Request`) reads
 `PISTI_WEBHOOK_SIGNING_SECRET`.
 

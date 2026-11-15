@@ -2,50 +2,57 @@ import { apiUrlFrom, parsePublishableKey } from "./keys.js";
 import { authenticateRequest, verifyToken } from "./tokens.js";
 import type { AcceptsToken, AuthenticateRequestOptions, AuthObjectFor, RequestState, SessionClaims, VerifyTokenOptions } from "./types.js";
 import type {
-    ManagementClientOptions,
-    ManagementRequestOptions,
-    ManagedInstance,
-    ManagementListOptions,
-    ManagementPage,
+    PistiClientOptions,
+    RequestOptions,
+    Instance,
+    ListOptions,
+    Page,
     User,
     EmailAddress,
+    AddEmailAddressInput,
     CreateUserInput,
     UpdateUserInput,
     UserStatus,
-    DirectoryExternalAccount,
+    UserOrganization,
+    ExternalAccount,
+    CreateExternalAccountInput,
+    DeletionPlan,
     Session,
     SessionListOptions,
     ApiKey,
     ApiKeyListOptions,
     UpdateApiKeyInput,
-    Metadata,
-    ManagedOrganization,
+    Organization,
+    OrganizationDetails,
     CreateOrganizationInput,
     UpdateOrganizationInput,
-    ManagedOrganizationMember,
-    ManagedInvitation,
+    OrganizationMembership,
+    OrganizationInvitation,
+    CreateOrganizationInvitationInput,
+    ResendOrganizationInvitationInput,
     InvitationResult,
-    ManagedRole,
+    Role,
     RoleInput,
-    ManagedPermission,
+    Permission,
     DeletionBlocker,
-    ManagedExternalProvider,
+    ExternalProvider,
     CreateExternalProviderInput,
     UpdateExternalProviderInput,
-    WebhookEndpointInput,
     UpdateWebhookEndpointInput,
-    ManagedWebhookEndpoint,
-    WebhookSecretResult,
+    WebhookEndpoint,
+    HandshakeRedemption,
     WebhookEventType,
+    WebhookEventListOptions,
+    WebhookEventSummary,
     WebhookDeliveryListOptions,
-    ManagedWebhookDelivery,
+    WebhookDelivery,
     WebhookDeliveryDetails,
-} from "./management-types.js";
+} from "./client-types.js";
 
-export type * from "./management-types.js";
+export type * from "./client-types.js";
 
 /** Structured service failure. No credentials or raw requests are retained. */
-export class PistiManagementError extends Error {
+export class PistiAPIResponseError extends Error {
     constructor(
         message: string,
         readonly status: number,
@@ -56,7 +63,7 @@ export class PistiManagementError extends Error {
         readonly blockers: readonly DeletionBlocker[] = [],
     ) {
         super(message);
-        this.name = "PistiManagementError";
+        this.name = "PistiAPIResponseError";
     }
 }
 
@@ -67,10 +74,12 @@ function publicId(value: string): string {
     return value;
 }
 
-function listQuery(
-    options: ManagementListOptions & { status?: UserStatus } = {},
-): string {
-    const query = new URLSearchParams({ paged: "true" });
+/** `limit` and `cursor` for a cursor-paged list. */
+function pageParams(
+    options: { limit?: number | undefined; cursor?: string | undefined },
+    cursorLength = 128,
+): URLSearchParams {
+    const query = new URLSearchParams();
     if (options.limit !== undefined) {
         if (
             !Number.isInteger(options.limit) ||
@@ -81,10 +90,19 @@ function listQuery(
         query.set("limit", String(options.limit));
     }
     if (options.cursor !== undefined) {
-        if (options.cursor.length > 128)
+        if (options.cursor.length > cursorLength)
             throw new Error("The pagination cursor is too long.");
         query.set("cursor", options.cursor);
     }
+    return query;
+}
+
+/** A searchable list; `paged=true` asks the API for a page rather than a bare array. */
+function listQuery(
+    options: Omit<ListOptions, "signal"> & { status?: UserStatus } = {},
+): string {
+    const query = pageParams(options);
+    query.set("paged", "true");
     if (options.search !== undefined) {
         if (options.search.length > 200)
             throw new Error("Search must be at most 200 characters.");
@@ -92,6 +110,10 @@ function listQuery(
     }
     if (options.status !== undefined) query.set("status", options.status);
     return "?" + query;
+}
+
+function queryString(query: URLSearchParams): string {
+    return query.size ? "?" + query : "";
 }
 
 async function readJson(response: Response): Promise<unknown> {
@@ -106,7 +128,7 @@ async function readJson(response: Response): Promise<unknown> {
             length += part.value.byteLength;
             if (length > 1_048_576) {
                 await reader.cancel();
-                throw new PistiManagementError(
+                throw new PistiAPIResponseError(
                     "The service response is too large.",
                     502,
                 );
@@ -133,42 +155,41 @@ type RequestResource = <T>(
     method: string,
     path: string,
     body?: unknown,
-    options?: ManagementRequestOptions,
+    options?: RequestOptions,
 ) => Promise<T>;
 
-/** Server-side client for one environment: request authentication and the management API. */
+/** Server-side client for one environment: request authentication and the backend API. */
 export class PistiClient {
     readonly #apiUrl: URL;
     readonly #secretKey: string | undefined;
-    readonly #publishableKey: string;
+    readonly #publishableKey: string | undefined;
     readonly #authorizedParties: string[] | undefined;
-    #basePath: Promise<string> | undefined;
     readonly #timeoutMs: number;
 
-    readonly users: ManagementUsers;
-    readonly organizations: ManagementOrganizations;
-    readonly sessions: ManagementSessions;
-    readonly externalProviders: ManagementExternalProviders;
-    readonly webhooks: ManagementWebhooks;
-    readonly apiKeys: ManagementApiKeys;
+    readonly users: UsersApi;
+    readonly organizations: OrganizationsApi;
+    readonly sessions: SessionsApi;
+    readonly externalProviders: ExternalProvidersApi;
+    readonly webhooks: WebhooksApi;
+    readonly apiKeys: ApiKeysApi;
 
-    constructor(options: ManagementClientOptions = {}) {
+    constructor(options: PistiClientOptions = {}) {
         if (typeof window !== "undefined" && typeof document !== "undefined")
             throw new Error("The Pisti backend client belongs only in your server environment.");
-        const secretKey = options.secretKey ?? process.env.PISTI_SECRET_KEY;
-        const publishableKey = options.publishableKey ?? process.env.PISTI_PUBLISHABLE_KEY;
-        if (!publishableKey)
+        const secretKey = options.secretKey || process.env.PISTI_SECRET_KEY || undefined;
+        const publishableKey = options.publishableKey || process.env.PISTI_PUBLISHABLE_KEY || undefined;
+        if (secretKey === undefined && publishableKey === undefined)
             throw new Error(
-                "Missing Pisti publishable key. Set PISTI_PUBLISHABLE_KEY (copy it from your application's Home page in the Pisti console) or pass { publishableKey }.",
+                "Missing Pisti keys. Set PISTI_SECRET_KEY to call the Backend API and PISTI_PUBLISHABLE_KEY to authenticate requests (copy both from your application in the Pisti console), or pass { secretKey, publishableKey }.",
             );
-        const key = parsePublishableKey(publishableKey);
-        if (secretKey !== undefined) {
-            if (!/^sk_(?:test|live)_[a-f0-9]{16}\.[a-f0-9]{64}$/.test(secretKey))
-                throw new Error("PISTI_SECRET_KEY doesn’t look like a Pisti secret key (sk_test_… or sk_live_…).");
-            if ((key.environment === "live") !== secretKey.startsWith("sk_live_"))
-                throw new Error("The secret key and publishable key belong to different environments.");
-        }
-        const apiUrl = apiUrlFrom(options.apiUrl ?? process.env.PISTI_API_URL, key.environment === "test");
+        if (secretKey !== undefined && !/^sk_(?:test|live)_[a-f0-9]{16}\.[a-f0-9]{64}$/.test(secretKey))
+            throw new Error("PISTI_SECRET_KEY doesn’t look like a Pisti secret key (sk_test_… or sk_live_…).");
+        // The environment comes from the publishable key, or from the secret key when only the Backend API is used.
+        const key = publishableKey === undefined ? undefined : parsePublishableKey(publishableKey);
+        const live = key ? key.environment === "live" : secretKey!.startsWith("sk_live_");
+        if (key && secretKey !== undefined && live !== secretKey.startsWith("sk_live_"))
+            throw new Error("The secret key and publishable key belong to different environments.");
+        const apiUrl = apiUrlFrom(options.apiUrl ?? process.env.PISTI_API_URL, !live);
         if (apiUrl.protocol === "http:" && secretKey?.startsWith("sk_live_"))
             throw new Error("Production credentials require HTTPS.");
         this.#apiUrl = apiUrl;
@@ -184,14 +205,14 @@ export class PistiClient {
             throw new Error(
                 "Use a timeout between 1000 and 60000 milliseconds.",
             );
-        const request: RequestResource = async (method, path, body, requestOptions) =>
-            this.#request(method, (await this.#instancePath()) + path, body, requestOptions);
-        this.users = new ManagementUsers(request);
-        this.organizations = new ManagementOrganizations(request);
-        this.sessions = new ManagementSessions(request);
-        this.externalProviders = new ManagementExternalProviders(request);
-        this.webhooks = new ManagementWebhooks(request);
-        this.apiKeys = new ManagementApiKeys(request);
+        const request: RequestResource = (method, path, body, requestOptions) =>
+            this.#request(method, path, body, requestOptions);
+        this.users = new UsersApi(request);
+        this.organizations = new OrganizationsApi(request);
+        this.sessions = new SessionsApi(request);
+        this.externalProviders = new ExternalProvidersApi(request);
+        this.webhooks = new WebhooksApi(request);
+        this.apiKeys = new ApiKeysApi(request);
     }
 
     /**
@@ -226,14 +247,14 @@ export class PistiClient {
     redeemHandshake(
         nonce: string,
         origin: string,
-        options: ManagementRequestOptions = {},
-    ): Promise<{ sessionToken: string | null; clientUat: string }> {
+        options: RequestOptions = {},
+    ): Promise<HandshakeRedemption> {
         return this.#request("POST", "/v1/handshake/redeem", { nonce, origin }, options);
     }
 
     /** The environment the secret key belongs to. */
-    getInstance(options: ManagementRequestOptions = {}): Promise<ManagedInstance> {
-        return this.#request<ManagedInstance>("GET", "/v1/instance", undefined, options);
+    getInstance(options: RequestOptions = {}): Promise<Instance> {
+        return this.#request<Instance>("GET", "/v1/instance", undefined, options);
     }
 
     #requireSecretKey(): string {
@@ -244,26 +265,17 @@ export class PistiClient {
         return this.#secretKey;
     }
 
-    // The secret key identifies its environment; resolve the management path from it once.
-    #instancePath(): Promise<string> {
-        return (this.#basePath ??= this.getInstance()
-            .then((instance) => `/v1/management/instances/${publicId(instance.id)}`)
-            .catch((error: unknown) => {
-                this.#basePath = undefined;
-                throw error;
-            }));
-    }
-
     async #request<T>(
         method: string,
         path: string,
         body?: unknown,
-        options: ManagementRequestOptions = {},
+        options: RequestOptions = {},
     ): Promise<T> {
         const serialized =
             body === undefined ? undefined : JSON.stringify(body);
         if (serialized && Buffer.byteLength(serialized) > 65_536)
-            throw new Error("The management request exceeds 64 KiB.");
+            throw new Error("The backend API request exceeds 64 KiB.");
+        const secretKey = this.#requireSecretKey();
         let response: Response;
         let payload: unknown;
         const timeout = AbortSignal.timeout(this.#timeoutMs);
@@ -273,7 +285,7 @@ export class PistiClient {
                 {
                     method,
                     headers: {
-                        Authorization: "Bearer " + this.#requireSecretKey(),
+                        Authorization: "Bearer " + secretKey,
                         Accept: "application/json",
                         ...(serialized === undefined
                             ? {}
@@ -289,11 +301,11 @@ export class PistiClient {
             if (response.status === 204) return undefined as T;
             payload = await readJson(response);
         } catch (error) {
-            if (error instanceof PistiManagementError) throw error;
-            throw new PistiManagementError(
+            if (error instanceof PistiAPIResponseError) throw error;
+            throw new PistiAPIResponseError(
                 options.signal?.aborted
-                    ? "The management request was canceled."
-                    : "The management service could not be reached. Try again shortly.",
+                    ? "The backend API request was canceled."
+                    : "The Pisti backend API could not be reached. Try again shortly.",
                 0,
                 null,
                 options.signal?.aborted
@@ -341,12 +353,12 @@ export class PistiClient {
             const retry = response.headers.get("Retry-After");
             const retrySeconds =
                 retry && /^\d{1,10}$/.test(retry) ? Number(retry) : null;
-            throw new PistiManagementError(
+            throw new PistiAPIResponseError(
                 typeof value?.detail === "string"
                     ? value.detail
                     : typeof value?.title === "string"
                       ? value.title
-                      : "The management request failed.",
+                      : "The backend API request failed.",
                 response.status,
                 requestId,
                 typeof value?.code === "string" ? value.code : null,
@@ -361,8 +373,8 @@ export class PistiClient {
             !meta ||
             typeof meta.requestId !== "string"
         )
-            throw new PistiManagementError(
-                "The management service returned an invalid response.",
+            throw new PistiAPIResponseError(
+                "The Pisti backend API returned an invalid response.",
                 502,
                 requestId,
             );
@@ -370,14 +382,15 @@ export class PistiClient {
     }
 }
 
-export class ManagementUsers {
+
+export class UsersApi {
     constructor(private readonly request: RequestResource) {}
     getUserList = (
-        options: ManagementListOptions & { status?: UserStatus } = {},
-    ): Promise<ManagementPage<User>> =>
-        this.request("GET", "/users" + listQuery(options), undefined, options);
+        options: ListOptions & { status?: UserStatus } = {},
+    ): Promise<Page<User>> =>
+        this.request("GET", "/v1/users" + listQuery(options), undefined, options);
     async *getUserListAll(
-        options: Omit<ManagementListOptions, "cursor"> & {
+        options: Omit<ListOptions, "cursor"> & {
             status?: UserStatus;
         } = {},
     ): AsyncGenerator<User> {
@@ -391,7 +404,7 @@ export class ManagementUsers {
             for (const user of page.items) yield user;
             if (!page.hasMore) return;
             if (!page.nextCursor || seen.has(page.nextCursor))
-                throw new PistiManagementError(
+                throw new PistiAPIResponseError(
                     "The service returned an invalid pagination cursor.",
                     502,
                 );
@@ -401,91 +414,84 @@ export class ManagementUsers {
     }
     /** The number of users matching `search` and `status`. */
     getCount = async (
-        options: Omit<ManagementListOptions, "cursor" | "limit"> & { status?: UserStatus } = {},
+        options: Omit<ListOptions, "cursor" | "limit"> & { status?: UserStatus } = {},
     ): Promise<number> =>
         (
             await this.request<{ totalCount: number }>(
                 "GET",
-                "/users/count" + listQuery(options),
+                "/v1/users/count" + listQuery(options),
                 undefined,
                 options,
             )
         ).totalCount;
-    getUser = (
-        id: string,
-        options?: ManagementRequestOptions,
-    ): Promise<User> =>
-        this.request("GET", `/users/${publicId(id)}`, undefined, options);
-    createUser = (
-        input: CreateUserInput,
-        options?: ManagementRequestOptions,
-    ): Promise<User> =>
-        this.request("POST", "/users", input, options);
+    getUser = (id: string, options?: RequestOptions): Promise<User> =>
+        this.request("GET", `/v1/users/${publicId(id)}`, undefined, options);
+    createUser = (input: CreateUserInput, options?: RequestOptions): Promise<User> =>
+        this.request("POST", "/v1/users", input, options);
     updateUser = (
         id: string,
         input: UpdateUserInput,
-        options?: ManagementRequestOptions,
+        options?: RequestOptions,
     ): Promise<void> =>
-        this.request("PUT", `/users/${publicId(id)}`, input, options);
+        this.request("PUT", `/v1/users/${publicId(id)}`, input, options);
     /** Sets, changes or (with null) removes the user's username. */
     updateUsername = (
         id: string,
         username: string | null,
-        options?: ManagementRequestOptions,
+        options?: RequestOptions,
     ): Promise<void> =>
-        this.request("PUT", `/users/${publicId(id)}/username`, { username }, options);
+        this.request("PUT", `/v1/users/${publicId(id)}/username`, { username }, options);
     private setStatus = (
         id: string,
         status: UserStatus,
-        options?: ManagementRequestOptions,
+        options?: RequestOptions,
     ): Promise<void> =>
-        this.request("PUT", `/users/${publicId(id)}/status`, { status }, options);
+        this.request("PUT", `/v1/users/${publicId(id)}/status`, { status }, options);
     /** Disables the account and ends its sessions. */
-    banUser = (id: string, options?: ManagementRequestOptions): Promise<void> =>
+    banUser = (id: string, options?: RequestOptions): Promise<void> =>
         this.setStatus(id, "disabled", options);
-    unbanUser = (id: string, options?: ManagementRequestOptions): Promise<void> =>
+    unbanUser = (id: string, options?: RequestOptions): Promise<void> =>
         this.setStatus(id, "active", options);
-    lockUser = (id: string, options?: ManagementRequestOptions): Promise<void> =>
+    lockUser = (id: string, options?: RequestOptions): Promise<void> =>
         this.setStatus(id, "locked", options);
-    unlockUser = (id: string, options?: ManagementRequestOptions): Promise<void> =>
+    unlockUser = (id: string, options?: RequestOptions): Promise<void> =>
         this.setStatus(id, "active", options);
-    deleteUser = (id: string, options?: ManagementRequestOptions): Promise<void> =>
-        this.request("DELETE", `/users/${publicId(id)}`, undefined, options);
-    getUserEmailAddressList = (
+    /** What has to happen before the user can be deleted. */
+    getUserDeletionPlan = (id: string, options?: RequestOptions): Promise<DeletionPlan> =>
+        this.request("GET", `/v1/users/${publicId(id)}/deletion`, undefined, options);
+    deleteUser = (id: string, options?: RequestOptions): Promise<void> =>
+        this.request("DELETE", `/v1/users/${publicId(id)}`, undefined, options);
+    /** The organizations the user belongs to. */
+    getUserOrganizationList = (
         id: string,
-        options?: ManagementRequestOptions,
-    ): Promise<EmailAddress[]> =>
+        options: ListOptions = {},
+    ): Promise<Page<UserOrganization>> =>
         this.request(
             "GET",
-            `/users/${publicId(id)}/email-addresses`,
+            `/v1/users/${publicId(id)}/organizations` + listQuery(options),
             undefined,
             options,
         );
+    getUserEmailAddressList = (
+        id: string,
+        options?: RequestOptions,
+    ): Promise<EmailAddress[]> =>
+        this.request("GET", `/v1/users/${publicId(id)}/email-addresses`, undefined, options);
     addEmailAddress = (
         id: string,
-        input: {
-            email: string;
-            status: "verified" | "unverified";
-            isPrimary?: boolean;
-            verificationReason?: string;
-        },
-        options?: ManagementRequestOptions,
+        input: AddEmailAddressInput,
+        options?: RequestOptions,
     ): Promise<{ id: string }> =>
-        this.request(
-            "POST",
-            `/users/${publicId(id)}/email-addresses`,
-            input,
-            options,
-        );
+        this.request("POST", `/v1/users/${publicId(id)}/email-addresses`, input, options);
     setEmailVerification = (
         id: string,
         emailId: string,
         status: "verified" | "unverified",
-        options?: ManagementRequestOptions & { verificationReason?: string },
+        options?: RequestOptions & { verificationReason?: string },
     ): Promise<void> =>
         this.request(
             "PUT",
-            `/users/${publicId(id)}/email-addresses/${publicId(emailId)}`,
+            `/v1/users/${publicId(id)}/email-addresses/${publicId(emailId)}`,
             {
                 status,
                 ...(options?.verificationReason
@@ -497,402 +503,313 @@ export class ManagementUsers {
     setPrimaryEmail = (
         id: string,
         emailId: string,
-        options?: ManagementRequestOptions,
+        options?: RequestOptions,
     ): Promise<void> =>
         this.request(
             "PUT",
-            `/users/${publicId(id)}/email-addresses/${publicId(emailId)}/primary`,
+            `/v1/users/${publicId(id)}/email-addresses/${publicId(emailId)}/primary`,
             undefined,
             options,
         );
     removeEmailAddress = (
         id: string,
         emailId: string,
-        options?: ManagementRequestOptions,
+        options?: RequestOptions,
     ): Promise<void> =>
         this.request(
             "DELETE",
-            `/users/${publicId(id)}/email-addresses/${publicId(emailId)}`,
+            `/v1/users/${publicId(id)}/email-addresses/${publicId(emailId)}`,
             undefined,
             options,
         );
     getUserExternalAccountList = (
         id: string,
-        options?: ManagementRequestOptions,
-    ): Promise<DirectoryExternalAccount[]> =>
+        options?: RequestOptions,
+    ): Promise<ExternalAccount[]> =>
+        this.request("GET", `/v1/users/${publicId(id)}/external-accounts`, undefined, options);
+    /** Links an account at an upstream provider to the user. */
+    createUserExternalAccount = (
+        id: string,
+        input: CreateExternalAccountInput,
+        options?: RequestOptions,
+    ): Promise<{ id: string }> =>
+        this.request("POST", `/v1/users/${publicId(id)}/external-accounts`, input, options);
+    deleteUserExternalAccount = (
+        id: string,
+        externalAccountId: string,
+        options?: RequestOptions,
+    ): Promise<void> =>
         this.request(
-            "GET",
-            `/users/${publicId(id)}/external-accounts`,
+            "DELETE",
+            `/v1/users/${publicId(id)}/external-accounts/${publicId(externalAccountId)}`,
             undefined,
             options,
         );
 }
 
-export class ManagementExternalProviders {
+export class ExternalProvidersApi {
     constructor(private readonly request: RequestResource) {}
-
-    list = (
-        options?: ManagementRequestOptions,
-    ): Promise<ManagedExternalProvider[]> =>
-        this.request("GET", "/external-providers", undefined, options);
-
+    list = (options?: RequestOptions): Promise<ExternalProvider[]> =>
+        this.request("GET", "/v1/external_providers", undefined, options);
     create = (
         input: CreateExternalProviderInput,
-        options?: ManagementRequestOptions,
-    ): Promise<ManagedExternalProvider> =>
-        this.request("POST", "/external-providers", input, options);
-
+        options?: RequestOptions,
+    ): Promise<ExternalProvider> =>
+        this.request("POST", "/v1/external_providers", input, options);
     update = (
         id: string,
         input: UpdateExternalProviderInput,
-        options?: ManagementRequestOptions,
-    ): Promise<ManagedExternalProvider> =>
-        this.request(
-            "PUT",
-            `/external-providers/${publicId(id)}`,
-            input,
-            options,
-        );
-
-    delete = (id: string, options?: ManagementRequestOptions): Promise<void> =>
-        this.request(
-            "DELETE",
-            `/external-providers/${publicId(id)}`,
-            undefined,
-            options,
-        );
+        options?: RequestOptions,
+    ): Promise<ExternalProvider> =>
+        this.request("PUT", `/v1/external_providers/${publicId(id)}`, input, options);
+    delete = (id: string, options?: RequestOptions): Promise<void> =>
+        this.request("DELETE", `/v1/external_providers/${publicId(id)}`, undefined, options);
 }
 
-export class ManagementWebhooks {
+export class WebhooksApi {
     constructor(private readonly request: RequestResource) {}
-    catalog = (
-        options?: ManagementRequestOptions,
-    ): Promise<WebhookEventType[]> =>
-        this.request("GET", "/webhooks/catalog", undefined, options);
-    endpoints = (
-        options?: ManagementRequestOptions,
-    ): Promise<ManagedWebhookEndpoint[]> =>
-        this.request("GET", "/webhooks/endpoints", undefined, options);
-    createEndpoint = (
-        input: WebhookEndpointInput,
-        options?: ManagementRequestOptions,
-    ): Promise<WebhookSecretResult> =>
-        this.request("POST", "/webhooks/endpoints", input, options);
+    catalog = (options?: RequestOptions): Promise<WebhookEventType[]> =>
+        this.request("GET", "/v1/webhooks/catalog", undefined, options);
+    endpoints = (options?: RequestOptions): Promise<WebhookEndpoint[]> =>
+        this.request("GET", "/v1/webhooks/endpoints", undefined, options);
     updateEndpoint = (
         id: string,
         input: UpdateWebhookEndpointInput,
-        options?: ManagementRequestOptions,
-    ): Promise<ManagedWebhookEndpoint> =>
-        this.request(
-            "PUT",
-            `/webhooks/endpoints/${publicId(id)}`,
-            input,
-            options,
-        );
+        options?: RequestOptions,
+    ): Promise<WebhookEndpoint> =>
+        this.request("PUT", `/v1/webhooks/endpoints/${publicId(id)}`, input, options);
     archiveEndpoint = (
         id: string,
         expectedUpdatedAt: string,
-        options?: ManagementRequestOptions,
+        options?: RequestOptions,
     ): Promise<void> =>
         this.request(
             "POST",
-            `/webhooks/endpoints/${publicId(id)}/archive`,
-            { expectedUpdatedAt },
-            options,
-        );
-    rotateSecret = (
-        id: string,
-        expectedUpdatedAt: string,
-        options?: ManagementRequestOptions,
-    ): Promise<WebhookSecretResult> =>
-        this.request(
-            "POST",
-            `/webhooks/endpoints/${publicId(id)}/rotate-secret`,
+            `/v1/webhooks/endpoints/${publicId(id)}/archive`,
             { expectedUpdatedAt },
             options,
         );
     sendTest = (
         id: string,
-        options?: ManagementRequestOptions,
+        options?: RequestOptions,
     ): Promise<{ id: string; eventId: string }> =>
+        this.request("POST", `/v1/webhooks/endpoints/${publicId(id)}/test`, undefined, options);
+    /** Queues every event since `since` (an ISO timestamp) again for one endpoint; returns how many were queued. */
+    replayEndpoint = (
+        id: string,
+        since: string,
+        options?: RequestOptions,
+    ): Promise<{ queued: number }> =>
         this.request(
             "POST",
-            `/webhooks/endpoints/${publicId(id)}/test`,
-            undefined,
+            `/v1/webhooks/endpoints/${publicId(id)}/replay`,
+            { since },
             options,
         );
+    /** Events the environment produced, newest first. */
+    events = (options: WebhookEventListOptions = {}): Promise<Page<WebhookEventSummary>> => {
+        const query = pageParams(options, 64);
+        if (options.type !== undefined) query.set("type", options.type);
+        return this.request("GET", "/v1/webhooks/events" + queryString(query), undefined, options);
+    };
     deliveries = (
         options: WebhookDeliveryListOptions = {},
-    ): Promise<ManagementPage<ManagedWebhookDelivery>> => {
-        const query = new URLSearchParams(
-            listQuery({
-                ...(options.limit === undefined
-                    ? {}
-                    : { limit: options.limit }),
-                ...(options.cursor === undefined
-                    ? {}
-                    : { cursor: options.cursor }),
-            }).slice(1),
-        );
+    ): Promise<Page<WebhookDelivery>> => {
+        const query = pageParams(options);
         if (options.endpointId !== undefined)
             query.set("endpointId", publicId(options.endpointId));
         if (options.status !== undefined) query.set("status", options.status);
-        return this.request(
-            "GET",
-            "/webhooks/deliveries?" + query,
-            undefined,
-            options,
-        );
+        return this.request("GET", "/v1/webhooks/deliveries" + queryString(query), undefined, options);
     };
     delivery = (
         id: string,
-        options?: ManagementRequestOptions,
+        options?: RequestOptions,
     ): Promise<WebhookDeliveryDetails> =>
-        this.request(
-            "GET",
-            `/webhooks/deliveries/${publicId(id)}`,
-            undefined,
-            options,
-        );
-    replay = (id: string, options?: ManagementRequestOptions): Promise<void> =>
-        this.request(
-            "POST",
-            `/webhooks/deliveries/${publicId(id)}/replay`,
-            undefined,
-            options,
-        );
+        this.request("GET", `/v1/webhooks/deliveries/${publicId(id)}`, undefined, options);
+    /** Sends one delivery again. */
+    replay = (id: string, options?: RequestOptions): Promise<void> =>
+        this.request("POST", `/v1/webhooks/deliveries/${publicId(id)}/replay`, undefined, options);
 }
 
-export class ManagementApiKeys {
+export class ApiKeysApi {
     constructor(private readonly request: RequestResource) {}
-    getApiKeyList = (options: ApiKeyListOptions = {}): Promise<ManagementPage<ApiKey>> => {
-        const query = new URLSearchParams();
+    getApiKeyList = (options: ApiKeyListOptions = {}): Promise<Page<ApiKey>> => {
+        const query = pageParams(options);
         if (options.userId !== undefined) query.set("userId", publicId(options.userId));
         if (options.includeRevoked) query.set("includeRevoked", "true");
-        if (options.limit !== undefined) {
-            if (!Number.isInteger(options.limit) || options.limit < 1 || options.limit > 100)
-                throw new Error("Use a page limit between 1 and 100.");
-            query.set("limit", String(options.limit));
-        }
-        if (options.cursor !== undefined) query.set("cursor", options.cursor);
-        return this.request("GET", "/api-keys" + (query.size ? "?" + query : ""), undefined, options);
+        return this.request("GET", "/v1/api_keys" + queryString(query), undefined, options);
     };
-    getApiKey = (id: string, options?: ManagementRequestOptions): Promise<ApiKey> =>
-        this.request("GET", `/api-keys/${publicId(id)}`, undefined, options);
+    getApiKey = (id: string, options?: RequestOptions): Promise<ApiKey> =>
+        this.request("GET", `/v1/api_keys/${publicId(id)}`, undefined, options);
     /** Sets what a key may do in your API. Only your backend grants scopes and claims; the key's owner cannot. */
-    updateApiKey = (id: string, input: UpdateApiKeyInput, options?: ManagementRequestOptions): Promise<ApiKey> =>
-        this.request("PUT", `/api-keys/${publicId(id)}`, { scopes: input.scopes, claims: input.claims ?? null }, options);
-    revokeApiKey = (id: string, options: ManagementRequestOptions & { revocationReason?: string } = {}): Promise<void> =>
+    updateApiKey = (id: string, input: UpdateApiKeyInput, options?: RequestOptions): Promise<ApiKey> =>
+        this.request("PUT", `/v1/api_keys/${publicId(id)}`, { scopes: input.scopes, claims: input.claims ?? null }, options);
+    revokeApiKey = (id: string, options: RequestOptions & { revocationReason?: string } = {}): Promise<void> =>
         this.request(
             "POST",
-            `/api-keys/${publicId(id)}/revoke`,
+            `/v1/api_keys/${publicId(id)}/revoke`,
             { revocationReason: options.revocationReason ?? null },
             options,
         );
-    /** Verifies a presented `ak_` secret. Throws `PistiManagementError` (401) for unknown, expired or revoked keys. */
-    verifySecret = (secret: string, options?: ManagementRequestOptions): Promise<ApiKey> =>
-        this.request("POST", "/api-keys/verify", { secret }, options);
+    /** Verifies a presented `ak_` secret. Throws `PistiAPIResponseError` (401) for unknown, expired or revoked keys. */
+    verifySecret = (secret: string, options?: RequestOptions): Promise<ApiKey> =>
+        this.request("POST", "/v1/api_keys/verify", { secret }, options);
 }
 
-export class ManagementSessions {
+export class SessionsApi {
     constructor(private readonly request: RequestResource) {}
     /** Sessions in the environment, newest first. Filter by `userId` and `status`. */
-    getSessionList = (options: SessionListOptions = {}): Promise<ManagementPage<Session>> => {
-        const query = new URLSearchParams();
+    getSessionList = (options: SessionListOptions = {}): Promise<Page<Session>> => {
+        const query = pageParams(options);
         if (options.userId !== undefined) query.set("userId", publicId(options.userId));
         if (options.status !== undefined) query.set("status", options.status);
-        if (options.limit !== undefined) {
-            if (!Number.isInteger(options.limit) || options.limit < 1 || options.limit > 100)
-                throw new Error("Use a page limit between 1 and 100.");
-            query.set("limit", String(options.limit));
-        }
-        if (options.cursor !== undefined) query.set("cursor", options.cursor);
-        return this.request("GET", "/sessions" + (query.size ? "?" + query : ""), undefined, options);
+        return this.request("GET", "/v1/sessions" + queryString(query), undefined, options);
     };
-    getSession = (id: string, options?: ManagementRequestOptions): Promise<Session> =>
-        this.request("GET", `/sessions/${publicId(id)}`, undefined, options);
-    revokeSession = (id: string, options?: ManagementRequestOptions): Promise<void> =>
-        this.request(
-            "DELETE",
-            `/sessions/${publicId(id)}`,
-            undefined,
-            options,
-        );
+    getSession = (id: string, options?: RequestOptions): Promise<Session> =>
+        this.request("GET", `/v1/sessions/${publicId(id)}`, undefined, options);
+    revokeSession = (id: string, options?: RequestOptions): Promise<void> =>
+        this.request("DELETE", `/v1/sessions/${publicId(id)}`, undefined, options);
 }
 
-export class ManagementOrganizations {
+export class OrganizationsApi {
     constructor(private readonly request: RequestResource) {}
-    getOrganizationList = (
-        options: ManagementListOptions = {},
-    ): Promise<ManagementPage<ManagedOrganization>> =>
-        this.request(
-            "GET",
-            "/organizations" + listQuery(options),
-            undefined,
-            options,
-        );
-    getOrganization = (
-        id: string,
-        options?: ManagementRequestOptions,
-    ): Promise<{
-        organization: ManagedOrganization;
-        privateMetadata: Metadata;
-    }> =>
-        this.request(
-            "GET",
-            `/organizations/${publicId(id)}`,
-            undefined,
-            options,
-        );
+    getOrganizationList = (options: ListOptions = {}): Promise<Page<Organization>> =>
+        this.request("GET", "/v1/organizations" + listQuery(options), undefined, options);
+    getOrganization = (id: string, options?: RequestOptions): Promise<OrganizationDetails> =>
+        this.request("GET", `/v1/organizations/${publicId(id)}`, undefined, options);
     createOrganization = (
         input: CreateOrganizationInput,
-        options?: ManagementRequestOptions,
+        options?: RequestOptions,
     ): Promise<{ id: string }> =>
-        this.request("POST", "/organizations", input, options);
+        this.request("POST", "/v1/organizations", input, options);
     updateOrganization = (
         id: string,
         input: UpdateOrganizationInput,
-        options?: ManagementRequestOptions,
+        options?: RequestOptions,
     ): Promise<void> =>
-        this.request("PUT", `/organizations/${publicId(id)}`, input, options);
-    deleteOrganization = (id: string, options?: ManagementRequestOptions): Promise<void> =>
-        this.request(
-            "DELETE",
-            `/organizations/${publicId(id)}`,
-            undefined,
-            options,
-        );
+        this.request("PUT", `/v1/organizations/${publicId(id)}`, input, options);
+    /** What has to happen before the organization can be deleted. */
+    getOrganizationDeletionPlan = (id: string, options?: RequestOptions): Promise<DeletionPlan> =>
+        this.request("GET", `/v1/organizations/${publicId(id)}/deletion`, undefined, options);
+    deleteOrganization = (id: string, options?: RequestOptions): Promise<void> =>
+        this.request("DELETE", `/v1/organizations/${publicId(id)}`, undefined, options);
     getOrganizationMembershipList = (
         id: string,
-        options: ManagementListOptions = {},
-    ): Promise<ManagementPage<ManagedOrganizationMember>> =>
+        options: ListOptions = {},
+    ): Promise<Page<OrganizationMembership>> =>
         this.request(
             "GET",
-            `/organizations/${publicId(id)}/memberships` + listQuery(options),
+            `/v1/organizations/${publicId(id)}/memberships` + listQuery(options),
             undefined,
             options,
         );
+    /** Changes a member's role. */
     updateOrganizationMembership = (
         id: string,
-        memberId: string,
+        userId: string,
         roleId: string,
-        options?: ManagementRequestOptions,
+        options?: RequestOptions,
     ): Promise<void> =>
         this.request(
             "PUT",
-            `/organizations/${publicId(id)}/memberships/${publicId(memberId)}`,
+            `/v1/organizations/${publicId(id)}/memberships/${publicId(userId)}`,
             { roleId: publicId(roleId) },
             options,
         );
     deleteOrganizationMembership = (
         id: string,
-        memberId: string,
-        options?: ManagementRequestOptions,
+        userId: string,
+        options?: RequestOptions,
     ): Promise<void> =>
         this.request(
             "DELETE",
-            `/organizations/${publicId(id)}/memberships/${publicId(memberId)}`,
+            `/v1/organizations/${publicId(id)}/memberships/${publicId(userId)}`,
             undefined,
             options,
         );
     getOrganizationInvitationList = (
         id: string,
-        options: ManagementListOptions = {},
-    ): Promise<ManagementPage<ManagedInvitation>> =>
+        options: ListOptions = {},
+    ): Promise<Page<OrganizationInvitation>> =>
         this.request(
             "GET",
-            `/organizations/${publicId(id)}/invitations` + listQuery(options),
+            `/v1/organizations/${publicId(id)}/invitations` + listQuery(options),
             undefined,
             options,
         );
     createOrganizationInvitation = (
         id: string,
-        input: { email: string; roleId: string; lifetimeDays?: number },
-        options?: ManagementRequestOptions,
+        input: CreateOrganizationInvitationInput,
+        options?: RequestOptions,
     ): Promise<InvitationResult> =>
         this.request(
             "POST",
-            `/organizations/${publicId(id)}/invitations`,
+            `/v1/organizations/${publicId(id)}/invitations`,
             { ...input, roleId: publicId(input.roleId) },
             options,
         );
     resendOrganizationInvitation = (
         id: string,
         invitationId: string,
-        input: { expectedExpiresAt: string; lifetimeDays?: number },
-        options?: ManagementRequestOptions,
+        input: ResendOrganizationInvitationInput,
+        options?: RequestOptions,
     ): Promise<InvitationResult> =>
         this.request(
             "POST",
-            `/organizations/${publicId(id)}/invitations/${publicId(invitationId)}/resend`,
+            `/v1/organizations/${publicId(id)}/invitations/${publicId(invitationId)}/resend`,
             input,
             options,
         );
     revokeOrganizationInvitation = (
         id: string,
         invitationId: string,
-        options?: ManagementRequestOptions,
+        options?: RequestOptions,
     ): Promise<void> =>
         this.request(
             "DELETE",
-            `/organizations/${publicId(id)}/invitations/${publicId(invitationId)}`,
+            `/v1/organizations/${publicId(id)}/invitations/${publicId(invitationId)}`,
             undefined,
             options,
         );
-    getRoleList = (
-        id: string,
-        options?: ManagementRequestOptions,
-    ): Promise<ManagedRole[]> =>
-        this.request(
-            "GET",
-            `/organizations/${publicId(id)}/roles`,
-            undefined,
-            options,
-        );
+    getRoleList = (id: string, options?: RequestOptions): Promise<Role[]> =>
+        this.request("GET", `/v1/organizations/${publicId(id)}/roles`, undefined, options);
     createRole = (
         id: string,
         input: RoleInput,
-        options?: ManagementRequestOptions,
+        options?: RequestOptions,
     ): Promise<{ id: string }> =>
-        this.request(
-            "POST",
-            `/organizations/${publicId(id)}/roles`,
-            input,
-            options,
-        );
+        this.request("POST", `/v1/organizations/${publicId(id)}/roles`, input, options);
     updateRole = (
         id: string,
         roleId: string,
         input: RoleInput,
-        options?: ManagementRequestOptions,
+        options?: RequestOptions,
     ): Promise<void> =>
         this.request(
             "PUT",
-            `/organizations/${publicId(id)}/roles/${publicId(roleId)}`,
+            `/v1/organizations/${publicId(id)}/roles/${publicId(roleId)}`,
             input,
             options,
         );
     deleteRole = (
         id: string,
         roleId: string,
-        options?: ManagementRequestOptions,
+        options?: RequestOptions,
     ): Promise<void> =>
         this.request(
             "DELETE",
-            `/organizations/${publicId(id)}/roles/${publicId(roleId)}`,
+            `/v1/organizations/${publicId(id)}/roles/${publicId(roleId)}`,
             undefined,
             options,
         );
-    getPermissionList = (
-        options?: ManagementRequestOptions,
-    ): Promise<ManagedPermission[]> =>
-        this.request("GET", "/permissions", undefined, options);
+    getPermissionList = (options?: RequestOptions): Promise<Permission[]> =>
+        this.request("GET", "/v1/permissions", undefined, options);
 }
 
 /**
  * Creates a backend client, like Clerk's `createClerkClient`. Without options it reads
  * `PISTI_PUBLISHABLE_KEY`, `PISTI_SECRET_KEY` and `PISTI_AUTHORIZED_PARTIES`.
  */
-export function createPistiClient(options?: ManagementClientOptions): PistiClient {
+export function createPistiClient(options?: PistiClientOptions): PistiClient {
     return new PistiClient(options);
 }

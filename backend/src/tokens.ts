@@ -12,7 +12,8 @@ import {
 } from "jose";
 import { PistiError } from "./errors.js";
 import { parsePublishableKey, trustedUrl, type PublishableKeyInfo } from "./keys.js";
-import type { PistiClient } from "./management.js";
+import type { PistiClient } from "./client.js";
+import type { HandshakeRedemption } from "./client-types.js";
 import type {
     AcceptsToken,
     AnyAuthObject,
@@ -306,17 +307,17 @@ async function verifyMachineJwt(
 
 const clients = new Map<string, PistiClient>();
 
-/** One management client per secret and publishable key, created on first use. */
-async function managementClient(secretKey: string, publishableKey: string, apiUrl: string | undefined) {
-    // Imported lazily: the management client itself depends on this module.
-    const { createPistiClient, PistiManagementError } = await import("./management.js");
+/** One backend API client per secret and publishable key, created on first use. */
+async function backendClient(secretKey: string, publishableKey: string, apiUrl: string | undefined) {
+    // Imported lazily: the client itself depends on this module.
+    const { createPistiClient, PistiAPIResponseError } = await import("./client.js");
     const cacheKey = `${secretKey}\n${publishableKey}\n${apiUrl ?? ""}`;
     let client = clients.get(cacheKey);
     if (!client) {
         client = createPistiClient({ secretKey, publishableKey, apiUrl });
         clients.set(cacheKey, client);
     }
-    return { client, PistiManagementError };
+    return { client, PistiAPIResponseError };
 }
 // Verified API keys are reused briefly, so a busy API does not call Pisti on every request. A revoked key can keep
 // working in each process for up to this long.
@@ -333,7 +334,7 @@ async function verifyApiKey(token: string, options: AuthenticateRequestOptions, 
     const cached = verifiedApiKeys.get(verification);
     if (cached && cached.expiresAt > Date.now()) return cached.key;
     verifiedApiKeys.delete(verification);
-    const { client, PistiManagementError } = await managementClient(secretKey, publishableKey, options.apiUrl);
+    const { client, PistiAPIResponseError } = await backendClient(secretKey, publishableKey, options.apiUrl);
     try {
         const key = await client.apiKeys.verifySecret(token);
         const authenticated: AuthenticatedApiKey = Object.freeze({
@@ -357,7 +358,7 @@ async function verifyApiKey(token: string, options: AuthenticateRequestOptions, 
         verifiedApiKeys.set(verification, { key: authenticated, expiresAt });
         return authenticated;
     } catch (error) {
-        if (error instanceof PistiManagementError && (error.status === 401 || error.status === 404))
+        if (error instanceof PistiAPIResponseError && (error.status === 401 || error.status === 404))
             throw new PistiError(401, "The API key is invalid, expired or revoked.", "invalid_token");
         throw error;
     }
@@ -474,12 +475,12 @@ async function completeHandshake(
     const secretKey = secretKeyFrom(options);
     if (!secretKey)
         return state("signed-out", signedOutAuthObject, { reason: "handshake-invalid", message: SECRET_KEY_FOR_HANDSHAKE });
-    const { client, PistiManagementError } = await managementClient(secretKey, publishableKey, options.apiUrl);
-    let redemption: { sessionToken: string | null; clientUat: string | number };
+    const { client, PistiAPIResponseError } = await backendClient(secretKey, publishableKey, options.apiUrl);
+    let redemption: HandshakeRedemption;
     try {
         redemption = await client.redeemHandshake(nonce, url.origin);
     } catch (error) {
-        if (!(error instanceof PistiManagementError) || error.status !== 400) throw error;
+        if (!(error instanceof PistiAPIResponseError) || error.status !== 400) throw error;
         return state("signed-out", signedOutAuthObject, { reason: "handshake-invalid", message: "The handshake is invalid or has expired." });
     }
     // The token comes from Pisti over TLS; verifying it anyway keeps every cookie this SDK writes to one set of checks.
