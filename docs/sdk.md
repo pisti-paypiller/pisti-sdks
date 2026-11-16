@@ -104,7 +104,10 @@ environment, with Clerk-style method names (`users.getUser`, `users.getUserList`
 `verifyToken()`. The backend API needs only the secret key; the publishable key is needed for
 `authenticateRequest()` and `verifyToken()`. Secret keys never mint credentials: webhook endpoints are created and their
 signing secrets rotated in the console, and the client only lists, updates, archives, tests and
-replays them. Webhook events are a typed union keyed by `type`. `verifyWebhook(req)` from
+replays them. Lists page with cursors: each list method takes `{ limit, cursor }`, an
+`orderBy` where the list offers one (users, organizations) and its own filters, and returns
+`{ items, nextCursor, hasMore }`; `list()` (or `list<Things>()` for a nested list) is an async
+iterator over every page, and `getCount()` returns a total. Webhook events are a typed union keyed by `type`. `verifyWebhook(req)` from
 `@pisti-paypiller/express/webhooks` (or `@pisti-paypiller/backend/webhooks` for a Fetch `Request`) reads
 `PISTI_WEBHOOK_SIGNING_SECRET`.
 

@@ -55,8 +55,9 @@ const routes: Route[] = [
     ["getInstance", (p) => p.getInstance(), "GET", "/v1/instance"],
     ["redeemHandshake", (p) => p.redeemHandshake("n1", "http://localhost:5173"), "POST", "/v1/handshake/redeem", { nonce: "n1", origin: "http://localhost:5173" }],
 
-    ["users.getUserList", (p) => p.users.getUserList({ limit: 10, cursor: "c1", search: "alex", status: "active" }), "GET", "/v1/users?limit=10&cursor=c1&paged=true&search=alex&status=active"],
-    ["users.getCount", (p) => p.users.getCount({ search: "alex" }), "GET", "/v1/users/count?paged=true&search=alex"],
+    ["users.getUserList", (p) => p.users.getUserList({ limit: 10, cursor: "c1", orderBy: "-lastActiveAt", search: "alex", status: "active" }), "GET", "/v1/users?limit=10&cursor=c1&orderBy=-lastActiveAt&search=alex&status=active"],
+    ["users.list", (p) => p.users.list({ orderBy: "lastSignInAt", status: "locked" }).next(), "GET", "/v1/users?orderBy=lastSignInAt&status=locked"],
+    ["users.getCount", (p) => p.users.getCount({ search: "alex", status: "disabled" }), "GET", "/v1/users/count?search=alex&status=disabled"],
     ["users.getUser", (p) => p.users.getUser(USER), "GET", `/v1/users/${USER}`],
     ["users.createUser", (p) => p.users.createUser({ email: "a@example.com" }), "POST", "/v1/users", { email: "a@example.com" }],
     [
@@ -73,7 +74,8 @@ const routes: Route[] = [
     ["users.unlockUser", (p) => p.users.unlockUser(USER), "PUT", `/v1/users/${USER}/status`, { status: "active" }],
     ["users.getUserDeletionPlan", (p) => p.users.getUserDeletionPlan(USER), "GET", `/v1/users/${USER}/deletion`],
     ["users.deleteUser", (p) => p.users.deleteUser(USER), "DELETE", `/v1/users/${USER}`],
-    ["users.getUserOrganizationList", (p) => p.users.getUserOrganizationList(USER, { limit: 5 }), "GET", `/v1/users/${USER}/organizations?limit=5&paged=true`],
+    ["users.getUserOrganizationList", (p) => p.users.getUserOrganizationList(USER, { limit: 5 }), "GET", `/v1/users/${USER}/organizations?limit=5`],
+    ["users.listOrganizations", (p) => p.users.listOrganizations(USER).next(), "GET", `/v1/users/${USER}/organizations`],
     ["users.getUserEmailAddressList", (p) => p.users.getUserEmailAddressList(USER), "GET", `/v1/users/${USER}/email-addresses`],
     [
         "users.addEmailAddress",
@@ -102,16 +104,20 @@ const routes: Route[] = [
     ["users.deleteUserExternalAccount", (p) => p.users.deleteUserExternalAccount(USER, EXTERNAL), "DELETE", `/v1/users/${USER}/external-accounts/${EXTERNAL}`],
 
     ["sessions.getSessionList", (p) => p.sessions.getSessionList({ userId: USER, status: "active", limit: 20 }), "GET", `/v1/sessions?limit=20&userId=${USER}&status=active`],
+    ["sessions.list", (p) => p.sessions.list({ status: "revoked" }).next(), "GET", "/v1/sessions?status=revoked"],
     ["sessions.getSession", (p) => p.sessions.getSession(SESSION), "GET", `/v1/sessions/${SESSION}`],
     ["sessions.revokeSession", (p) => p.sessions.revokeSession(SESSION), "DELETE", `/v1/sessions/${SESSION}`],
 
     ["apiKeys.getApiKeyList", (p) => p.apiKeys.getApiKeyList({ userId: USER, includeRevoked: true, cursor: "c2" }), "GET", `/v1/api_keys?cursor=c2&userId=${USER}&includeRevoked=true`],
+    ["apiKeys.list", (p) => p.apiKeys.list({ userId: USER }).next(), "GET", `/v1/api_keys?userId=${USER}`],
     ["apiKeys.getApiKey", (p) => p.apiKeys.getApiKey(KEY), "GET", `/v1/api_keys/${KEY}`],
     ["apiKeys.updateApiKey", (p) => p.apiKeys.updateApiKey(KEY, { scopes: ["read"] }), "PUT", `/v1/api_keys/${KEY}`, { scopes: ["read"], claims: null }],
     ["apiKeys.revokeApiKey", (p) => p.apiKeys.revokeApiKey(KEY, { revocationReason: "Leaked" }), "POST", `/v1/api_keys/${KEY}/revoke`, { revocationReason: "Leaked" }],
     ["apiKeys.verifySecret", (p) => p.apiKeys.verifySecret("ak_secret"), "POST", "/v1/api_keys/verify", { secret: "ak_secret" }],
 
-    ["organizations.getOrganizationList", (p) => p.organizations.getOrganizationList({ search: "acme" }), "GET", "/v1/organizations?paged=true&search=acme"],
+    ["organizations.getOrganizationList", (p) => p.organizations.getOrganizationList({ orderBy: "-name", search: "acme" }), "GET", "/v1/organizations?orderBy=-name&search=acme"],
+    ["organizations.list", (p) => p.organizations.list({ limit: 20 }).next(), "GET", "/v1/organizations?limit=20"],
+    ["organizations.getCount", (p) => p.organizations.getCount({ search: "acme" }), "GET", "/v1/organizations/count?search=acme"],
     ["organizations.getOrganization", (p) => p.organizations.getOrganization(ORG), "GET", `/v1/organizations/${ORG}`],
     ["organizations.createOrganization", (p) => p.organizations.createOrganization({ name: "Acme", slug: "acme" }), "POST", "/v1/organizations", { name: "Acme", slug: "acme" }],
     [
@@ -123,7 +129,8 @@ const routes: Route[] = [
     ],
     ["organizations.getOrganizationDeletionPlan", (p) => p.organizations.getOrganizationDeletionPlan(ORG), "GET", `/v1/organizations/${ORG}/deletion`],
     ["organizations.deleteOrganization", (p) => p.organizations.deleteOrganization(ORG), "DELETE", `/v1/organizations/${ORG}`],
-    ["organizations.getOrganizationMembershipList", (p) => p.organizations.getOrganizationMembershipList(ORG), "GET", `/v1/organizations/${ORG}/memberships?paged=true`],
+    ["organizations.getOrganizationMembershipList", (p) => p.organizations.getOrganizationMembershipList(ORG, { search: "a" }), "GET", `/v1/organizations/${ORG}/memberships?search=a`],
+    ["organizations.listMemberships", (p) => p.organizations.listMemberships(ORG).next(), "GET", `/v1/organizations/${ORG}/memberships`],
     [
         "organizations.updateOrganizationMembership",
         (p) => p.organizations.updateOrganizationMembership(ORG, USER, ROLE),
@@ -132,7 +139,8 @@ const routes: Route[] = [
         { roleId: ROLE },
     ],
     ["organizations.deleteOrganizationMembership", (p) => p.organizations.deleteOrganizationMembership(ORG, USER), "DELETE", `/v1/organizations/${ORG}/memberships/${USER}`],
-    ["organizations.getOrganizationInvitationList", (p) => p.organizations.getOrganizationInvitationList(ORG), "GET", `/v1/organizations/${ORG}/invitations?paged=true`],
+    ["organizations.getOrganizationInvitationList", (p) => p.organizations.getOrganizationInvitationList(ORG), "GET", `/v1/organizations/${ORG}/invitations`],
+    ["organizations.listInvitations", (p) => p.organizations.listInvitations(ORG).next(), "GET", `/v1/organizations/${ORG}/invitations`],
     [
         "organizations.createOrganizationInvitation",
         (p) => p.organizations.createOrganizationInvitation(ORG, { email: "c@example.com", roleId: ROLE, lifetimeDays: 7 }),
@@ -166,7 +174,7 @@ const routes: Route[] = [
     ["organizations.deleteRole", (p) => p.organizations.deleteRole(ORG, ROLE), "DELETE", `/v1/organizations/${ORG}/roles/${ROLE}`],
     ["organizations.getPermissionList", (p) => p.organizations.getPermissionList(), "GET", "/v1/permissions"],
 
-    ["externalProviders.list", (p) => p.externalProviders.list(), "GET", "/v1/external_providers"],
+    ["externalProviders.getExternalProviderList", (p) => p.externalProviders.getExternalProviderList(), "GET", "/v1/external_providers"],
     [
         "externalProviders.create",
         (p) => p.externalProviders.create({ name: "okta", displayName: "Okta", issuerUrl: "https://okta.example.com", clientId: "c", clientSecret: "s", enabled: true, allowSignup: false }),
@@ -196,6 +204,8 @@ const routes: Route[] = [
     ["webhooks.sendTest", (p) => p.webhooks.sendTest(ENDPOINT), "POST", `/v1/webhooks/endpoints/${ENDPOINT}/test`],
     ["webhooks.replayEndpoint", (p) => p.webhooks.replayEndpoint(ENDPOINT, AT), "POST", `/v1/webhooks/endpoints/${ENDPOINT}/replay`, { since: AT }],
     ["webhooks.events", (p) => p.webhooks.events({ limit: 25, type: "user.created" }), "GET", "/v1/webhooks/events?limit=25&type=user.created"],
+    ["webhooks.listEvents", (p) => p.webhooks.listEvents({ type: "user.deleted" }).next(), "GET", "/v1/webhooks/events?type=user.deleted"],
+    ["webhooks.listDeliveries", (p) => p.webhooks.listDeliveries({ status: "pending" }).next(), "GET", "/v1/webhooks/deliveries?status=pending"],
     [
         "webhooks.deliveries",
         (p) => p.webhooks.deliveries({ endpointId: ENDPOINT, status: "failed" }),
@@ -208,7 +218,7 @@ const routes: Route[] = [
 
 describe("Backend API routes", () => {
     it.each(routes)("%s calls the flat route with the secret key", async (_, call, method, path, body) => {
-        const calls = stubApi();
+        const calls = stubApi({ items: [], nextCursor: null, hasMore: false });
         await call(client());
 
         expect(calls).toHaveLength(1);
@@ -229,7 +239,6 @@ describe("Backend API routes", () => {
                 .map(([name]) => `${resource}.${name}`),
         );
         const tested = new Set(routes.map(([name]) => name));
-        // getUserListAll pages through getUserList, which the table covers.
         expect(methods.filter((name) => !tested.has(name))).toEqual([]);
     });
 });
@@ -256,10 +265,46 @@ describe("Backend API client", () => {
             return Response.json({ data: pages[urls.length - 1], meta: { requestId: "req_1" } });
         });
         const ids: string[] = [];
-        for await (const user of client().users.getUserListAll({ limit: 1 })) ids.push(user.id);
+        for await (const user of client().users.list({ limit: 1 })) ids.push(user.id);
 
         expect(ids).toEqual(["user_1", "user_2"]);
         expect(new URL(urls[1]!).searchParams.get("cursor")).toBe("c1");
+    });
+
+    it("stops when a page says hasMore is false", async () => {
+        const calls = stubApi({ items: [{ id: "org_1" }, { id: "org_2" }], nextCursor: "ignored", hasMore: false });
+        const ids: string[] = [];
+        for await (const organization of client().organizations.list({ orderBy: "name" })) ids.push(organization.id);
+
+        expect(ids).toEqual(["org_1", "org_2"]);
+        expect(calls).toHaveLength(1);
+        expect(calls[0]!.url.searchParams.get("orderBy")).toBe("name");
+    });
+
+    it("keeps orderBy and filters on every page", async () => {
+        const pages = [
+            { items: [{ id: "user_1" }], nextCursor: "c1", hasMore: true },
+            { items: [], nextCursor: null, hasMore: false },
+        ];
+        const urls: URL[] = [];
+        vi.stubGlobal("fetch", async (input: URL | string) => {
+            urls.push(new URL(String(input)));
+            return Response.json({ data: pages[urls.length - 1], meta: { requestId: "req_1" } });
+        });
+        for await (const _ of client().users.list({ orderBy: "-lastActiveAt", status: "active" })) void _;
+
+        expect(urls.map((url) => url.search)).toEqual([
+            "?orderBy=-lastActiveAt&status=active",
+            "?cursor=c1&orderBy=-lastActiveAt&status=active",
+        ]);
+    });
+
+    it("refuses a repeated cursor", async () => {
+        stubApi({ items: [], nextCursor: "c1", hasMore: true });
+        const iterate = async () => {
+            for await (const _ of client().sessions.list()) void _;
+        };
+        await expect(iterate()).rejects.toMatchObject({ status: 502 });
     });
 
     it("turns Problem Details into PistiAPIResponseError", async () => {

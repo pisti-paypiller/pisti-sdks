@@ -5,8 +5,13 @@ import type {
     PistiClientOptions,
     RequestOptions,
     Instance,
-    ListOptions,
+    PageOptions,
     Page,
+    SearchListOptions,
+    UserListOptions,
+    UserCountOptions,
+    OrganizationListOptions,
+    OrganizationCountOptions,
     User,
     EmailAddress,
     AddEmailAddressInput,
@@ -74,10 +79,10 @@ function publicId(value: string): string {
     return value;
 }
 
-/** `limit` and `cursor` for a cursor-paged list. */
-function pageParams(
-    options: { limit?: number | undefined; cursor?: string | undefined },
-    cursorLength = 128,
+/** `limit`, `cursor` and the filters and order a list takes. Undefined values are left out. */
+function listParams(
+    options: PageOptions & { search?: string | undefined; orderBy?: string | undefined } = {},
+    filters: Record<string, string | undefined> = {},
 ): URLSearchParams {
     const query = new URLSearchParams();
     if (options.limit !== undefined) {
@@ -90,26 +95,40 @@ function pageParams(
         query.set("limit", String(options.limit));
     }
     if (options.cursor !== undefined) {
-        if (options.cursor.length > cursorLength)
+        if (options.cursor.length > 512)
             throw new Error("The pagination cursor is too long.");
         query.set("cursor", options.cursor);
     }
-    return query;
-}
-
-/** A searchable list; `paged=true` asks the API for a page rather than a bare array. */
-function listQuery(
-    options: Omit<ListOptions, "signal"> & { status?: UserStatus } = {},
-): string {
-    const query = pageParams(options);
-    query.set("paged", "true");
+    if (options.orderBy !== undefined) query.set("orderBy", options.orderBy);
     if (options.search !== undefined) {
         if (options.search.length > 200)
             throw new Error("Search must be at most 200 characters.");
         query.set("search", options.search);
     }
-    if (options.status !== undefined) query.set("status", options.status);
-    return "?" + query;
+    for (const [name, value] of Object.entries(filters))
+        if (value !== undefined) query.set(name, value);
+    return query;
+}
+
+/** Iterates every item of a cursor list, page by page, until `hasMore` is false. */
+async function* paginate<T, O extends PageOptions>(
+    load: (options: O) => Promise<Page<T>>,
+    options: O,
+): AsyncGenerator<T, void, undefined> {
+    let cursor = options.cursor;
+    const seen = new Set<string>();
+    while (true) {
+        const page = await load({ ...options, ...(cursor === undefined ? {} : { cursor }) });
+        yield* page.items;
+        if (!page.hasMore) return;
+        if (!page.nextCursor || seen.has(page.nextCursor))
+            throw new PistiAPIResponseError(
+                "The service returned an invalid pagination cursor.",
+                502,
+            );
+        cursor = page.nextCursor;
+        seen.add(cursor);
+    }
 }
 
 function queryString(query: URLSearchParams): string {
@@ -385,41 +404,23 @@ export class PistiClient {
 
 export class UsersApi {
     constructor(private readonly request: RequestResource) {}
-    getUserList = (
-        options: ListOptions & { status?: UserStatus } = {},
-    ): Promise<Page<User>> =>
-        this.request("GET", "/v1/users" + listQuery(options), undefined, options);
-    async *getUserListAll(
-        options: Omit<ListOptions, "cursor"> & {
-            status?: UserStatus;
-        } = {},
-    ): AsyncGenerator<User> {
-        let cursor: string | undefined;
-        const seen = new Set<string>();
-        do {
-            const page = await this.getUserList({
-                ...options,
-                ...(cursor ? { cursor } : {}),
-            });
-            for (const user of page.items) yield user;
-            if (!page.hasMore) return;
-            if (!page.nextCursor || seen.has(page.nextCursor))
-                throw new PistiAPIResponseError(
-                    "The service returned an invalid pagination cursor.",
-                    502,
-                );
-            cursor = page.nextCursor;
-            seen.add(cursor);
-        } while (true);
-    }
+    /** One page of users, newest first unless `orderBy` says otherwise. */
+    getUserList = (options: UserListOptions = {}): Promise<Page<User>> =>
+        this.request(
+            "GET",
+            "/v1/users" + queryString(listParams(options, { status: options.status })),
+            undefined,
+            options,
+        );
+    /** Every user matching the filters: `for await (const user of pisti.users.list())`. */
+    list = (options: UserListOptions = {}): AsyncGenerator<User, void, undefined> =>
+        paginate(this.getUserList, options);
     /** The number of users matching `search` and `status`. */
-    getCount = async (
-        options: Omit<ListOptions, "cursor" | "limit"> & { status?: UserStatus } = {},
-    ): Promise<number> =>
+    getCount = async (options: UserCountOptions = {}): Promise<number> =>
         (
             await this.request<{ totalCount: number }>(
                 "GET",
-                "/v1/users/count" + listQuery(options),
+                "/v1/users/count" + queryString(listParams({ ...(options.search === undefined ? {} : { search: options.search }) }, { status: options.status })),
                 undefined,
                 options,
             )
@@ -464,18 +465,26 @@ export class UsersApi {
     /** The organizations the user belongs to. */
     getUserOrganizationList = (
         id: string,
-        options: ListOptions = {},
+        options: PageOptions = {},
     ): Promise<Page<UserOrganization>> =>
         this.request(
             "GET",
-            `/v1/users/${publicId(id)}/organizations` + listQuery(options),
+            `/v1/users/${publicId(id)}/organizations` + queryString(listParams(options)),
             undefined,
             options,
         );
+    listOrganizations = (
+        id: string,
+        options: PageOptions = {},
+    ): AsyncGenerator<UserOrganization, void, undefined> => {
+        publicId(id);
+        return paginate((page) => this.getUserOrganizationList(id, page), options);
+    };
+    /** The user's email addresses, whole, in one page. */
     getUserEmailAddressList = (
         id: string,
         options?: RequestOptions,
-    ): Promise<EmailAddress[]> =>
+    ): Promise<Page<EmailAddress>> =>
         this.request("GET", `/v1/users/${publicId(id)}/email-addresses`, undefined, options);
     addEmailAddress = (
         id: string,
@@ -522,10 +531,11 @@ export class UsersApi {
             undefined,
             options,
         );
+    /** The user's linked external accounts, whole, in one page. */
     getUserExternalAccountList = (
         id: string,
         options?: RequestOptions,
-    ): Promise<ExternalAccount[]> =>
+    ): Promise<Page<ExternalAccount>> =>
         this.request("GET", `/v1/users/${publicId(id)}/external-accounts`, undefined, options);
     /** Links an account at an upstream provider to the user. */
     createUserExternalAccount = (
@@ -549,7 +559,8 @@ export class UsersApi {
 
 export class ExternalProvidersApi {
     constructor(private readonly request: RequestResource) {}
-    list = (options?: RequestOptions): Promise<ExternalProvider[]> =>
+    /** The environment's upstream providers, whole, in one page. */
+    getExternalProviderList = (options?: RequestOptions): Promise<Page<ExternalProvider>> =>
         this.request("GET", "/v1/external_providers", undefined, options);
     create = (
         input: CreateExternalProviderInput,
@@ -568,9 +579,11 @@ export class ExternalProvidersApi {
 
 export class WebhooksApi {
     constructor(private readonly request: RequestResource) {}
-    catalog = (options?: RequestOptions): Promise<WebhookEventType[]> =>
+    /** Every event type an endpoint can subscribe to, in one page. */
+    catalog = (options?: RequestOptions): Promise<Page<WebhookEventType>> =>
         this.request("GET", "/v1/webhooks/catalog", undefined, options);
-    endpoints = (options?: RequestOptions): Promise<WebhookEndpoint[]> =>
+    /** The environment's endpoints, whole, in one page. */
+    endpoints = (options?: RequestOptions): Promise<Page<WebhookEndpoint>> =>
         this.request("GET", "/v1/webhooks/endpoints", undefined, options);
     updateEndpoint = (
         id: string,
@@ -608,19 +621,22 @@ export class WebhooksApi {
         );
     /** Events the environment produced, newest first. */
     events = (options: WebhookEventListOptions = {}): Promise<Page<WebhookEventSummary>> => {
-        const query = pageParams(options, 64);
-        if (options.type !== undefined) query.set("type", options.type);
+        const query = listParams(options, { type: options.type });
         return this.request("GET", "/v1/webhooks/events" + queryString(query), undefined, options);
     };
+    listEvents = (options: WebhookEventListOptions = {}): AsyncGenerator<WebhookEventSummary, void, undefined> =>
+        paginate(this.events, options);
     deliveries = (
         options: WebhookDeliveryListOptions = {},
     ): Promise<Page<WebhookDelivery>> => {
-        const query = pageParams(options);
-        if (options.endpointId !== undefined)
-            query.set("endpointId", publicId(options.endpointId));
-        if (options.status !== undefined) query.set("status", options.status);
+        const query = listParams(options, {
+            endpointId: options.endpointId === undefined ? undefined : publicId(options.endpointId),
+            status: options.status,
+        });
         return this.request("GET", "/v1/webhooks/deliveries" + queryString(query), undefined, options);
     };
+    listDeliveries = (options: WebhookDeliveryListOptions = {}): AsyncGenerator<WebhookDelivery, void, undefined> =>
+        paginate(this.deliveries, options);
     delivery = (
         id: string,
         options?: RequestOptions,
@@ -634,11 +650,14 @@ export class WebhooksApi {
 export class ApiKeysApi {
     constructor(private readonly request: RequestResource) {}
     getApiKeyList = (options: ApiKeyListOptions = {}): Promise<Page<ApiKey>> => {
-        const query = pageParams(options);
-        if (options.userId !== undefined) query.set("userId", publicId(options.userId));
-        if (options.includeRevoked) query.set("includeRevoked", "true");
+        const query = listParams(options, {
+            userId: options.userId === undefined ? undefined : publicId(options.userId),
+            includeRevoked: options.includeRevoked ? "true" : undefined,
+        });
         return this.request("GET", "/v1/api_keys" + queryString(query), undefined, options);
     };
+    list = (options: ApiKeyListOptions = {}): AsyncGenerator<ApiKey, void, undefined> =>
+        paginate(this.getApiKeyList, options);
     getApiKey = (id: string, options?: RequestOptions): Promise<ApiKey> =>
         this.request("GET", `/v1/api_keys/${publicId(id)}`, undefined, options);
     /** Sets what a key may do in your API. Only your backend grants scopes and claims; the key's owner cannot. */
@@ -660,11 +679,14 @@ export class SessionsApi {
     constructor(private readonly request: RequestResource) {}
     /** Sessions in the environment, newest first. Filter by `userId` and `status`. */
     getSessionList = (options: SessionListOptions = {}): Promise<Page<Session>> => {
-        const query = pageParams(options);
-        if (options.userId !== undefined) query.set("userId", publicId(options.userId));
-        if (options.status !== undefined) query.set("status", options.status);
+        const query = listParams(options, {
+            userId: options.userId === undefined ? undefined : publicId(options.userId),
+            status: options.status,
+        });
         return this.request("GET", "/v1/sessions" + queryString(query), undefined, options);
     };
+    list = (options: SessionListOptions = {}): AsyncGenerator<Session, void, undefined> =>
+        paginate(this.getSessionList, options);
     getSession = (id: string, options?: RequestOptions): Promise<Session> =>
         this.request("GET", `/v1/sessions/${publicId(id)}`, undefined, options);
     revokeSession = (id: string, options?: RequestOptions): Promise<void> =>
@@ -673,8 +695,21 @@ export class SessionsApi {
 
 export class OrganizationsApi {
     constructor(private readonly request: RequestResource) {}
-    getOrganizationList = (options: ListOptions = {}): Promise<Page<Organization>> =>
-        this.request("GET", "/v1/organizations" + listQuery(options), undefined, options);
+    /** One page of organizations, newest first unless `orderBy` says otherwise. */
+    getOrganizationList = (options: OrganizationListOptions = {}): Promise<Page<Organization>> =>
+        this.request("GET", "/v1/organizations" + queryString(listParams(options)), undefined, options);
+    list = (options: OrganizationListOptions = {}): AsyncGenerator<Organization, void, undefined> =>
+        paginate(this.getOrganizationList, options);
+    /** The number of organizations matching `search`. */
+    getCount = async (options: OrganizationCountOptions = {}): Promise<number> =>
+        (
+            await this.request<{ totalCount: number }>(
+                "GET",
+                "/v1/organizations/count" + queryString(listParams(options.search === undefined ? {} : { search: options.search })),
+                undefined,
+                options,
+            )
+        ).totalCount;
     getOrganization = (id: string, options?: RequestOptions): Promise<OrganizationDetails> =>
         this.request("GET", `/v1/organizations/${publicId(id)}`, undefined, options);
     createOrganization = (
@@ -695,14 +730,21 @@ export class OrganizationsApi {
         this.request("DELETE", `/v1/organizations/${publicId(id)}`, undefined, options);
     getOrganizationMembershipList = (
         id: string,
-        options: ListOptions = {},
+        options: SearchListOptions = {},
     ): Promise<Page<OrganizationMembership>> =>
         this.request(
             "GET",
-            `/v1/organizations/${publicId(id)}/memberships` + listQuery(options),
+            `/v1/organizations/${publicId(id)}/memberships` + queryString(listParams(options)),
             undefined,
             options,
         );
+    listMemberships = (
+        id: string,
+        options: SearchListOptions = {},
+    ): AsyncGenerator<OrganizationMembership, void, undefined> => {
+        publicId(id);
+        return paginate((page) => this.getOrganizationMembershipList(id, page), options);
+    };
     /** Changes a member's role. */
     updateOrganizationMembership = (
         id: string,
@@ -729,14 +771,21 @@ export class OrganizationsApi {
         );
     getOrganizationInvitationList = (
         id: string,
-        options: ListOptions = {},
+        options: SearchListOptions = {},
     ): Promise<Page<OrganizationInvitation>> =>
         this.request(
             "GET",
-            `/v1/organizations/${publicId(id)}/invitations` + listQuery(options),
+            `/v1/organizations/${publicId(id)}/invitations` + queryString(listParams(options)),
             undefined,
             options,
         );
+    listInvitations = (
+        id: string,
+        options: SearchListOptions = {},
+    ): AsyncGenerator<OrganizationInvitation, void, undefined> => {
+        publicId(id);
+        return paginate((page) => this.getOrganizationInvitationList(id, page), options);
+    };
     createOrganizationInvitation = (
         id: string,
         input: CreateOrganizationInvitationInput,
@@ -802,7 +851,8 @@ export class OrganizationsApi {
             undefined,
             options,
         );
-    getPermissionList = (options?: RequestOptions): Promise<Permission[]> =>
+    /** Every permission, whole, in one page. */
+    getPermissionList = (options?: RequestOptions): Promise<Page<Permission>> =>
         this.request("GET", "/v1/permissions", undefined, options);
 }
 

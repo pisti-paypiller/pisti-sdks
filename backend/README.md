@@ -86,24 +86,42 @@ import { createPistiClient, PistiAPIResponseError } from "@pisti-paypiller/backe
 
 const pisti = createPistiClient();
 const user = await pisti.users.getUser(userId);
-const { items, nextCursor } = await pisti.users.getUserList({ limit: 50, search: "alex" });
+const { items, nextCursor, hasMore } = await pisti.users.getUserList({ limit: 50, orderBy: "-lastActiveAt", search: "alex" });
 const total = await pisti.users.getCount({ status: "active" });
+for await (const organization of pisti.organizations.list({ orderBy: "name" })) console.log(organization.name);
 const { items: sessions } = await pisti.sessions.getSessionList({ userId, status: "active" });
 await pisti.apiKeys.revokeApiKey(keyId, { revocationReason: "Leaked in a log" });
 ```
 
 | Resource | Methods |
 | --- | --- |
-| `users` | `getUserList`, `getUserListAll`, `getCount`, `getUser`, `createUser`, `updateUser`, `updateUsername`, `getUserDeletionPlan`, `deleteUser`, `banUser`, `unbanUser`, `lockUser`, `unlockUser`, `getUserOrganizationList`, `getUserEmailAddressList`, `addEmailAddress`, `setEmailVerification`, `setPrimaryEmail`, `removeEmailAddress`, `getUserExternalAccountList`, `createUserExternalAccount`, `deleteUserExternalAccount` |
-| `sessions` | `getSessionList({ userId, status })`, `getSession`, `revokeSession` |
-| `apiKeys` | `getApiKeyList({ userId, includeRevoked })`, `getApiKey`, `updateApiKey(id, { scopes, claims })`, `revokeApiKey`, `verifySecret` |
-| `organizations` | `getOrganizationList`, `getOrganization`, `createOrganization`, `updateOrganization`, `getOrganizationDeletionPlan`, `deleteOrganization`, `getOrganizationMembershipList`, `updateOrganizationMembership(id, userId, roleId)`, `deleteOrganizationMembership(id, userId)`, `getOrganizationInvitationList`, `createOrganizationInvitation`, `resendOrganizationInvitation`, `revokeOrganizationInvitation`, `getRoleList`, `createRole`, `updateRole`, `deleteRole`, `getPermissionList` |
-| `webhooks` | `catalog`, `endpoints`, `updateEndpoint`, `archiveEndpoint`, `sendTest`, `replayEndpoint(id, since)`, `events({ type })`, `deliveries`, `delivery`, `replay` (one delivery) |
-| `externalProviders` | `list`, `create`, `update`, `delete` |
+| `users` | `getUserList({ orderBy, search, status })`, `list`, `getCount({ search, status })`, `getUser`, `createUser`, `updateUser`, `updateUsername`, `getUserDeletionPlan`, `deleteUser`, `banUser`, `unbanUser`, `lockUser`, `unlockUser`, `getUserOrganizationList`, `listOrganizations`, `getUserEmailAddressList`, `addEmailAddress`, `setEmailVerification`, `setPrimaryEmail`, `removeEmailAddress`, `getUserExternalAccountList`, `createUserExternalAccount`, `deleteUserExternalAccount` |
+| `sessions` | `getSessionList({ userId, status })`, `list`, `getSession`, `revokeSession` |
+| `apiKeys` | `getApiKeyList({ userId, includeRevoked })`, `list`, `getApiKey`, `updateApiKey(id, { scopes, claims })`, `revokeApiKey`, `verifySecret` |
+| `organizations` | `getOrganizationList({ orderBy, search })`, `list`, `getCount({ search })`, `getOrganization`, `createOrganization`, `updateOrganization`, `getOrganizationDeletionPlan`, `deleteOrganization`, `getOrganizationMembershipList`, `listMemberships`, `updateOrganizationMembership(id, userId, roleId)`, `deleteOrganizationMembership(id, userId)`, `getOrganizationInvitationList`, `listInvitations`, `createOrganizationInvitation`, `resendOrganizationInvitation`, `revokeOrganizationInvitation`, `getRoleList`, `createRole`, `updateRole`, `deleteRole`, `getPermissionList` |
+| `webhooks` | `catalog`, `endpoints`, `updateEndpoint`, `archiveEndpoint`, `sendTest`, `replayEndpoint(id, since)`, `events({ type })`, `listEvents`, `deliveries`, `listDeliveries`, `delivery`, `replay` (one delivery) |
+| `externalProviders` | `getExternalProviderList`, `create`, `update`, `delete` |
+
+Every list method takes `{ limit, cursor }` (`limit` 1–100, default 50) plus the list's own
+filters, and returns a `Page<T>`: `{ items, nextCursor, hasMore }`. Pass `nextCursor` back as
+`cursor` for the next page, with the same filters and order (the API refuses a cursor reused
+with others). `getUserList` sorts by `orderBy`: `-createdAt` (the default), `createdAt`,
+`±lastSignInAt` or `±lastActiveAt`; `getOrganizationList` by `-createdAt`, `createdAt`, `name`
+or `-name`; every other list is newest first. Small fixed lists (`getUserEmailAddressList`,
+`getUserExternalAccountList`, `getPermissionList`, `getExternalProviderList`, `webhooks.catalog`,
+`webhooks.endpoints`) return one whole page with `hasMore` false. `getRoleList` returns an array.
+Totals come from `getCount`, which takes the same filters.
+
+Each cursor-paged list also has an async iterator that pages until `hasMore` is false: `list`
+for a resource's own list (`users.list`, `organizations.list`, `sessions.list`, `apiKeys.list`)
+and `list<Things>` for a nested one (`users.listOrganizations(id)`,
+`organizations.listMemberships(id)`, `organizations.listInvitations(id)`, `webhooks.listEvents`,
+`webhooks.listDeliveries`). It takes the page method's options.
 
 `getUser`, `getUserList` and `createUser` return the same `User`: `id`, `firstName`, `lastName`,
 `fullName`, `imageUrl`, `hasImage`, `primaryEmailAddressId`, `emailAddresses`, `status`,
-`banned`, `locked`, the metadata objects and timestamps. `getInstance()` returns the
+`banned`, `locked`, the metadata objects and timestamps (including `lastSignInAt` and
+`lastActiveAt`). `getInstance()` returns the
 environment, including its `issuerUrl` and `jwtKey`.
 
 Pass `{ signal }` to cancel; `timeoutMs` defaults to 10 seconds; mutations are never retried
