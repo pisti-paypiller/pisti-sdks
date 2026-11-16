@@ -148,10 +148,10 @@ A machine service gets its M2M token from `POST /connect/token` with
 import { pistiClient, PistiAPIResponseError } from "@pisti-paypiller/express";
 
 const user = await pistiClient.users.getUser(userId);
-const { items, nextCursor } = await pistiClient.users.getUserList({ limit: 50, search: "alex" });
+const { items, nextCursor, hasMore } = await pistiClient.users.getUserList({ limit: 50, search: "alex" });
 const total = await pistiClient.users.getCount();
 const { items: sessions } = await pistiClient.sessions.getSessionList({ userId, status: "active" });
-for await (const each of pistiClient.users.getUserListAll()) {
+for await (const each of pistiClient.users.list({ orderBy: "-lastActiveAt" })) {
     // …
 }
 await pistiClient.users.banUser(userId);

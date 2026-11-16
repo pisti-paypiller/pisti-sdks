@@ -65,30 +65,50 @@ export interface UpdateApiKeyInput {
     claims?: Record<string, unknown> | null;
 }
 
-export interface ApiKeyListOptions extends RequestOptions {
+export interface ApiKeyListOptions extends PageOptions {
     userId?: string;
     includeRevoked?: boolean;
-    limit?: number;
-    cursor?: string;
 }
 
 export interface RequestOptions {
     signal?: AbortSignal;
 }
 
-export interface ListOptions extends RequestOptions {
+/** One page of a list: `limit` (1–100, default 50) and the `nextCursor` of the page before. */
+export interface PageOptions extends RequestOptions {
     limit?: number;
+    /** The opaque `nextCursor` of the previous page. Use it only with the same filters and order. */
     cursor?: string;
-    search?: string;
 }
 
+/** A cursor page. Fixed lists (email addresses, permissions, …) come whole, with `hasMore` false. */
 export interface Page<T> {
     items: T[];
     nextCursor: string | null;
     hasMore: boolean;
 }
 
+/** A list searchable by name or email (at most 200 characters). */
+export interface SearchListOptions extends PageOptions {
+    search?: string;
+}
+
 export type UserStatus = "active" | "disabled" | "locked";
+/** Sort orders for users; a leading `-` sorts descending. Defaults to `-createdAt`. */
+export type UserOrderBy =
+    | "-createdAt" | "createdAt" | "-lastSignInAt" | "lastSignInAt" | "-lastActiveAt" | "lastActiveAt";
+export interface UserListOptions extends SearchListOptions {
+    status?: UserStatus;
+    orderBy?: UserOrderBy;
+}
+export type UserCountOptions = Omit<UserListOptions, "limit" | "cursor" | "orderBy">;
+
+/** Sort orders for organizations. Defaults to `-createdAt`. */
+export type OrganizationOrderBy = "-createdAt" | "createdAt" | "name" | "-name";
+export interface OrganizationListOptions extends SearchListOptions {
+    orderBy?: OrganizationOrderBy;
+}
+export type OrganizationCountOptions = Omit<OrganizationListOptions, "limit" | "cursor" | "orderBy">;
 export type Metadata = Record<string, unknown>;
 
 export interface EmailAddress {
@@ -123,6 +143,8 @@ export interface User {
     privateMetadata: Metadata;
     unsafeMetadata: Metadata;
     lastSignInAt: string | null;
+    /** When the user last used a session, or null. */
+    lastActiveAt: string | null;
     tokensValidAfter: string;
     createdAt: string;
     updatedAt: string;
@@ -219,11 +241,9 @@ export interface Session {
     createdAt: string;
 }
 
-export interface SessionListOptions extends RequestOptions {
+export interface SessionListOptions extends PageOptions {
     userId?: string;
     status?: SessionStatus;
-    limit?: number;
-    cursor?: string;
 }
 
 export interface Organization {
@@ -399,17 +419,13 @@ export interface WebhookEventSummary {
     createdAt: string;
     data: unknown;
 }
-export interface WebhookEventListOptions extends RequestOptions {
-    limit?: number;
-    cursor?: string;
+export interface WebhookEventListOptions extends PageOptions {
     /** Only events of this type. */
     type?: WebhookEventType;
 }
 export type WebhookDeliveryStatus =
     "pending" | "sending" | "retrying" | "delivered" | "failed" | "cancelled";
-export interface WebhookDeliveryListOptions extends RequestOptions {
-    limit?: number;
-    cursor?: string;
+export interface WebhookDeliveryListOptions extends PageOptions {
     endpointId?: string;
     status?: WebhookDeliveryStatus;
 }
