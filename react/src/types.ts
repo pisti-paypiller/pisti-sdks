@@ -1,3 +1,7 @@
+import type { components } from "./generated/frontend.js";
+
+type FrontendSchemas = components["schemas"];
+
 export interface EmailAddress {
     emailAddress: string;
 }
@@ -74,30 +78,8 @@ export interface AuthSnapshot {
     error: Error | null;
 }
 
-export interface EnvironmentConfig {
-    applicationName: string;
-    environment: "development" | "production";
-    signIn: {
-        password: boolean;
-        emailCode: boolean;
-        passkey: boolean;
-        /** Whether a username signs in, besides an email address. */
-        username: boolean;
-        /** Upstream providers, each a strategy for `signIn.withProvider()`. */
-        providers: { strategy: string; name: string; signUp: boolean }[];
-    };
-    signUp: { enabled: boolean; password: boolean; username: "off" | "optional" | "required" };
-    requireMfa: boolean;
-    /** Whether a browser may hold several signed-in users. */
-    multiSession: boolean;
-    paths: {
-        signInUrl: string | null;
-        signUpUrl: string | null;
-        afterSignInUrl: string | null;
-        afterSignUpUrl: string | null;
-        afterSignOutUrl: string | null;
-    };
-}
+/** The environment's sign-in, sign-up and navigation settings, from `GET /v1/environment`. */
+export type EnvironmentConfig = FrontendSchemas["EnvironmentResponse"];
 
 export type SignInResult =
     | { status: "complete"; recoveryCodes?: string[] | null }
@@ -107,14 +89,9 @@ export type SignInResult =
           enrollmentRequired: boolean;
       };
 
-export interface SecondFactorDetails {
-    enrollmentRequired: boolean;
-    setupKey: string | null;
-    authenticatorUri: string | null;
-    expiresAt?: string;
-    /** After a password sign-in, adding an authenticator also needs the code Pisti emailed to the user. */
-    emailCodeRequired: boolean;
-}
+/** The second factor a sign-in needs. After a password sign-in, adding an authenticator also needs the code Pisti
+ * emailed to the user (`emailCodeRequired`). `expiresAt` is when the sign-in attempt expires. */
+export type SecondFactorDetails = FrontendSchemas["SecondFactorSetup"] & { expiresAt?: string };
 
 export interface SignUpInput {
     requestId: string;

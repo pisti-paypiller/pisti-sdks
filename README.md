@@ -8,8 +8,9 @@ The Pisti customer SDKs.
 | [`@pisti-paypiller/express`](express/README.md) | `pistiMiddleware()`, `getAuth(req)`, `requireAuth()`, `pistiClient` and webhook verification for Express 5 |
 | [`@pisti-paypiller/backend`](backend/README.md) | Framework-free core: `createPistiClient()`, `authenticateRequest()`, `verifyToken()`, backend API and webhooks |
 
-The packages talk to the Pisti API (pisti-backend) only over HTTP; its contract is
-pisti-backend `openapi/v1.json`. They share one version and are released together.
+The packages talk to the Pisti API (pisti-backend) only over HTTP; their contract is
+pisti-backend `openapi/backend.json` (the Backend API) and `openapi/frontend.json` (the Frontend
+API), copied into `contract/`. They share one version and are released together.
 See `docs/sdk.md` in pisti-sdks for how they fit together.
 
 ## Build
@@ -19,7 +20,12 @@ This repository is an npm workspace with one lock file:
 ```bash
 npm ci
 npm run build
+npm run check
+npm test
 ```
+
+`npm run check` runs `npm run contract:check` first (see `docs/sdk.md`, API contract), then type
+checks every package.
 
 `npm run pack` writes `pisti-paypiller-backend-<version>.tgz`, `pisti-paypiller-express-<version>.tgz`
 and `pisti-paypiller-react-<version>.tgz` to this directory. Install those tarballs in an app

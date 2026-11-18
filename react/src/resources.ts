@@ -1,4 +1,6 @@
-import { attestationJson, creationOptions, type PublicKeyCredentialCreationOptionsJSON } from "./client.js";
+import { attestationJson, creationOptions, type PublicKeyCredentialCreationOptionsJSON } from "./client.js";import type { components } from "./generated/frontend.js";
+
+type FrontendSchemas = components["schemas"];
 export interface CursorPage<T> {
     items: T[];
     nextCursor: string | null;
@@ -65,17 +67,11 @@ export interface AccountSession {
     status: "active" | "expired" | "signed_out" | "revoked";
     idleExpiresAt: string;
 }
-export interface UserApiKey {
-    id: string;
-    name: string;
-    description: string | null;
-    keyPrefix: string;
-    scopes: string[];
-    expired: boolean;
-    expiresAt: string | null;
-    lastUsedAt: string | null;
-    createdAt: string;
-}
+/** One of the signed-in user's API keys. */
+export type UserApiKey = Pick<
+    FrontendSchemas["ApiKeyResponse"],
+    "id" | "name" | "description" | "keyPrefix" | "scopes" | "expired" | "expiresAt" | "lastUsedAt" | "createdAt"
+>;
 export interface SecurityState {
     hasPassword: boolean;
     passwordEnabled: boolean;
@@ -132,12 +128,7 @@ export interface Organization {
     updatedAt: string;
 }
 /** Public metadata is read-only here: only your backend sets it, because your app may trust it. */
-export interface OrganizationInput {
-    name: string;
-    slug: string;
-    imageUrl?: string | null;
-    expectedUpdatedAt?: string;
-}
+export type OrganizationInput = Pick<FrontendSchemas["OrganizationInput"], "name" | "slug" | "imageUrl" | "expectedUpdatedAt">;
 export interface OrganizationMember {
     userId: string;
     email: string;

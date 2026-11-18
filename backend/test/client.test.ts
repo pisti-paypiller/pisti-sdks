@@ -72,7 +72,6 @@ const routes: Route[] = [
     ["users.unbanUser", (p) => p.users.unbanUser(USER), "PUT", `/v1/users/${USER}/status`, { status: "active" }],
     ["users.lockUser", (p) => p.users.lockUser(USER), "PUT", `/v1/users/${USER}/status`, { status: "locked" }],
     ["users.unlockUser", (p) => p.users.unlockUser(USER), "PUT", `/v1/users/${USER}/status`, { status: "active" }],
-    ["users.getUserDeletionPlan", (p) => p.users.getUserDeletionPlan(USER), "GET", `/v1/users/${USER}/deletion`],
     ["users.deleteUser", (p) => p.users.deleteUser(USER), "DELETE", `/v1/users/${USER}`],
     ["users.getUserOrganizationList", (p) => p.users.getUserOrganizationList(USER, { limit: 5 }), "GET", `/v1/users/${USER}/organizations?limit=5`],
     ["users.listOrganizations", (p) => p.users.listOrganizations(USER).next(), "GET", `/v1/users/${USER}/organizations`],
@@ -127,7 +126,6 @@ const routes: Route[] = [
         `/v1/organizations/${ORG}`,
         { name: "Acme", slug: "acme", expectedUpdatedAt: AT },
     ],
-    ["organizations.getOrganizationDeletionPlan", (p) => p.organizations.getOrganizationDeletionPlan(ORG), "GET", `/v1/organizations/${ORG}/deletion`],
     ["organizations.deleteOrganization", (p) => p.organizations.deleteOrganization(ORG), "DELETE", `/v1/organizations/${ORG}`],
     ["organizations.getOrganizationMembershipList", (p) => p.organizations.getOrganizationMembershipList(ORG, { search: "a" }), "GET", `/v1/organizations/${ORG}/memberships?search=a`],
     ["organizations.listMemberships", (p) => p.organizations.listMemberships(ORG).next(), "GET", `/v1/organizations/${ORG}/memberships`],
@@ -200,7 +198,7 @@ const routes: Route[] = [
         `/v1/webhooks/endpoints/${ENDPOINT}`,
         { name: "Main", url: "https://app.example.com/hooks", eventTypes: ["user.created"], enabled: false, expectedUpdatedAt: AT },
     ],
-    ["webhooks.archiveEndpoint", (p) => p.webhooks.archiveEndpoint(ENDPOINT, AT), "POST", `/v1/webhooks/endpoints/${ENDPOINT}/archive`, { expectedUpdatedAt: AT }],
+    ["webhooks.archiveEndpoint", (p) => p.webhooks.archiveEndpoint(ENDPOINT), "POST", `/v1/webhooks/endpoints/${ENDPOINT}/archive`],
     ["webhooks.sendTest", (p) => p.webhooks.sendTest(ENDPOINT), "POST", `/v1/webhooks/endpoints/${ENDPOINT}/test`],
     ["webhooks.replayEndpoint", (p) => p.webhooks.replayEndpoint(ENDPOINT, AT), "POST", `/v1/webhooks/endpoints/${ENDPOINT}/replay`, { since: AT }],
     ["webhooks.events", (p) => p.webhooks.events({ limit: 25, type: "user.created" }), "GET", "/v1/webhooks/events?limit=25&type=user.created"],
@@ -314,7 +312,7 @@ describe("Backend API client", () => {
             status: 409,
             code: "deletion_blocked",
             requestId: "req_9",
-            blockers: [{ resource: "organizations", count: 2, resolution: "Delete them." }],
+            blockers: [{ code: "owned_organizations", count: 2, message: "Delete them." }],
         });
         const error = await client().users.deleteUser(USER).catch((reason: unknown) => reason);
 
@@ -324,7 +322,7 @@ describe("Backend API client", () => {
             status: 409,
             code: "deletion_blocked",
             requestId: "req_9",
-            blockers: [{ resource: "organizations", count: 2, resolution: "Delete them." }],
+            blockers: [{ code: "owned_organizations", count: 2, message: "Delete them." }],
         });
     });
 

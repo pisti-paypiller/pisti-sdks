@@ -1,6 +1,7 @@
 import { apiUrlFrom, parsePublishableKey } from "./keys.js";
 import { authenticateRequest, verifyToken } from "./tokens.js";
 import type { AcceptsToken, AuthenticateRequestOptions, AuthObjectFor, RequestState, SessionClaims, VerifyTokenOptions } from "./types.js";
+import type { paths } from "./generated/backend.js";
 import type {
     PistiClientOptions,
     RequestOptions,
@@ -21,7 +22,6 @@ import type {
     UserOrganization,
     ExternalAccount,
     CreateExternalAccountInput,
-    DeletionPlan,
     Session,
     SessionListOptions,
     ApiKey,
@@ -46,7 +46,7 @@ import type {
     UpdateWebhookEndpointInput,
     WebhookEndpoint,
     HandshakeRedemption,
-    WebhookEventType,
+    WebhookCatalogEntry,
     WebhookEventListOptions,
     WebhookEventSummary,
     WebhookDeliveryListOptions,
@@ -79,35 +79,18 @@ function publicId(value: string): string {
     return value;
 }
 
-/** `limit`, `cursor` and the filters and order a list takes. Undefined values are left out. */
-function listParams(
-    options: PageOptions & { search?: string | undefined; orderBy?: string | undefined } = {},
-    filters: Record<string, string | undefined> = {},
-): URLSearchParams {
-    const query = new URLSearchParams();
-    if (options.limit !== undefined) {
-        if (
-            !Number.isInteger(options.limit) ||
-            options.limit < 1 ||
-            options.limit > 100
-        )
-            throw new Error("Use a page limit between 1 and 100.");
-        query.set("limit", String(options.limit));
-    }
-    if (options.cursor !== undefined) {
-        if (options.cursor.length > 512)
-            throw new Error("The pagination cursor is too long.");
-        query.set("cursor", options.cursor);
-    }
-    if (options.orderBy !== undefined) query.set("orderBy", options.orderBy);
-    if (options.search !== undefined) {
-        if (options.search.length > 200)
-            throw new Error("Search must be at most 200 characters.");
-        query.set("search", options.search);
-    }
-    for (const [name, value] of Object.entries(filters))
-        if (value !== undefined) query.set(name, value);
-    return query;
+/** The validated `limit` and `cursor` of one page. */
+function page(options: PageOptions): { limit: number | undefined; cursor: string | undefined } {
+    if (options.limit !== undefined && (!Number.isInteger(options.limit) || options.limit < 1 || options.limit > 100))
+        throw new Error("Use a page limit between 1 and 100.");
+    if (options.cursor !== undefined && options.cursor.length > 512)
+        throw new Error("The pagination cursor is too long.");
+    return { limit: options.limit, cursor: options.cursor };
+}
+
+function search(value: string | undefined): string | undefined {
+    if (value !== undefined && value.length > 200) throw new Error("Search must be at most 200 characters.");
+    return value;
 }
 
 /** Iterates every item of a cursor list, page by page, until `hasMore` is false. */
@@ -131,9 +114,6 @@ async function* paginate<T, O extends PageOptions>(
     }
 }
 
-function queryString(query: URLSearchParams): string {
-    return query.size ? "?" + query : "";
-}
 
 async function readJson(response: Response): Promise<unknown> {
     const reader = response.body?.getReader();
@@ -170,12 +150,55 @@ function object(value: unknown): Record<string, unknown> | null {
         : null;
 }
 
-type RequestResource = <T>(
-    method: string,
-    path: string,
-    body?: unknown,
+type Method = "get" | "put" | "post" | "delete";
+/** The paths that accept `M`. */
+type PathsWith<M extends Method> = {
+    [P in keyof paths]: [NonNullable<paths[P][M]>] extends [never] ? never : P;
+}[keyof paths];
+type Operation<M extends Method, P extends keyof paths> = NonNullable<paths[P][M]>;
+type Json<T> = [T] extends [{ content: { "application/json": infer B } }] ? B : never;
+type Present<T> = [NonNullable<T>] extends [never] ? never : NonNullable<T>;
+type PathParams<O> = O extends { parameters: { path?: infer V } } ? Present<V> : never;
+type QueryParams<O> = O extends { parameters: { query?: infer V } } ? Present<V> : never;
+type Body<O> = O extends { requestBody?: infer R } ? ([Present<R>] extends [never] ? never : Json<Present<R>>) : never;
+/** The `data` of a 200 response, or nothing for a response without a body. */
+type ResponseData<O> = O extends { responses: infer R }
+    ? 200 extends keyof R
+        ? [Json<R[200]>] extends [never]
+            ? void
+            : [Json<R[200]>] extends [{ data: infer D }] ? D : void
+        : void
+    : never;
+/** The path parameters, query and JSON body one operation takes, each checked against the contract. */
+type RequestInit<O> = ([PathParams<O>] extends [never] ? { path?: never } : { path: PathParams<O> }) &
+    ([QueryParams<O>] extends [never]
+        ? { query?: never }
+        : { query?: { [K in keyof QueryParams<O>]?: QueryParams<O>[K] | undefined } }) &
+    ([Body<O>] extends [never] ? { body?: never } : { body: Body<O> });
+
+type RequestResource = <M extends Method, P extends PathsWith<M>>(
+    method: M,
+    path: P,
+    init: RequestInit<Operation<M, P>>,
     options?: RequestOptions,
-) => Promise<T>;
+) => Promise<ResponseData<Operation<M, P>>>;
+
+/** Fills a path template's `{name}` parameters and appends the query, leaving out undefined values. */
+function resolvePath(
+    template: string,
+    path: Record<string, string> = {},
+    query: Record<string, string | number | boolean | undefined> = {},
+): string {
+    const resolved = template.replace(/\{(\w+)\}/g, (_, name: string) => {
+        const value = path[name];
+        if (value === undefined) throw new Error(`Missing path parameter ${name}.`);
+        return encodeURIComponent(value);
+    });
+    const search = new URLSearchParams();
+    for (const [name, value] of Object.entries(query))
+        if (value !== undefined) search.set(name, String(value));
+    return search.size ? resolved + "?" + search : resolved;
+}
 
 /** Server-side client for one environment: request authentication and the backend API. */
 export class PistiClient {
@@ -191,6 +214,7 @@ export class PistiClient {
     readonly externalProviders: ExternalProvidersApi;
     readonly webhooks: WebhooksApi;
     readonly apiKeys: ApiKeysApi;
+    readonly #api: RequestResource;
 
     constructor(options: PistiClientOptions = {}) {
         if (typeof window !== "undefined" && typeof document !== "undefined")
@@ -224,8 +248,14 @@ export class PistiClient {
             throw new Error(
                 "Use a timeout between 1000 and 60000 milliseconds.",
             );
-        const request: RequestResource = (method, path, body, requestOptions) =>
-            this.#request(method, path, body, requestOptions);
+        const request: RequestResource = (method, path, init, requestOptions) =>
+            this.#request(
+                method.toUpperCase(),
+                resolvePath(path, init.path, init.query as Record<string, string | number | boolean | undefined>),
+                init.body,
+                requestOptions,
+            ) as never;
+        this.#api = request;
         this.users = new UsersApi(request);
         this.organizations = new OrganizationsApi(request);
         this.sessions = new SessionsApi(request);
@@ -268,12 +298,12 @@ export class PistiClient {
         origin: string,
         options: RequestOptions = {},
     ): Promise<HandshakeRedemption> {
-        return this.#request("POST", "/v1/handshake/redeem", { nonce, origin }, options);
+        return this.#api("post", "/v1/handshake/redeem", { body: { nonce, origin } }, options);
     }
 
     /** The environment the secret key belongs to. */
     getInstance(options: RequestOptions = {}): Promise<Instance> {
-        return this.#request<Instance>("GET", "/v1/instance", undefined, options);
+        return this.#api("get", "/v1/instance", {}, options);
     }
 
     #requireSecretKey(): string {
@@ -356,14 +386,14 @@ export class PistiClient {
                 ? value.blockers.flatMap((item) => {
                       const blocker = object(item);
                       return blocker &&
-                          typeof blocker.resource === "string" &&
+                          typeof blocker.code === "string" &&
                           typeof blocker.count === "number" &&
-                          typeof blocker.resolution === "string"
+                          typeof blocker.message === "string"
                           ? [
                                 {
-                                    resource: blocker.resource,
+                                    code: blocker.code,
                                     count: blocker.count,
-                                    resolution: blocker.resolution,
+                                    message: blocker.message,
                                 },
                             ]
                           : [];
@@ -401,15 +431,14 @@ export class PistiClient {
     }
 }
 
-
 export class UsersApi {
     constructor(private readonly request: RequestResource) {}
     /** One page of users, newest first unless `orderBy` says otherwise. */
     getUserList = (options: UserListOptions = {}): Promise<Page<User>> =>
         this.request(
-            "GET",
-            "/v1/users" + queryString(listParams(options, { status: options.status })),
-            undefined,
+            "get",
+            "/v1/users",
+            { query: { ...page(options), orderBy: options.orderBy, search: search(options.search), status: options.status } },
             options,
         );
     /** Every user matching the filters: `for await (const user of pisti.users.list())`. */
@@ -418,36 +447,24 @@ export class UsersApi {
     /** The number of users matching `search` and `status`. */
     getCount = async (options: UserCountOptions = {}): Promise<number> =>
         (
-            await this.request<{ totalCount: number }>(
-                "GET",
-                "/v1/users/count" + queryString(listParams({ ...(options.search === undefined ? {} : { search: options.search }) }, { status: options.status })),
-                undefined,
+            await this.request(
+                "get",
+                "/v1/users/count",
+                { query: { search: search(options.search), status: options.status } },
                 options,
             )
         ).totalCount;
     getUser = (id: string, options?: RequestOptions): Promise<User> =>
-        this.request("GET", `/v1/users/${publicId(id)}`, undefined, options);
+        this.request("get", "/v1/users/{userId}", { path: { userId: publicId(id) } }, options);
     createUser = (input: CreateUserInput, options?: RequestOptions): Promise<User> =>
-        this.request("POST", "/v1/users", input, options);
-    updateUser = (
-        id: string,
-        input: UpdateUserInput,
-        options?: RequestOptions,
-    ): Promise<void> =>
-        this.request("PUT", `/v1/users/${publicId(id)}`, input, options);
+        this.request("post", "/v1/users", { body: input }, options);
+    updateUser = (id: string, input: UpdateUserInput, options?: RequestOptions): Promise<void> =>
+        this.request("put", "/v1/users/{userId}", { path: { userId: publicId(id) }, body: input }, options);
     /** Sets, changes or (with null) removes the user's username. */
-    updateUsername = (
-        id: string,
-        username: string | null,
-        options?: RequestOptions,
-    ): Promise<void> =>
-        this.request("PUT", `/v1/users/${publicId(id)}/username`, { username }, options);
-    private setStatus = (
-        id: string,
-        status: UserStatus,
-        options?: RequestOptions,
-    ): Promise<void> =>
-        this.request("PUT", `/v1/users/${publicId(id)}/status`, { status }, options);
+    updateUsername = (id: string, username: string | null, options?: RequestOptions): Promise<void> =>
+        this.request("put", "/v1/users/{userId}/username", { path: { userId: publicId(id) }, body: { username } }, options);
+    private setStatus = (id: string, status: UserStatus, options?: RequestOptions): Promise<void> =>
+        this.request("put", "/v1/users/{userId}/status", { path: { userId: publicId(id) }, body: { status } }, options);
     /** Disables the account and ends its sessions. */
     banUser = (id: string, options?: RequestOptions): Promise<void> =>
         this.setStatus(id, "disabled", options);
@@ -457,41 +474,26 @@ export class UsersApi {
         this.setStatus(id, "locked", options);
     unlockUser = (id: string, options?: RequestOptions): Promise<void> =>
         this.setStatus(id, "active", options);
-    /** What has to happen before the user can be deleted. */
-    getUserDeletionPlan = (id: string, options?: RequestOptions): Promise<DeletionPlan> =>
-        this.request("GET", `/v1/users/${publicId(id)}/deletion`, undefined, options);
+    /** Deletes the user. Throws `PistiAPIResponseError` (409) with `blockers` while something stops it. */
     deleteUser = (id: string, options?: RequestOptions): Promise<void> =>
-        this.request("DELETE", `/v1/users/${publicId(id)}`, undefined, options);
+        this.request("delete", "/v1/users/{userId}", { path: { userId: publicId(id) } }, options);
     /** The organizations the user belongs to. */
-    getUserOrganizationList = (
-        id: string,
-        options: PageOptions = {},
-    ): Promise<Page<UserOrganization>> =>
+    getUserOrganizationList = (id: string, options: PageOptions = {}): Promise<Page<UserOrganization>> =>
         this.request(
-            "GET",
-            `/v1/users/${publicId(id)}/organizations` + queryString(listParams(options)),
-            undefined,
+            "get",
+            "/v1/users/{userId}/organizations",
+            { path: { userId: publicId(id) }, query: page(options) },
             options,
         );
-    listOrganizations = (
-        id: string,
-        options: PageOptions = {},
-    ): AsyncGenerator<UserOrganization, void, undefined> => {
+    listOrganizations = (id: string, options: PageOptions = {}): AsyncGenerator<UserOrganization, void, undefined> => {
         publicId(id);
         return paginate((page) => this.getUserOrganizationList(id, page), options);
     };
     /** The user's email addresses, whole, in one page. */
-    getUserEmailAddressList = (
-        id: string,
-        options?: RequestOptions,
-    ): Promise<Page<EmailAddress>> =>
-        this.request("GET", `/v1/users/${publicId(id)}/email-addresses`, undefined, options);
-    addEmailAddress = (
-        id: string,
-        input: AddEmailAddressInput,
-        options?: RequestOptions,
-    ): Promise<{ id: string }> =>
-        this.request("POST", `/v1/users/${publicId(id)}/email-addresses`, input, options);
+    getUserEmailAddressList = (id: string, options?: RequestOptions): Promise<Page<EmailAddress>> =>
+        this.request("get", "/v1/users/{userId}/email-addresses", { path: { userId: publicId(id) } }, options);
+    addEmailAddress = (id: string, input: AddEmailAddressInput, options?: RequestOptions): Promise<{ id: string }> =>
+        this.request("post", "/v1/users/{userId}/email-addresses", { path: { userId: publicId(id) }, body: input }, options);
     setEmailVerification = (
         id: string,
         emailId: string,
@@ -499,60 +501,46 @@ export class UsersApi {
         options?: RequestOptions & { verificationReason?: string },
     ): Promise<void> =>
         this.request(
-            "PUT",
-            `/v1/users/${publicId(id)}/email-addresses/${publicId(emailId)}`,
+            "put",
+            "/v1/users/{userId}/email-addresses/{emailId}",
             {
-                status,
-                ...(options?.verificationReason
-                    ? { verificationReason: options.verificationReason }
-                    : {}),
+                path: { userId: publicId(id), emailId: publicId(emailId) },
+                body: {
+                    status,
+                    ...(options?.verificationReason ? { verificationReason: options.verificationReason } : {}),
+                },
             },
             options,
         );
-    setPrimaryEmail = (
-        id: string,
-        emailId: string,
-        options?: RequestOptions,
-    ): Promise<void> =>
+    setPrimaryEmail = (id: string, emailId: string, options?: RequestOptions): Promise<void> =>
         this.request(
-            "PUT",
-            `/v1/users/${publicId(id)}/email-addresses/${publicId(emailId)}/primary`,
-            undefined,
+            "put",
+            "/v1/users/{userId}/email-addresses/{emailId}/primary",
+            { path: { userId: publicId(id), emailId: publicId(emailId) } },
             options,
         );
-    removeEmailAddress = (
-        id: string,
-        emailId: string,
-        options?: RequestOptions,
-    ): Promise<void> =>
+    removeEmailAddress = (id: string, emailId: string, options?: RequestOptions): Promise<void> =>
         this.request(
-            "DELETE",
-            `/v1/users/${publicId(id)}/email-addresses/${publicId(emailId)}`,
-            undefined,
+            "delete",
+            "/v1/users/{userId}/email-addresses/{emailId}",
+            { path: { userId: publicId(id), emailId: publicId(emailId) } },
             options,
         );
     /** The user's linked external accounts, whole, in one page. */
-    getUserExternalAccountList = (
-        id: string,
-        options?: RequestOptions,
-    ): Promise<Page<ExternalAccount>> =>
-        this.request("GET", `/v1/users/${publicId(id)}/external-accounts`, undefined, options);
+    getUserExternalAccountList = (id: string, options?: RequestOptions): Promise<Page<ExternalAccount>> =>
+        this.request("get", "/v1/users/{userId}/external-accounts", { path: { userId: publicId(id) } }, options);
     /** Links an account at an upstream provider to the user. */
     createUserExternalAccount = (
         id: string,
         input: CreateExternalAccountInput,
         options?: RequestOptions,
     ): Promise<{ id: string }> =>
-        this.request("POST", `/v1/users/${publicId(id)}/external-accounts`, input, options);
-    deleteUserExternalAccount = (
-        id: string,
-        externalAccountId: string,
-        options?: RequestOptions,
-    ): Promise<void> =>
+        this.request("post", "/v1/users/{userId}/external-accounts", { path: { userId: publicId(id) }, body: input }, options);
+    deleteUserExternalAccount = (id: string, externalAccountId: string, options?: RequestOptions): Promise<void> =>
         this.request(
-            "DELETE",
-            `/v1/users/${publicId(id)}/external-accounts/${publicId(externalAccountId)}`,
-            undefined,
+            "delete",
+            "/v1/users/{userId}/external-accounts/{externalId}",
+            { path: { userId: publicId(id), externalId: publicId(externalAccountId) } },
             options,
         );
 }
@@ -561,181 +549,171 @@ export class ExternalProvidersApi {
     constructor(private readonly request: RequestResource) {}
     /** The environment's upstream providers, whole, in one page. */
     getExternalProviderList = (options?: RequestOptions): Promise<Page<ExternalProvider>> =>
-        this.request("GET", "/v1/external_providers", undefined, options);
-    create = (
-        input: CreateExternalProviderInput,
-        options?: RequestOptions,
-    ): Promise<ExternalProvider> =>
-        this.request("POST", "/v1/external_providers", input, options);
-    update = (
-        id: string,
-        input: UpdateExternalProviderInput,
-        options?: RequestOptions,
-    ): Promise<ExternalProvider> =>
-        this.request("PUT", `/v1/external_providers/${publicId(id)}`, input, options);
+        this.request("get", "/v1/external_providers", {}, options);
+    create = (input: CreateExternalProviderInput, options?: RequestOptions): Promise<ExternalProvider> =>
+        this.request("post", "/v1/external_providers", { body: input }, options);
+    update = (id: string, input: UpdateExternalProviderInput, options?: RequestOptions): Promise<ExternalProvider> =>
+        this.request("put", "/v1/external_providers/{providerId}", { path: { providerId: publicId(id) }, body: input }, options);
     delete = (id: string, options?: RequestOptions): Promise<void> =>
-        this.request("DELETE", `/v1/external_providers/${publicId(id)}`, undefined, options);
+        this.request("delete", "/v1/external_providers/{providerId}", { path: { providerId: publicId(id) } }, options);
 }
 
 export class WebhooksApi {
     constructor(private readonly request: RequestResource) {}
     /** Every event type an endpoint can subscribe to, in one page. */
-    catalog = (options?: RequestOptions): Promise<Page<WebhookEventType>> =>
-        this.request("GET", "/v1/webhooks/catalog", undefined, options);
+    catalog = (options?: RequestOptions): Promise<Page<WebhookCatalogEntry>> =>
+        this.request("get", "/v1/webhooks/catalog", {}, options);
     /** The environment's endpoints, whole, in one page. */
     endpoints = (options?: RequestOptions): Promise<Page<WebhookEndpoint>> =>
-        this.request("GET", "/v1/webhooks/endpoints", undefined, options);
-    updateEndpoint = (
-        id: string,
-        input: UpdateWebhookEndpointInput,
-        options?: RequestOptions,
-    ): Promise<WebhookEndpoint> =>
-        this.request("PUT", `/v1/webhooks/endpoints/${publicId(id)}`, input, options);
-    archiveEndpoint = (
-        id: string,
-        expectedUpdatedAt: string,
-        options?: RequestOptions,
-    ): Promise<void> =>
-        this.request(
-            "POST",
-            `/v1/webhooks/endpoints/${publicId(id)}/archive`,
-            { expectedUpdatedAt },
-            options,
-        );
-    sendTest = (
-        id: string,
-        options?: RequestOptions,
-    ): Promise<{ id: string; eventId: string }> =>
-        this.request("POST", `/v1/webhooks/endpoints/${publicId(id)}/test`, undefined, options);
+        this.request("get", "/v1/webhooks/endpoints", {}, options);
+    /** Replaces an endpoint's settings. Pass `expectedUpdatedAt` to fail if it changed since you read it. */
+    updateEndpoint = (id: string, input: UpdateWebhookEndpointInput, options?: RequestOptions): Promise<WebhookEndpoint> =>
+        this.request("put", "/v1/webhooks/endpoints/{endpointId}", { path: { endpointId: publicId(id) }, body: input }, options);
+    archiveEndpoint = (id: string, options?: RequestOptions): Promise<void> =>
+        this.request("post", "/v1/webhooks/endpoints/{endpointId}/archive", { path: { endpointId: publicId(id) } }, options);
+    sendTest = (id: string, options?: RequestOptions): Promise<{ id: string; eventId: string }> =>
+        this.request("post", "/v1/webhooks/endpoints/{endpointId}/test", { path: { endpointId: publicId(id) } }, options);
     /** Queues every event since `since` (an ISO timestamp) again for one endpoint; returns how many were queued. */
-    replayEndpoint = (
-        id: string,
-        since: string,
-        options?: RequestOptions,
-    ): Promise<{ queued: number }> =>
+    replayEndpoint = (id: string, since: string, options?: RequestOptions): Promise<{ queued: number }> =>
         this.request(
-            "POST",
-            `/v1/webhooks/endpoints/${publicId(id)}/replay`,
-            { since },
+            "post",
+            "/v1/webhooks/endpoints/{endpointId}/replay",
+            { path: { endpointId: publicId(id) }, body: { since } },
             options,
         );
     /** Events the environment produced, newest first. */
-    events = (options: WebhookEventListOptions = {}): Promise<Page<WebhookEventSummary>> => {
-        const query = listParams(options, { type: options.type });
-        return this.request("GET", "/v1/webhooks/events" + queryString(query), undefined, options);
-    };
+    events = (options: WebhookEventListOptions = {}): Promise<Page<WebhookEventSummary>> =>
+        this.request("get", "/v1/webhooks/events", { query: { ...page(options), type: options.type } }, options);
     listEvents = (options: WebhookEventListOptions = {}): AsyncGenerator<WebhookEventSummary, void, undefined> =>
         paginate(this.events, options);
-    deliveries = (
-        options: WebhookDeliveryListOptions = {},
-    ): Promise<Page<WebhookDelivery>> => {
-        const query = listParams(options, {
-            endpointId: options.endpointId === undefined ? undefined : publicId(options.endpointId),
-            status: options.status,
-        });
-        return this.request("GET", "/v1/webhooks/deliveries" + queryString(query), undefined, options);
-    };
+    deliveries = (options: WebhookDeliveryListOptions = {}): Promise<Page<WebhookDelivery>> =>
+        this.request(
+            "get",
+            "/v1/webhooks/deliveries",
+            {
+                query: {
+                    ...page(options),
+                    endpointId: options.endpointId === undefined ? undefined : publicId(options.endpointId),
+                    status: options.status,
+                },
+            },
+            options,
+        );
     listDeliveries = (options: WebhookDeliveryListOptions = {}): AsyncGenerator<WebhookDelivery, void, undefined> =>
         paginate(this.deliveries, options);
-    delivery = (
-        id: string,
-        options?: RequestOptions,
-    ): Promise<WebhookDeliveryDetails> =>
-        this.request("GET", `/v1/webhooks/deliveries/${publicId(id)}`, undefined, options);
+    delivery = async (id: string, options?: RequestOptions): Promise<WebhookDeliveryDetails> =>
+        (await this.request(
+            "get",
+            "/v1/webhooks/deliveries/{deliveryId}",
+            { path: { deliveryId: publicId(id) } },
+            options,
+        )) as WebhookDeliveryDetails;
     /** Sends one delivery again. */
     replay = (id: string, options?: RequestOptions): Promise<void> =>
-        this.request("POST", `/v1/webhooks/deliveries/${publicId(id)}/replay`, undefined, options);
+        this.request("post", "/v1/webhooks/deliveries/{deliveryId}/replay", { path: { deliveryId: publicId(id) } }, options);
 }
 
 export class ApiKeysApi {
     constructor(private readonly request: RequestResource) {}
-    getApiKeyList = (options: ApiKeyListOptions = {}): Promise<Page<ApiKey>> => {
-        const query = listParams(options, {
-            userId: options.userId === undefined ? undefined : publicId(options.userId),
-            includeRevoked: options.includeRevoked ? "true" : undefined,
-        });
-        return this.request("GET", "/v1/api_keys" + queryString(query), undefined, options);
-    };
+    getApiKeyList = (options: ApiKeyListOptions = {}): Promise<Page<ApiKey>> =>
+        this.request(
+            "get",
+            "/v1/api_keys",
+            {
+                query: {
+                    ...page(options),
+                    userId: options.userId === undefined ? undefined : publicId(options.userId),
+                    includeRevoked: options.includeRevoked ? true : undefined,
+                },
+            },
+            options,
+        );
     list = (options: ApiKeyListOptions = {}): AsyncGenerator<ApiKey, void, undefined> =>
         paginate(this.getApiKeyList, options);
     getApiKey = (id: string, options?: RequestOptions): Promise<ApiKey> =>
-        this.request("GET", `/v1/api_keys/${publicId(id)}`, undefined, options);
+        this.request("get", "/v1/api_keys/{keyId}", { path: { keyId: publicId(id) } }, options);
     /** Sets what a key may do in your API. Only your backend grants scopes and claims; the key's owner cannot. */
     updateApiKey = (id: string, input: UpdateApiKeyInput, options?: RequestOptions): Promise<ApiKey> =>
-        this.request("PUT", `/v1/api_keys/${publicId(id)}`, { scopes: input.scopes, claims: input.claims ?? null }, options);
+        this.request(
+            "put",
+            "/v1/api_keys/{keyId}",
+            { path: { keyId: publicId(id) }, body: { scopes: input.scopes, claims: input.claims ?? null } },
+            options,
+        );
     revokeApiKey = (id: string, options: RequestOptions & { revocationReason?: string } = {}): Promise<void> =>
         this.request(
-            "POST",
-            `/v1/api_keys/${publicId(id)}/revoke`,
-            { revocationReason: options.revocationReason ?? null },
+            "post",
+            "/v1/api_keys/{keyId}/revoke",
+            { path: { keyId: publicId(id) }, body: { revocationReason: options.revocationReason ?? null } },
             options,
         );
     /** Verifies a presented `ak_` secret. Throws `PistiAPIResponseError` (401) for unknown, expired or revoked keys. */
     verifySecret = (secret: string, options?: RequestOptions): Promise<ApiKey> =>
-        this.request("POST", "/v1/api_keys/verify", { secret }, options);
+        this.request("post", "/v1/api_keys/verify", { body: { secret } }, options);
 }
 
 export class SessionsApi {
     constructor(private readonly request: RequestResource) {}
     /** Sessions in the environment, newest first. Filter by `userId` and `status`. */
-    getSessionList = (options: SessionListOptions = {}): Promise<Page<Session>> => {
-        const query = listParams(options, {
-            userId: options.userId === undefined ? undefined : publicId(options.userId),
-            status: options.status,
-        });
-        return this.request("GET", "/v1/sessions" + queryString(query), undefined, options);
-    };
+    getSessionList = (options: SessionListOptions = {}): Promise<Page<Session>> =>
+        this.request(
+            "get",
+            "/v1/sessions",
+            {
+                query: {
+                    ...page(options),
+                    userId: options.userId === undefined ? undefined : publicId(options.userId),
+                    status: options.status,
+                },
+            },
+            options,
+        );
     list = (options: SessionListOptions = {}): AsyncGenerator<Session, void, undefined> =>
         paginate(this.getSessionList, options);
     getSession = (id: string, options?: RequestOptions): Promise<Session> =>
-        this.request("GET", `/v1/sessions/${publicId(id)}`, undefined, options);
+        this.request("get", "/v1/sessions/{sessionId}", { path: { sessionId: publicId(id) } }, options);
     revokeSession = (id: string, options?: RequestOptions): Promise<void> =>
-        this.request("DELETE", `/v1/sessions/${publicId(id)}`, undefined, options);
+        this.request("delete", "/v1/sessions/{sessionId}", { path: { sessionId: publicId(id) } }, options);
 }
 
 export class OrganizationsApi {
     constructor(private readonly request: RequestResource) {}
     /** One page of organizations, newest first unless `orderBy` says otherwise. */
     getOrganizationList = (options: OrganizationListOptions = {}): Promise<Page<Organization>> =>
-        this.request("GET", "/v1/organizations" + queryString(listParams(options)), undefined, options);
+        this.request(
+            "get",
+            "/v1/organizations",
+            { query: { ...page(options), orderBy: options.orderBy, search: search(options.search) } },
+            options,
+        );
     list = (options: OrganizationListOptions = {}): AsyncGenerator<Organization, void, undefined> =>
         paginate(this.getOrganizationList, options);
     /** The number of organizations matching `search`. */
     getCount = async (options: OrganizationCountOptions = {}): Promise<number> =>
-        (
-            await this.request<{ totalCount: number }>(
-                "GET",
-                "/v1/organizations/count" + queryString(listParams(options.search === undefined ? {} : { search: options.search })),
-                undefined,
-                options,
-            )
-        ).totalCount;
+        (await this.request("get", "/v1/organizations/count", { query: { search: search(options.search) } }, options))
+            .totalCount;
     getOrganization = (id: string, options?: RequestOptions): Promise<OrganizationDetails> =>
-        this.request("GET", `/v1/organizations/${publicId(id)}`, undefined, options);
-    createOrganization = (
-        input: CreateOrganizationInput,
-        options?: RequestOptions,
-    ): Promise<{ id: string }> =>
-        this.request("POST", "/v1/organizations", input, options);
-    updateOrganization = (
-        id: string,
-        input: UpdateOrganizationInput,
-        options?: RequestOptions,
-    ): Promise<void> =>
-        this.request("PUT", `/v1/organizations/${publicId(id)}`, input, options);
-    /** What has to happen before the organization can be deleted. */
-    getOrganizationDeletionPlan = (id: string, options?: RequestOptions): Promise<DeletionPlan> =>
-        this.request("GET", `/v1/organizations/${publicId(id)}/deletion`, undefined, options);
+        this.request("get", "/v1/organizations/{organizationId}", { path: { organizationId: publicId(id) } }, options);
+    createOrganization = (input: CreateOrganizationInput, options?: RequestOptions): Promise<{ id: string }> =>
+        this.request("post", "/v1/organizations", { body: input }, options);
+    updateOrganization = (id: string, input: UpdateOrganizationInput, options?: RequestOptions): Promise<void> =>
+        this.request(
+            "put",
+            "/v1/organizations/{organizationId}",
+            { path: { organizationId: publicId(id) }, body: input },
+            options,
+        );
+    /** Deletes the organization. Throws `PistiAPIResponseError` (409) with `blockers` while something stops it. */
     deleteOrganization = (id: string, options?: RequestOptions): Promise<void> =>
-        this.request("DELETE", `/v1/organizations/${publicId(id)}`, undefined, options);
+        this.request("delete", "/v1/organizations/{organizationId}", { path: { organizationId: publicId(id) } }, options);
     getOrganizationMembershipList = (
         id: string,
         options: SearchListOptions = {},
     ): Promise<Page<OrganizationMembership>> =>
         this.request(
-            "GET",
-            `/v1/organizations/${publicId(id)}/memberships` + queryString(listParams(options)),
-            undefined,
+            "get",
+            "/v1/organizations/{organizationId}/memberships",
+            { path: { organizationId: publicId(id) }, query: { ...page(options), search: search(options.search) } },
             options,
         );
     listMemberships = (
@@ -746,27 +724,18 @@ export class OrganizationsApi {
         return paginate((page) => this.getOrganizationMembershipList(id, page), options);
     };
     /** Changes a member's role. */
-    updateOrganizationMembership = (
-        id: string,
-        userId: string,
-        roleId: string,
-        options?: RequestOptions,
-    ): Promise<void> =>
+    updateOrganizationMembership = (id: string, userId: string, roleId: string, options?: RequestOptions): Promise<void> =>
         this.request(
-            "PUT",
-            `/v1/organizations/${publicId(id)}/memberships/${publicId(userId)}`,
-            { roleId: publicId(roleId) },
+            "put",
+            "/v1/organizations/{organizationId}/memberships/{userId}",
+            { path: { organizationId: publicId(id), userId: publicId(userId) }, body: { roleId: publicId(roleId) } },
             options,
         );
-    deleteOrganizationMembership = (
-        id: string,
-        userId: string,
-        options?: RequestOptions,
-    ): Promise<void> =>
+    deleteOrganizationMembership = (id: string, userId: string, options?: RequestOptions): Promise<void> =>
         this.request(
-            "DELETE",
-            `/v1/organizations/${publicId(id)}/memberships/${publicId(userId)}`,
-            undefined,
+            "delete",
+            "/v1/organizations/{organizationId}/memberships/{userId}",
+            { path: { organizationId: publicId(id), userId: publicId(userId) } },
             options,
         );
     getOrganizationInvitationList = (
@@ -774,9 +743,9 @@ export class OrganizationsApi {
         options: SearchListOptions = {},
     ): Promise<Page<OrganizationInvitation>> =>
         this.request(
-            "GET",
-            `/v1/organizations/${publicId(id)}/invitations` + queryString(listParams(options)),
-            undefined,
+            "get",
+            "/v1/organizations/{organizationId}/invitations",
+            { path: { organizationId: publicId(id) }, query: { ...page(options), search: search(options.search) } },
             options,
         );
     listInvitations = (
@@ -792,9 +761,9 @@ export class OrganizationsApi {
         options?: RequestOptions,
     ): Promise<InvitationResult> =>
         this.request(
-            "POST",
-            `/v1/organizations/${publicId(id)}/invitations`,
-            { ...input, roleId: publicId(input.roleId) },
+            "post",
+            "/v1/organizations/{organizationId}/invitations",
+            { path: { organizationId: publicId(id) }, body: { ...input, roleId: publicId(input.roleId) } },
             options,
         );
     resendOrganizationInvitation = (
@@ -804,57 +773,46 @@ export class OrganizationsApi {
         options?: RequestOptions,
     ): Promise<InvitationResult> =>
         this.request(
-            "POST",
-            `/v1/organizations/${publicId(id)}/invitations/${publicId(invitationId)}/resend`,
-            input,
+            "post",
+            "/v1/organizations/{organizationId}/invitations/{invitationId}/resend",
+            { path: { organizationId: publicId(id), invitationId: publicId(invitationId) }, body: input },
             options,
         );
-    revokeOrganizationInvitation = (
-        id: string,
-        invitationId: string,
-        options?: RequestOptions,
-    ): Promise<void> =>
+    revokeOrganizationInvitation = (id: string, invitationId: string, options?: RequestOptions): Promise<void> =>
         this.request(
-            "DELETE",
-            `/v1/organizations/${publicId(id)}/invitations/${publicId(invitationId)}`,
-            undefined,
+            "delete",
+            "/v1/organizations/{organizationId}/invitations/{invitationId}",
+            { path: { organizationId: publicId(id), invitationId: publicId(invitationId) } },
             options,
         );
     getRoleList = (id: string, options?: RequestOptions): Promise<Role[]> =>
-        this.request("GET", `/v1/organizations/${publicId(id)}/roles`, undefined, options);
-    createRole = (
-        id: string,
-        input: RoleInput,
-        options?: RequestOptions,
-    ): Promise<{ id: string }> =>
-        this.request("POST", `/v1/organizations/${publicId(id)}/roles`, input, options);
-    updateRole = (
-        id: string,
-        roleId: string,
-        input: RoleInput,
-        options?: RequestOptions,
-    ): Promise<void> =>
+        this.request("get", "/v1/organizations/{organizationId}/roles", { path: { organizationId: publicId(id) } }, options);
+    createRole = (id: string, input: RoleInput, options?: RequestOptions): Promise<{ id: string }> =>
         this.request(
-            "PUT",
-            `/v1/organizations/${publicId(id)}/roles/${publicId(roleId)}`,
-            input,
+            "post",
+            "/v1/organizations/{organizationId}/roles",
+            { path: { organizationId: publicId(id) }, body: input },
             options,
         );
-    deleteRole = (
-        id: string,
-        roleId: string,
-        options?: RequestOptions,
-    ): Promise<void> =>
+    updateRole = (id: string, roleId: string, input: RoleInput, options?: RequestOptions): Promise<void> =>
         this.request(
-            "DELETE",
-            `/v1/organizations/${publicId(id)}/roles/${publicId(roleId)}`,
-            undefined,
+            "put",
+            "/v1/organizations/{organizationId}/roles/{roleId}",
+            { path: { organizationId: publicId(id), roleId: publicId(roleId) }, body: input },
+            options,
+        );
+    deleteRole = (id: string, roleId: string, options?: RequestOptions): Promise<void> =>
+        this.request(
+            "delete",
+            "/v1/organizations/{organizationId}/roles/{roleId}",
+            { path: { organizationId: publicId(id), roleId: publicId(roleId) } },
             options,
         );
     /** Every permission, whole, in one page. */
     getPermissionList = (options?: RequestOptions): Promise<Page<Permission>> =>
-        this.request("GET", "/v1/permissions", undefined, options);
+        this.request("get", "/v1/permissions", {}, options);
 }
+
 
 /**
  * Creates a backend client, like Clerk's `createClerkClient`. Without options it reads
