@@ -9,7 +9,8 @@ path coverage and read current source when the graph is stale.
 
 Pisti is four independent repositories: pisti-backend, pisti-apps, pisti-sdks and
 pisti-examples. Each one builds and runs on its own. They connect
-only over HTTP, through the API described by pisti-backend `openapi/v1.json`, and
+only over HTTP, through the API described by pisti-backend `openapi/backend.json` and
+`openapi/frontend.json`, and
 through the published `@pisti-paypiller/*` npm packages.
 
 - Never reference another repository's files by relative path, mount, include or
@@ -25,7 +26,7 @@ release, choose the correct design over compatibility:
 - Breaking changes to APIs, SDKs, DTOs, routes, flows and the database schema are
   allowed. Do not add compatibility shims, deprecated aliases, dual code paths or
   legacy fallbacks unless asked.
-- A breaking API change starts in pisti-backend and regenerates `openapi/v1.json`.
+- A breaking API change starts in pisti-backend and regenerates its `openapi/*.json`.
   Then pisti-sdks, pisti-apps and pisti-examples are updated, each in
   its own repository. Use the same branch name in every affected repository and
   link the changes to each other.
@@ -49,8 +50,10 @@ versioned SDKs, and additive or reviewed data-preserving migrations.
 
 ## API contract
 
-- The backend API is described by pisti-backend `openapi/v1.json`. Build against it,
-  not against backend source.
+- The Backend API is described by pisti-backend `openapi/backend.json` and the Frontend API by
+  `openapi/frontend.json`. Build against them, not against backend source. `contract/` holds
+  committed copies and `backend/src/generated` and `react/src/generated` the types generated from
+  them: change them only with `npm run contract:pull`, never by hand (`docs/sdk.md`, API contract).
 - Application JSON routes under `/api` and `/v1` return `{ data, meta: { requestId } }`
   on success and RFC 9457 Problem Details on failure. 204 responses have no body.
 

@@ -104,12 +104,35 @@ environment, with Clerk-style method names (`users.getUser`, `users.getUserList`
 `verifyToken()`. The backend API needs only the secret key; the publishable key is needed for
 `authenticateRequest()` and `verifyToken()`. Secret keys never mint credentials: webhook endpoints are created and their
 signing secrets rotated in the console, and the client only lists, updates, archives, tests and
-replays them. Lists page with cursors: each list method takes `{ limit, cursor }`, an
+replays them. Deleting a user or organization that something still depends on fails with 409 and
+the blockers (`{ code, count, message }`) in `PistiAPIResponseError.blockers`. Lists page with cursors: each list method takes `{ limit, cursor }`, an
 `orderBy` where the list offers one (users, organizations) and its own filters, and returns
 `{ items, nextCursor, hasMore }`; `list()` (or `list<Things>()` for a nested list) is an async
 iterator over every page, and `getCount()` returns a total. Webhook events are a typed union keyed by `type`. `verifyWebhook(req)` from
 `@pisti-paypiller/express/webhooks` (or `@pisti-paypiller/backend/webhooks` for a Fetch `Request`) reads
 `PISTI_WEBHOOK_SIGNING_SECRET`.
+
+## API contract
+
+The SDKs build against two public documents from pisti-backend: `openapi/backend.json` (the Backend
+API, used by `@pisti-paypiller/backend`) and `openapi/frontend.json` (the Frontend and account API,
+used by `@pisti-paypiller/react`). The internal console and staff documents are never pulled here.
+Copies are committed in `contract/`, and the TypeScript generated from them by `openapi-typescript`
+(a pinned devDependency) in `backend/src/generated/backend.ts` and `react/src/generated/frontend.ts`.
+Generated types stay internal: each package exports named aliases (`export type User =
+components["schemas"]["UserResponse"]`), so a contract change to the public API shows in review. The
+backend client's request helper is typed by path, so a method's path, method, query and body that
+the contract does not have fail to compile.
+
+- `npm run contract:pull` fetches both documents from `pisti-paypiller/pisti-backend` through the
+  authenticated GitHub API (`gh api …/contents/openapi/<name>.json`, so `gh auth login` first),
+  writes them to `contract/` and regenerates the code. The ref is `main` unless
+  `PISTI_CONTRACT_REF` names another branch, tag or commit. Commit the documents and the generated
+  code together; the diff shows what changed.
+- `npm run contract:check` regenerates from `contract/` into a temporary folder and fails when the
+  committed code differs (it was edited by hand), then fetches the ref's documents and fails when
+  `contract/` is behind. `npm run check` runs it first. Offline, `PISTI_CONTRACT_OFFLINE=1` skips
+  only the fetch; nothing else skips the check.
 
 ## Redirects in React
 

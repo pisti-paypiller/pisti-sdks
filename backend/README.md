@@ -95,11 +95,11 @@ await pisti.apiKeys.revokeApiKey(keyId, { revocationReason: "Leaked in a log" })
 
 | Resource | Methods |
 | --- | --- |
-| `users` | `getUserList({ orderBy, search, status })`, `list`, `getCount({ search, status })`, `getUser`, `createUser`, `updateUser`, `updateUsername`, `getUserDeletionPlan`, `deleteUser`, `banUser`, `unbanUser`, `lockUser`, `unlockUser`, `getUserOrganizationList`, `listOrganizations`, `getUserEmailAddressList`, `addEmailAddress`, `setEmailVerification`, `setPrimaryEmail`, `removeEmailAddress`, `getUserExternalAccountList`, `createUserExternalAccount`, `deleteUserExternalAccount` |
+| `users` | `getUserList({ orderBy, search, status })`, `list`, `getCount({ search, status })`, `getUser`, `createUser`, `updateUser`, `updateUsername`, `deleteUser`, `banUser`, `unbanUser`, `lockUser`, `unlockUser`, `getUserOrganizationList`, `listOrganizations`, `getUserEmailAddressList`, `addEmailAddress`, `setEmailVerification`, `setPrimaryEmail`, `removeEmailAddress`, `getUserExternalAccountList`, `createUserExternalAccount`, `deleteUserExternalAccount` |
 | `sessions` | `getSessionList({ userId, status })`, `list`, `getSession`, `revokeSession` |
 | `apiKeys` | `getApiKeyList({ userId, includeRevoked })`, `list`, `getApiKey`, `updateApiKey(id, { scopes, claims })`, `revokeApiKey`, `verifySecret` |
-| `organizations` | `getOrganizationList({ orderBy, search })`, `list`, `getCount({ search })`, `getOrganization`, `createOrganization`, `updateOrganization`, `getOrganizationDeletionPlan`, `deleteOrganization`, `getOrganizationMembershipList`, `listMemberships`, `updateOrganizationMembership(id, userId, roleId)`, `deleteOrganizationMembership(id, userId)`, `getOrganizationInvitationList`, `listInvitations`, `createOrganizationInvitation`, `resendOrganizationInvitation`, `revokeOrganizationInvitation`, `getRoleList`, `createRole`, `updateRole`, `deleteRole`, `getPermissionList` |
-| `webhooks` | `catalog`, `endpoints`, `updateEndpoint`, `archiveEndpoint`, `sendTest`, `replayEndpoint(id, since)`, `events({ type })`, `listEvents`, `deliveries`, `listDeliveries`, `delivery`, `replay` (one delivery) |
+| `organizations` | `getOrganizationList({ orderBy, search })`, `list`, `getCount({ search })`, `getOrganization`, `createOrganization`, `updateOrganization`, `deleteOrganization`, `getOrganizationMembershipList`, `listMemberships`, `updateOrganizationMembership(id, userId, roleId)`, `deleteOrganizationMembership(id, userId)`, `getOrganizationInvitationList`, `listInvitations`, `createOrganizationInvitation`, `resendOrganizationInvitation`, `revokeOrganizationInvitation`, `getRoleList`, `createRole`, `updateRole`, `deleteRole`, `getPermissionList` |
+| `webhooks` | `catalog` (`{ type }` entries), `endpoints`, `updateEndpoint` (with an optional `expectedUpdatedAt`), `archiveEndpoint(id)`, `sendTest`, `replayEndpoint(id, since)`, `events({ type })`, `listEvents`, `deliveries`, `listDeliveries`, `delivery`, `replay` (one delivery) |
 | `externalProviders` | `getExternalProviderList`, `create`, `update`, `delete` |
 
 Every list method takes `{ limit, cursor }` (`limit` 1–100, default 50) plus the list's own
@@ -126,7 +126,11 @@ environment, including its `issuerUrl` and `jwtKey`.
 
 Pass `{ signal }` to cancel; `timeoutMs` defaults to 10 seconds; mutations are never retried
 automatically. Errors are `PistiAPIResponseError` with `status`, `requestId`, `code`,
-`fieldErrors`, `blockers` and `retryAfterSeconds`. The client refuses to run in a browser.
+`fieldErrors`, `blockers` and `retryAfterSeconds`. `deleteUser` and `deleteOrganization` fail with
+409 while something stops the deletion; `blockers` then lists each as `{ code, count, message }`.
+The client refuses to run in a browser. Every method's path, query and body are checked at compile
+time against the types generated from the Backend API contract, and the exported types (`User`,
+`Organization`, …) are named aliases of them.
 Secret keys cannot create API keys, confidential OAuth applications, client secrets or webhook
 signing secrets; those need a signed-in user or console member. Create webhook endpoints and
 rotate their signing secrets in the console (Webhooks); the backend API lists, updates, archives,

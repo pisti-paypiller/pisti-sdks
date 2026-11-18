@@ -1,3 +1,4 @@
+import type { components } from "./generated/frontend.js";
 import {
     AccountResource,
     OrganizationResource,
@@ -43,26 +44,7 @@ export class PistiClientError extends Error {
     }
 }
 
-interface SessionUserState {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    imageUrl: string | null;
-    username: string | null;
-}
-interface SessionState {
-    id: string;
-    user: SessionUserState;
-    organizationId: string | null;
-    lastActiveAt: string;
-    expireAt: string;
-}
-interface ClientState {
-    sessions: SessionState[];
-    lastActiveSessionId: string | null;
-    clientToken: string | null;
-}
+type ClientState = components["schemas"]["ClientState"];
 /** A sign-in or sign-up in progress, as the Frontend API returns it. */
 export interface AttemptResource {
     id: string;
@@ -499,7 +481,7 @@ export class PistiClient {
             return Promise.resolve(this.token.value);
         return (this.renewing ??= (async () => {
             try {
-                const result = await this.fapi<{ jwt: string; expiresAt: string }>(
+                const result = await this.fapi<components["schemas"]["SessionTokenResponse"]>(
                     "POST",
                     `client/sessions/${sessionId}/tokens`,
                 );

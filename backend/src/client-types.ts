@@ -1,3 +1,13 @@
+// The Backend API's public types. Resource and input shapes are named aliases of the types
+// generated from contract/backend.json (`npm run contract:pull`), so a contract change shows here in
+// review. Only the SDK's own options and the error details the contract does not describe are written
+// by hand.
+import type { components, paths } from "./generated/backend.js";
+import type { PistiWebhookEvent } from "./webhooks.js";
+
+type Schemas = components["schemas"];
+type Query<P extends keyof paths> = NonNullable<NonNullable<paths[P]["get"]>["parameters"]["query"]>;
+
 export interface PistiClientOptions {
     /** Defaults to `PISTI_SECRET_KEY`. Needed only for the backend API. Never expose it in browser code. */
     secretKey?: string | undefined;
@@ -10,60 +20,20 @@ export interface PistiClientOptions {
     timeoutMs?: number | undefined;
 }
 
-/** What redeeming a handshake nonce returns. */
-export interface HandshakeRedemption {
-    /** The browser's fresh session token, or null when it is signed out. */
-    sessionToken: string | null;
-    /** The last sign-in time, in seconds since the epoch. */
-    clientUat: number | string;
-}
+/** What redeeming a handshake nonce returns: the browser's fresh session token (null when signed out)
+ * and its last sign-in time in seconds since the epoch. */
+export type HandshakeRedemption = Schemas["HandshakeRedemption"];
 
-export interface Instance {
-    id: string;
-    name: string;
-    environment: "development" | "production";
-    audience: string;
-    publishableKey: string | null;
-    /** This environment's token issuer: discovery and JWKS live under it. */
-    issuerUrl: string | null;
-    /** PEM public key of the current signing key, for networkless session token verification (`jwtKey`).
-     * It changes when the environment's signing keys rotate. */
-    jwtKey: string;
-    /** PEM public key of the next signing key while a rotation is under way, otherwise null. Add it to `jwtKey`
-     * (both PEM blocks in one value) so networkless verification keeps working when it starts signing. */
-    nextJwtKey: string | null;
-    signupEnabled: boolean;
-}
+/** The environment the secret key belongs to. `jwtKey` is the PEM public key of the current signing key
+ * for networkless verification; `nextJwtKey` is the next one while a rotation is under way. */
+export type Instance = Schemas["InstanceResponse"];
 
 /** An end user's API key. Users create their own with `<APIKeys />`; your backend lists them, grants scopes and
  * claims, revokes and verifies them. A key created before its owner's last credential change reads as revoked. */
-export interface ApiKey {
-    id: string;
-    object: "api_key";
-    type: "api_key";
-    name: string;
-    description: string | null;
-    /** The user who owns the key. */
-    subject: string;
-    userId: string;
-    /** The first characters of the secret, to help users recognise a key. */
-    keyPrefix: string;
-    scopes: string[];
-    claims: Record<string, unknown>;
-    revoked: boolean;
-    revocationReason: string | null;
-    expired: boolean;
-    expiresAt: string | null;
-    lastUsedAt: string | null;
-    createdAt: string;
-}
+export type ApiKey = Schemas["ApiKeyResponse"];
 
-/** Replaces a key's scopes and claims. */
-export interface UpdateApiKeyInput {
-    scopes: string[];
-    /** A JSON object of at most 4096 bytes. */
-    claims?: Record<string, unknown> | null;
-}
+/** Replaces a key's scopes and claims (a JSON object of at most 4096 bytes). */
+export type UpdateApiKeyInput = Schemas["UpdateUserApiKeyInput"];
 
 export interface ApiKeyListOptions extends PageOptions {
     userId?: string;
@@ -93,10 +63,9 @@ export interface SearchListOptions extends PageOptions {
     search?: string;
 }
 
-export type UserStatus = "active" | "disabled" | "locked";
+export type UserStatus = Schemas["UserResponse"]["status"];
 /** Sort orders for users; a leading `-` sorts descending. Defaults to `-createdAt`. */
-export type UserOrderBy =
-    | "-createdAt" | "createdAt" | "-lastSignInAt" | "lastSignInAt" | "-lastActiveAt" | "lastActiveAt";
+export type UserOrderBy = NonNullable<Query<"/v1/users">["orderBy"]>;
 export interface UserListOptions extends SearchListOptions {
     status?: UserStatus;
     orderBy?: UserOrderBy;
@@ -104,360 +73,116 @@ export interface UserListOptions extends SearchListOptions {
 export type UserCountOptions = Omit<UserListOptions, "limit" | "cursor" | "orderBy">;
 
 /** Sort orders for organizations. Defaults to `-createdAt`. */
-export type OrganizationOrderBy = "-createdAt" | "createdAt" | "name" | "-name";
+export type OrganizationOrderBy = NonNullable<Query<"/v1/organizations">["orderBy"]>;
 export interface OrganizationListOptions extends SearchListOptions {
     orderBy?: OrganizationOrderBy;
 }
 export type OrganizationCountOptions = Omit<OrganizationListOptions, "limit" | "cursor" | "orderBy">;
-export type Metadata = Record<string, unknown>;
+export type Metadata = Schemas["JsonObject"];
 
-export interface EmailAddress {
-    id: string;
-    object: "email_address";
-    emailAddress: string;
-    verification: { status: "verified" | "unverified"; verifiedAt: string | null };
-}
+export type EmailAddress = Schemas["EmailAddressResponse"];
 
 /** The same shape from getUser(), getUserList() and createUser(), like Clerk's User. */
-export interface User {
-    id: string;
-    object: "user";
-    instanceId: string;
-    firstName: string;
-    lastName: string;
-    fullName: string | null;
-    /** The user's username, where the environment uses them. */
-    username: string | null;
-    imageUrl: string | null;
-    hasImage: boolean;
-    primaryEmailAddressId: string | null;
-    emailAddresses: EmailAddress[];
-    status: UserStatus;
-    banned: boolean;
-    locked: boolean;
-    /** When the user deactivated their account, or null. */
-    deactivatedAt: string | null;
-    /** When a deactivated account is deleted, or null. */
-    deletesAt: string | null;
-    publicMetadata: Metadata;
-    privateMetadata: Metadata;
-    unsafeMetadata: Metadata;
-    lastSignInAt: string | null;
-    /** When the user last used a session, or null. */
-    lastActiveAt: string | null;
-    tokensValidAfter: string;
-    createdAt: string;
-    updatedAt: string;
-}
+export type User = Schemas["UserResponse"];
 
-export interface CreateUserInput {
-    email: string;
-    /** Set true only when your trusted source has already verified ownership. Defaults to false. */
-    emailVerified?: boolean;
-    /** Required for verified creation. Describe the trusted verification source (10–500 characters). */
-    verificationReason?: string | null;
-    firstName?: string;
-    lastName?: string;
-    /** A username, where the environment uses them: 3–64 letters, digits, dots, hyphens and underscores. */
-    username?: string | null;
-    /** 15–128 characters. */
-    password?: string | null;
-    imageUrl?: string | null;
-    publicMetadata?: Metadata | null;
-    privateMetadata?: Metadata | null;
-    unsafeMetadata?: Metadata | null;
-}
+/** Set `emailVerified` only when your trusted source has already verified ownership, with a
+ * `verificationReason` (10–500 characters). Passwords are 15–128 characters. */
+export type CreateUserInput = Schemas["CreateDirectoryUserInput"];
 
-export interface UpdateUserInput {
-    /** The `updatedAt` you read; the update fails if the user changed since. */
-    expectedUpdatedAt?: string | null;
-    firstName: string;
-    lastName: string;
-    imageUrl?: string | null;
-    publicMetadata: Metadata;
-    privateMetadata: Metadata;
-    unsafeMetadata: Metadata;
-}
+/** `expectedUpdatedAt` is the `updatedAt` you read; the update fails if the user changed since. */
+export type UpdateUserInput = Schemas["UpdateDirectoryUserInput"];
 
-export interface AddEmailAddressInput {
-    email: string;
-    status: "verified" | "unverified";
-    isPrimary?: boolean;
-    /** Required to add a verified address (up to 500 characters). */
-    verificationReason?: string | null;
-}
+/** `verificationReason` is required to add a verified address (up to 500 characters). */
+export type AddEmailAddressInput = Schemas["AddDirectoryEmailInput"];
 
-export interface ExternalAccount {
-    id: string;
-    provider: string;
-    providerAccountId: string;
-    email: string | null;
-    createdAt: string;
-}
+export type ExternalAccount = Schemas["ExternalAccountResponse"];
 
-export interface CreateExternalAccountInput {
-    /** The provider's name: letters, digits, hyphens and underscores. */
-    provider: string;
-    providerAccountId: string;
-    email?: string | null;
-}
+/** `provider` is the provider's name: letters, digits, hyphens and underscores. */
+export type CreateExternalAccountInput = Schemas["AddExternalAccountInput"];
 
 /** An organization the user belongs to. */
-export interface UserOrganization {
-    id: string;
-    name: string;
-    slug: string;
-}
+export type UserOrganization = Schemas["UserOrganizationResponse"];
 
-export interface DeletionBlocker {
-    resource: string;
-    count: number;
-    resolution: string;
-    /** Where in the console the blocker can be resolved, if anywhere. */
-    destination?: { area: string; resourceId?: string | null; tab?: string | null } | null;
-}
+/** Something that stops a user or organization from being deleted, from a 409 response. */
+export type DeletionBlocker = Schemas["DeletionBlockedProblem"]["blockers"][number];
 
-/** What deleting a user or organization would need first. */
-export interface DeletionPlan {
-    blockers: DeletionBlocker[];
-    canDelete?: boolean;
-}
+/** An RFC 9457 Problem Details error body, as `PistiAPIResponseError` reads it. */
+export type ApiProblem = Schemas["ApiProblem"];
 
-export type SessionStatus = "active" | "expired" | "signed_out" | "revoked";
+/** The 409 a delete returns while something stops it. */
+export type DeletionBlockedProblem = Schemas["DeletionBlockedProblem"];
 
-export interface Session {
-    id: string;
-    object: "session";
-    userId: string;
-    status: SessionStatus;
-    lastActiveAt: string;
-    /** When the session ends if it stays idle. */
-    expireAt: string;
-    /** When the session ends regardless of activity. */
-    abandonAt: string;
-    authenticatedAt: string;
-    mfaAuthenticatedAt: string | null;
-    endedAt: string | null;
-    createdAt: string;
-}
+export type SessionStatus = Schemas["SessionResponse"]["status"];
+
+export type Session = Schemas["SessionResponse"];
 
 export interface SessionListOptions extends PageOptions {
     userId?: string;
     status?: SessionStatus;
 }
 
-export interface Organization {
-    id: string;
-    instanceId: string;
-    name: string;
-    slug: string;
-    imageUrl: string | null;
-    maxMemberships: number | null;
-    publicMetadata: Metadata;
-    createdAt: string;
-    updatedAt: string;
-}
+export type Organization = Schemas["OrganizationResponse"];
 
-export interface OrganizationDetails {
-    organization: Organization;
-    privateMetadata: Metadata;
-}
+export type OrganizationDetails = Schemas["OrganizationDetailsResponse"];
 
-export interface CreateOrganizationInput {
-    name: string;
-    slug: string;
-    imageUrl?: string | null;
-    maxMemberships?: number | null;
-    publicMetadata?: Metadata | null;
-    privateMetadata?: Metadata | null;
-}
+export type CreateOrganizationInput = Omit<Schemas["OrganizationInput"], "expectedUpdatedAt">;
 
-export interface UpdateOrganizationInput extends CreateOrganizationInput {
-    /** The `updatedAt` you read; the update fails if the organization changed since. */
-    expectedUpdatedAt?: string | null;
-}
+/** `expectedUpdatedAt` is the `updatedAt` you read; the update fails if the organization changed since. */
+export type UpdateOrganizationInput = Schemas["OrganizationInput"];
 
-export interface OrganizationMembership {
-    id: string;
-    userId: string;
-    email: string | null;
-    roleId: string;
-    roleKey: string;
-    createdAt: string;
-}
+export type OrganizationMembership = Schemas["OrganizationMemberResponse"];
 
-export interface OrganizationInvitation {
-    id: string;
-    email: string;
-    roleId: string | null;
-    status: "pending" | "accepted" | "expired" | "revoked";
-    expiresAt: string;
-    createdAt: string;
-}
+export type OrganizationInvitation = Schemas["OrganizationInvitationResponse"];
 
-export interface CreateOrganizationInvitationInput {
-    email: string;
-    roleId: string;
-    /** 1–30 days. */
-    lifetimeDays?: number;
-}
+/** `lifetimeDays` is 1–30. */
+export type CreateOrganizationInvitationInput = Schemas["OrganizationInvitationInput"];
 
-export interface ResendOrganizationInvitationInput {
-    /** The invitation's `expiresAt`; the resend fails if it changed since. */
-    expectedExpiresAt: string;
-    /** 1–30 days. */
-    lifetimeDays?: number;
-}
+/** `expectedExpiresAt` is the invitation's `expiresAt`; the resend fails if it changed since. */
+export type ResendOrganizationInvitationInput = Schemas["ResendInvitationInput"];
 
-export interface InvitationResult {
-    id: string;
-    token: string;
-    expiresAt: string;
-    deliveryStatus: "queued";
-    queuedAt: string;
-}
+export type InvitationResult = Schemas["SentInvitationResponse"];
 
-export interface Role {
-    id: string;
-    key: string;
-    name: string;
-    description: string | null;
-    isSystem: boolean;
-    permissions: string[];
-}
+export type Role = Schemas["RoleSummary"];
 
-export interface RoleInput {
-    key: string;
-    name: string;
-    description?: string | null;
-    permissionIds: string[];
-}
+export type RoleInput = Schemas["OrganizationRoleInput"];
 
-export interface Permission {
-    id: string;
-    key: string;
-    name: string;
-    description: string | null;
-    isSystem: boolean;
-}
+export type Permission = Schemas["PermissionResponse"];
 
-export interface ExternalProvider {
-    id: string;
-    name: string;
-    displayName: string;
-    issuerUrl: string;
-    clientId: string;
-    secretConfigured: boolean;
-    enabled: boolean;
-    allowSignup: boolean;
-    connectedAccounts: number;
-    callbackUrl: string | null;
-    updatedAt: string;
-}
+export type ExternalProvider = Schemas["ExternalProviderSummary"];
 
-export interface ExternalProviderInput {
-    name: string;
-    displayName: string;
-    issuerUrl: string;
-    clientId: string;
-    enabled: boolean;
-    allowSignup: boolean;
-    clientSecret?: string | null;
-}
+export type ExternalProviderInput = Omit<Schemas["ExternalProviderInput"], "expectedUpdatedAt">;
 
-export interface CreateExternalProviderInput extends ExternalProviderInput {
-    clientSecret: string;
-}
+export type CreateExternalProviderInput = Omit<ExternalProviderInput, "clientSecret"> & { clientSecret: string };
 
-export interface UpdateExternalProviderInput extends ExternalProviderInput {
-    /** The `updatedAt` you read; the update fails if the provider changed since. */
-    expectedUpdatedAt?: string | null;
-}
+/** `expectedUpdatedAt` is the `updatedAt` you read; the update fails if the provider changed since. */
+export type UpdateExternalProviderInput = Schemas["ExternalProviderInput"];
 
-export type WebhookEventType =
-    | "user.created"
-    | "user.updated"
-    | "user.deleted"
-    | "session.created"
-    | "session.ended"
-    | "organization.created"
-    | "organization.updated"
-    | "organization.deleted"
-    | "organizationMembership.created"
-    | "organizationMembership.updated"
-    | "organizationMembership.deleted"
-    | "organizationInvitation.created"
-    | "organizationInvitation.updated"
-    | "organizationInvitation.accepted"
-    | "organizationInvitation.revoked"
-    | "organizationInvitation.expired";
+/** Every event type a webhook endpoint can subscribe to. */
+export type WebhookEventType = Schemas["WebhookEventType"]["type"];
+/** One entry of the webhook event catalog. */
+export type WebhookCatalogEntry = Schemas["WebhookEventType"];
 
-export interface WebhookEndpointInput {
-    name: string;
-    url: string;
-    /** 1–16 event types. */
-    eventTypes: WebhookEventType[];
-    enabled: boolean;
-}
-export interface UpdateWebhookEndpointInput extends WebhookEndpointInput {
-    /** The `updatedAt` you read; the update fails if the endpoint changed since. */
-    expectedUpdatedAt?: string | null;
-}
-export interface WebhookEndpoint extends WebhookEndpointInput {
-    id: string;
-    /** When the endpoint's current run of failed deliveries began, or null while it is healthy. */
-    failingSince: string | null;
-    /** When Pisti paused the endpoint after failing for the pause period (72 hours). Enabling it again resumes delivery. */
-    pausedAt: string | null;
-    createdAt: string;
-    updatedAt: string;
-}
+/** `eventTypes` holds 1–16 event types. */
+export type WebhookEndpointInput = Omit<Schemas["WebhookEndpointInput"], "expectedUpdatedAt">;
+/** `expectedUpdatedAt` is the `updatedAt` you read; the update fails if the endpoint changed since. */
+export type UpdateWebhookEndpointInput = Schemas["WebhookEndpointInput"];
+/** `failingSince` is when the current run of failed deliveries began; `pausedAt` is when Pisti paused the
+ * endpoint after failing for the pause period (72 hours). Enabling it again resumes delivery. */
+export type WebhookEndpoint = Schemas["WebhookEndpointSummary"];
 /** An event the environment produced, as delivered to webhook endpoints. */
-export interface WebhookEventSummary {
-    id: string;
-    type: WebhookEventType;
-    createdAt: string;
-    data: unknown;
-}
+export type WebhookEventSummary = Schemas["WebhookEventSummary"];
 export interface WebhookEventListOptions extends PageOptions {
     /** Only events of this type. */
     type?: WebhookEventType;
 }
-export type WebhookDeliveryStatus =
-    "pending" | "sending" | "retrying" | "delivered" | "failed" | "cancelled";
+export type WebhookDeliveryStatus = Schemas["WebhookDeliverySummary"]["status"];
 export interface WebhookDeliveryListOptions extends PageOptions {
     endpointId?: string;
     status?: WebhookDeliveryStatus;
 }
-export interface WebhookDelivery {
-    id: string;
-    eventId: string;
-    eventType: string;
-    endpointId: string;
-    endpointName: string;
-    status: WebhookDeliveryStatus;
-    attempts: number;
-    replayCount: number;
-    createdAt: string;
-    lastAttemptAt: string | null;
-    nextAttemptAt: string;
-    deadlineAt: string;
-    lastStatusCode: number | null;
-    lastErrorCode: string | null;
-    deliveredAt: string | null;
-}
-export interface WebhookDeliveryDetails {
-    payload: import("./webhooks.js").PistiWebhookEvent;
-    status: WebhookDeliveryStatus;
-    attemptCount: number;
-    /** The most recent 100 attempts, including interrupted attempts without a result. */
-    attempts: WebhookDeliveryAttempt[];
-}
-export interface WebhookDeliveryAttempt {
-    number: number;
-    startedAt: string;
-    completedAt: string | null;
-    statusCode: number | null;
-    errorCode: string | null;
-    durationMilliseconds: number | null;
-}
+export type WebhookDelivery = Schemas["WebhookDeliverySummary"];
+/** A delivery with its payload and the most recent 100 attempts, including interrupted attempts without a result. */
+export type WebhookDeliveryDetails = Omit<Schemas["WebhookDeliveryDetailsResponse"], "payload"> & {
+    payload: PistiWebhookEvent;
+};
+export type WebhookDeliveryAttempt = Schemas["WebhookAttemptResponse"];

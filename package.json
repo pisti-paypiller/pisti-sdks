@@ -9,8 +9,13 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces",
-    "check": "npm run check --workspaces --if-present",
+    "check": "npm run contract:check && npm run check --workspaces --if-present",
+    "contract:check": "node scripts/contract.mjs check",
+    "contract:pull": "node scripts/contract.mjs pull",
     "pack": "npm pack --workspaces --pack-destination .",
     "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0"
   }
 }
