@@ -13,15 +13,7 @@ export {
     HANDSHAKE_PARAMETER,
 } from "./tokens.js";
 export { verifyWebhook, verifyWebhookPayload, PistiWebhookError } from "./webhooks.js";
-export type {
-    PistiWebhookEvent,
-    VerifyWebhookOptions,
-    UserEventData,
-    SessionEventData,
-    OrganizationEventData,
-    OrganizationMembershipEventData,
-    OrganizationInvitationEventData,
-} from "./webhooks.js";
+export type { VerifyWebhookOptions } from "./webhooks.js";
 export { parsePublishableKey } from "./keys.js";
 export type { PublishableKeyInfo } from "./keys.js";
 export { PistiError } from "./errors.js";

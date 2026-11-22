@@ -1,73 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import type { WebhookEvent } from "./client-types.js";
 
-/**
- * Event data. Pisti sends thin events: the changed resource's id and how to find it. Read the
- * current state with the backend API, for example `pistiClient.users.getUser(event.data.id)`.
- */
-export interface UserEventData {
-    object: "user";
-    id: string;
-    deleted: boolean;
-}
-export interface SessionEventData {
-    object: "session";
-    id: string;
-    user_id: string;
-}
-export interface OrganizationEventData {
-    object: "organization";
-    id: string;
-    deleted: boolean;
-}
-export interface OrganizationMembershipEventData {
-    object: "organization_membership";
-    id: string;
-    organization_id: string;
-    user_id: string;
-}
-export interface OrganizationInvitationEventData {
-    object: "organization_invitation";
-    id: string;
-    organization_id: string;
-    status: string;
-}
-
-interface WebhookEventDataMap {
-    "user.created": UserEventData;
-    "user.updated": UserEventData;
-    "user.deleted": UserEventData;
-    "session.created": SessionEventData;
-    "session.ended": SessionEventData;
-    "organization.created": OrganizationEventData;
-    "organization.updated": OrganizationEventData;
-    "organization.deleted": OrganizationEventData;
-    "organizationMembership.created": OrganizationMembershipEventData;
-    "organizationMembership.updated": OrganizationMembershipEventData;
-    "organizationMembership.deleted": OrganizationMembershipEventData;
-    "organizationInvitation.created": OrganizationInvitationEventData;
-    "organizationInvitation.updated": OrganizationInvitationEventData;
-    "organizationInvitation.accepted": OrganizationInvitationEventData;
-    "organizationInvitation.revoked": OrganizationInvitationEventData;
-    "organizationInvitation.expired": OrganizationInvitationEventData;
-}
-
-/**
- * A verified webhook event, like Clerk's `WebhookEvent`. Checking `event.type` narrows `event.data`:
- *
- * ```ts
- * if (event.type === "organizationMembership.created") console.log(event.data.organization_id);
- * ```
- */
-export type PistiWebhookEvent = {
-    [K in keyof WebhookEventDataMap]: {
-        id: string;
-        object: "event";
-        type: K;
-        timestamp: number;
-        instance_id: string;
-        data: WebhookEventDataMap[K];
-    };
-}[keyof WebhookEventDataMap];
+export type { WebhookEvent, WebhookEventOf } from "./client-types.js";
 
 export interface VerifyWebhookOptions {
     /** Defaults to the `PISTI_WEBHOOK_SIGNING_SECRET` environment variable. Pass several while rotating. */
@@ -130,7 +64,7 @@ interface NodeWebhookRequest {
 export async function verifyWebhook(
     request: Request | NodeWebhookRequest,
     options: VerifyWebhookOptions = {},
-): Promise<PistiWebhookEvent> {
+): Promise<WebhookEvent> {
     if (typeof Request !== "undefined" && request instanceof Request)
         return verifyWebhookPayload(new Uint8Array(await request.arrayBuffer()), request.headers, options);
     const { body, headers } = request as NodeWebhookRequest;
@@ -146,7 +80,7 @@ export function verifyWebhookPayload(
     payload: string | Uint8Array,
     headers: WebhookHeaders,
     options: VerifyWebhookOptions = {},
-): PistiWebhookEvent {
+): WebhookEvent {
     return verifyPayload(payload, headers, options);
 }
 
@@ -154,7 +88,7 @@ function verifyPayload(
     payload: string | Uint8Array,
     headers: WebhookHeaders,
     options: VerifyWebhookOptions,
-): PistiWebhookEvent {
+): WebhookEvent {
     const length =
         typeof payload === "string"
             ? Buffer.byteLength(payload, "utf8")
@@ -226,7 +160,7 @@ function verifyPayload(
     }
     if (!data || typeof data !== "object" || Array.isArray(data))
         throw new PistiWebhookError("invalid_payload");
-    const event = data as PistiWebhookEvent;
+    const event = data as WebhookEvent;
     if (
         event.id !== id ||
         event.object !== "event" ||

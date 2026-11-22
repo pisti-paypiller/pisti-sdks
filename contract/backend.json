@@ -143,6 +143,17 @@
               "pattern": "^(ep)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -243,6 +254,17 @@
               "pattern": "^(ep)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -294,6 +316,17 @@
             "required": true,
             "schema": {
               "pattern": "^(ep)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
               "type": "string"
             }
           }
@@ -389,6 +422,8 @@
                 "organizationInvitation.accepted",
                 "organizationInvitation.revoked",
                 "organizationInvitation.expired",
+                "apiKey.expiring",
+                "email.created",
                 "endpoint.test"
               ],
               "type": "string"
@@ -471,6 +506,17 @@
             "required": true,
             "schema": {
               "pattern": "^(ep)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
               "type": "string"
             }
           }
@@ -737,6 +783,17 @@
               "pattern": "^(msg)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -780,6 +837,19 @@
       "post": {
         "tags": [
           "UserDirectory"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
+          }
         ],
         "requestBody": {
           "content": {
@@ -1115,6 +1185,17 @@
               "pattern": "^(user)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -1186,6 +1267,17 @@
               "pattern": "^(user)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -1237,6 +1329,17 @@
             "required": true,
             "schema": {
               "pattern": "^(user)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
               "type": "string"
             }
           }
@@ -1310,6 +1413,17 @@
             "required": true,
             "schema": {
               "pattern": "^(user)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
               "type": "string"
             }
           }
@@ -1543,6 +1657,17 @@
               "pattern": "^(user)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -1652,6 +1777,17 @@
               "pattern": "^(idn)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -1732,6 +1868,17 @@
               "pattern": "^(idn)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -1792,6 +1939,17 @@
             "required": true,
             "schema": {
               "pattern": "^(idn)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
               "type": "string"
             }
           }
@@ -1915,6 +2073,17 @@
               "pattern": "^(user)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -2022,6 +2191,17 @@
             "required": true,
             "schema": {
               "pattern": "^(eac)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
               "type": "string"
             }
           }
@@ -2315,6 +2495,17 @@
               "pattern": "^(sess)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2450,6 +2641,19 @@
       "post": {
         "tags": [
           "OrganizationManagement"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
+          }
         ],
         "requestBody": {
           "content": {
@@ -2667,6 +2871,17 @@
               "pattern": "^(org)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -2736,6 +2951,17 @@
             "required": true,
             "schema": {
               "pattern": "^(org)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
               "type": "string"
             }
           }
@@ -2899,6 +3125,17 @@
               "pattern": "^(user)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -2977,6 +3214,17 @@
             "required": true,
             "schema": {
               "pattern": "^(user)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
               "type": "string"
             }
           }
@@ -3129,6 +3377,17 @@
               "pattern": "^(org)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -3238,6 +3497,17 @@
               "pattern": "^(inv|orginv)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -3345,6 +3615,17 @@
             "required": true,
             "schema": {
               "pattern": "^(inv|orginv)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
               "type": "string"
             }
           }
@@ -3471,6 +3752,17 @@
               "pattern": "^(org)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -3580,6 +3872,17 @@
               "pattern": "^(role)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -3658,6 +3961,17 @@
             "required": true,
             "schema": {
               "pattern": "^(role)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
               "type": "string"
             }
           }
@@ -3742,6 +4056,19 @@
       "post": {
         "tags": [
           "Handshake"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
+          }
         ],
         "requestBody": {
           "content": {
@@ -3859,6 +4186,19 @@
         "tags": [
           "ExternalProvider"
         ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -3945,6 +4285,17 @@
             "required": true,
             "schema": {
               "pattern": "^(idp)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
               "type": "string"
             }
           }
@@ -4043,6 +4394,17 @@
             "required": true,
             "schema": {
               "pattern": "^(idp)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
               "type": "string"
             }
           }
@@ -4252,6 +4614,17 @@
               "pattern": "^(ak)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -4352,6 +4725,17 @@
               "pattern": "^(ak)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -4415,6 +4799,19 @@
       "post": {
         "tags": [
           "UserApiKeyManagement"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
+          }
         ],
         "requestBody": {
           "content": {
@@ -4552,6 +4949,49 @@
             ]
           }
         }
+      },
+      "ApiKeyExpiringWebhookEvent": {
+        "required": [
+          "id",
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "apiKey.expiring"
+            ],
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SecretKeyResponse"
+          }
+        },
+        "description": "The apiKey.expiring event."
       },
       "ApiKeyResponse": {
         "required": [
@@ -4811,6 +5251,33 @@
           }
         }
       },
+      "DeletedResource": {
+        "required": [
+          "object",
+          "id",
+          "deleted"
+        ],
+        "type": "object",
+        "properties": {
+          "object": {
+            "enum": [
+              "user",
+              "organization",
+              "organization_membership"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "deleted": {
+            "enum": [
+              true
+            ],
+            "type": "boolean"
+          }
+        }
+      },
       "DeletionBlockedProblem": {
         "required": [
           "blockers",
@@ -4936,6 +5403,105 @@
           }
         }
       },
+      "EmailCreatedWebhookEvent": {
+        "required": [
+          "id",
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "email.created"
+            ],
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/EmailResponse"
+          }
+        },
+        "description": "The email.created event."
+      },
+      "EmailResponse": {
+        "required": [
+          "id",
+          "object",
+          "slug",
+          "toEmailAddress",
+          "userId",
+          "subject",
+          "status",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "enum": [
+              "email"
+            ],
+            "type": "string"
+          },
+          "slug": {
+            "enum": [
+              "verification_code",
+              "verification_link",
+              "verification_notice",
+              "organization_invitation",
+              "security_notice"
+            ],
+            "type": "string"
+          },
+          "toEmailAddress": {
+            "type": "string"
+          },
+          "userId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "subject": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "queued"
+            ],
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "EmailVerificationResponse": {
         "required": [
           "status",
@@ -4958,6 +5524,49 @@
             "format": "date-time"
           }
         }
+      },
+      "EndpointTestWebhookEvent": {
+        "required": [
+          "id",
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "endpoint.test"
+            ],
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/WebhookTestData"
+          }
+        },
+        "description": "The endpoint.test event."
       },
       "ExternalAccountResponse": {
         "required": [
@@ -5606,6 +6215,92 @@
           }
         }
       },
+      "OrganizationCreatedWebhookEvent": {
+        "required": [
+          "id",
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "organization.created"
+            ],
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OrganizationDetailsResponse"
+          }
+        },
+        "description": "The organization.created event."
+      },
+      "OrganizationDeletedWebhookEvent": {
+        "required": [
+          "id",
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "organization.deleted"
+            ],
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DeletedResource"
+          }
+        },
+        "description": "The organization.deleted event."
+      },
       "OrganizationDetailsResponse": {
         "required": [
           "organization",
@@ -5686,6 +6381,135 @@
           }
         }
       },
+      "OrganizationInvitationAcceptedWebhookEvent": {
+        "required": [
+          "id",
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "organizationInvitation.accepted"
+            ],
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OrganizationInvitationResponse"
+          }
+        },
+        "description": "The organizationInvitation.accepted event."
+      },
+      "OrganizationInvitationCreatedWebhookEvent": {
+        "required": [
+          "id",
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "organizationInvitation.created"
+            ],
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OrganizationInvitationResponse"
+          }
+        },
+        "description": "The organizationInvitation.created event."
+      },
+      "OrganizationInvitationExpiredWebhookEvent": {
+        "required": [
+          "id",
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "organizationInvitation.expired"
+            ],
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OrganizationInvitationResponse"
+          }
+        },
+        "description": "The organizationInvitation.expired event."
+      },
       "OrganizationInvitationInput": {
         "required": [
           "email",
@@ -5713,6 +6537,7 @@
       "OrganizationInvitationResponse": {
         "required": [
           "id",
+          "organizationId",
           "email",
           "roleId",
           "status",
@@ -5722,6 +6547,9 @@
         "type": "object",
         "properties": {
           "id": {
+            "type": "string"
+          },
+          "organizationId": {
             "type": "string"
           },
           "email": {
@@ -5752,9 +6580,96 @@
           }
         }
       },
+      "OrganizationInvitationRevokedWebhookEvent": {
+        "required": [
+          "id",
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "organizationInvitation.revoked"
+            ],
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OrganizationInvitationResponse"
+          }
+        },
+        "description": "The organizationInvitation.revoked event."
+      },
+      "OrganizationInvitationUpdatedWebhookEvent": {
+        "required": [
+          "id",
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "organizationInvitation.updated"
+            ],
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OrganizationInvitationResponse"
+          }
+        },
+        "description": "The organizationInvitation.updated event."
+      },
       "OrganizationMemberResponse": {
         "required": [
           "id",
+          "organizationId",
           "userId",
           "email",
           "roleId",
@@ -5764,6 +6679,9 @@
         "type": "object",
         "properties": {
           "id": {
+            "type": "string"
+          },
+          "organizationId": {
             "type": "string"
           },
           "userId": {
@@ -5787,6 +6705,92 @@
           }
         }
       },
+      "OrganizationMembershipCreatedWebhookEvent": {
+        "required": [
+          "id",
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "organizationMembership.created"
+            ],
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OrganizationMemberResponse"
+          }
+        },
+        "description": "The organizationMembership.created event."
+      },
+      "OrganizationMembershipDeletedWebhookEvent": {
+        "required": [
+          "id",
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "organizationMembership.deleted"
+            ],
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DeletedResource"
+          }
+        },
+        "description": "The organizationMembership.deleted event."
+      },
       "OrganizationMembershipInput": {
         "required": [
           "roleId"
@@ -5798,6 +6802,49 @@
             "type": "string"
           }
         }
+      },
+      "OrganizationMembershipUpdatedWebhookEvent": {
+        "required": [
+          "id",
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "organizationMembership.updated"
+            ],
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OrganizationMemberResponse"
+          }
+        },
+        "description": "The organizationMembership.updated event."
       },
       "OrganizationResponse": {
         "required": [
@@ -5886,6 +6933,49 @@
             }
           }
         }
+      },
+      "OrganizationUpdatedWebhookEvent": {
+        "required": [
+          "id",
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "organization.updated"
+            ],
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OrganizationDetailsResponse"
+          }
+        },
+        "description": "The organization.updated event."
       },
       "PermissionResponse": {
         "required": [
@@ -5998,6 +7088,53 @@
           }
         }
       },
+      "SecretKeyResponse": {
+        "required": [
+          "id",
+          "object",
+          "name",
+          "prefix",
+          "createdAt",
+          "expiresAt",
+          "lastUsedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "enum": [
+              "secret_key"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
       "SentInvitationResponse": {
         "required": [
           "id",
@@ -6040,6 +7177,92 @@
             "type": "string"
           }
         }
+      },
+      "SessionCreatedWebhookEvent": {
+        "required": [
+          "id",
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "session.created"
+            ],
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SessionResponse"
+          }
+        },
+        "description": "The session.created event."
+      },
+      "SessionEndedWebhookEvent": {
+        "required": [
+          "id",
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "session.ended"
+            ],
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SessionResponse"
+          }
+        },
+        "description": "The session.ended event."
       },
       "SessionResponse": {
         "required": [
@@ -6184,6 +7407,92 @@
             ]
           }
         }
+      },
+      "UserCreatedWebhookEvent": {
+        "required": [
+          "id",
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "user.created"
+            ],
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserResponse"
+          }
+        },
+        "description": "The user.created event."
+      },
+      "UserDeletedWebhookEvent": {
+        "required": [
+          "id",
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "user.deleted"
+            ],
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DeletedResource"
+          }
+        },
+        "description": "The user.deleted event."
       },
       "UsernameInput": {
         "required": [
@@ -6379,6 +7688,49 @@
           }
         }
       },
+      "UserUpdatedWebhookEvent": {
+        "required": [
+          "id",
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "user.updated"
+            ],
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserResponse"
+          }
+        },
+        "description": "The user.updated event."
+      },
       "VerifyUserApiKeyInput": {
         "required": [
           "secret"
@@ -6517,6 +7869,8 @@
               "organizationInvitation.accepted",
               "organizationInvitation.revoked",
               "organizationInvitation.expired",
+              "apiKey.expiring",
+              "email.created",
               "endpoint.test"
             ],
             "type": "string"
@@ -6607,7 +7961,7 @@
             "type": "string"
           },
           "eventTypes": {
-            "maxItems": 16,
+            "maxItems": 32,
             "minItems": 1,
             "type": "array",
             "items": {
@@ -6627,7 +7981,9 @@
                 "organizationInvitation.updated",
                 "organizationInvitation.accepted",
                 "organizationInvitation.revoked",
-                "organizationInvitation.expired"
+                "organizationInvitation.expired",
+                "apiKey.expiring",
+                "email.created"
               ],
               "type": "string"
             }
@@ -6686,7 +8042,9 @@
                 "organizationInvitation.updated",
                 "organizationInvitation.accepted",
                 "organizationInvitation.revoked",
-                "organizationInvitation.expired"
+                "organizationInvitation.expired",
+                "apiKey.expiring",
+                "email.created"
               ],
               "type": "string"
             }
@@ -6715,6 +8073,92 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "WebhookEvent": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/UserCreatedWebhookEvent"
+          },
+          {
+            "$ref": "#/components/schemas/UserUpdatedWebhookEvent"
+          },
+          {
+            "$ref": "#/components/schemas/UserDeletedWebhookEvent"
+          },
+          {
+            "$ref": "#/components/schemas/SessionCreatedWebhookEvent"
+          },
+          {
+            "$ref": "#/components/schemas/SessionEndedWebhookEvent"
+          },
+          {
+            "$ref": "#/components/schemas/OrganizationCreatedWebhookEvent"
+          },
+          {
+            "$ref": "#/components/schemas/OrganizationUpdatedWebhookEvent"
+          },
+          {
+            "$ref": "#/components/schemas/OrganizationDeletedWebhookEvent"
+          },
+          {
+            "$ref": "#/components/schemas/OrganizationMembershipCreatedWebhookEvent"
+          },
+          {
+            "$ref": "#/components/schemas/OrganizationMembershipUpdatedWebhookEvent"
+          },
+          {
+            "$ref": "#/components/schemas/OrganizationMembershipDeletedWebhookEvent"
+          },
+          {
+            "$ref": "#/components/schemas/OrganizationInvitationCreatedWebhookEvent"
+          },
+          {
+            "$ref": "#/components/schemas/OrganizationInvitationUpdatedWebhookEvent"
+          },
+          {
+            "$ref": "#/components/schemas/OrganizationInvitationAcceptedWebhookEvent"
+          },
+          {
+            "$ref": "#/components/schemas/OrganizationInvitationRevokedWebhookEvent"
+          },
+          {
+            "$ref": "#/components/schemas/OrganizationInvitationExpiredWebhookEvent"
+          },
+          {
+            "$ref": "#/components/schemas/ApiKeyExpiringWebhookEvent"
+          },
+          {
+            "$ref": "#/components/schemas/EmailCreatedWebhookEvent"
+          },
+          {
+            "$ref": "#/components/schemas/EndpointTestWebhookEvent"
+          }
+        ],
+        "description": "Any webhook event, told apart by its type.",
+        "discriminator": {
+          "propertyName": "type",
+          "mapping": {
+            "user.created": "#/components/schemas/UserCreatedWebhookEvent",
+            "user.updated": "#/components/schemas/UserUpdatedWebhookEvent",
+            "user.deleted": "#/components/schemas/UserDeletedWebhookEvent",
+            "session.created": "#/components/schemas/SessionCreatedWebhookEvent",
+            "session.ended": "#/components/schemas/SessionEndedWebhookEvent",
+            "organization.created": "#/components/schemas/OrganizationCreatedWebhookEvent",
+            "organization.updated": "#/components/schemas/OrganizationUpdatedWebhookEvent",
+            "organization.deleted": "#/components/schemas/OrganizationDeletedWebhookEvent",
+            "organizationMembership.created": "#/components/schemas/OrganizationMembershipCreatedWebhookEvent",
+            "organizationMembership.updated": "#/components/schemas/OrganizationMembershipUpdatedWebhookEvent",
+            "organizationMembership.deleted": "#/components/schemas/OrganizationMembershipDeletedWebhookEvent",
+            "organizationInvitation.created": "#/components/schemas/OrganizationInvitationCreatedWebhookEvent",
+            "organizationInvitation.updated": "#/components/schemas/OrganizationInvitationUpdatedWebhookEvent",
+            "organizationInvitation.accepted": "#/components/schemas/OrganizationInvitationAcceptedWebhookEvent",
+            "organizationInvitation.revoked": "#/components/schemas/OrganizationInvitationRevokedWebhookEvent",
+            "organizationInvitation.expired": "#/components/schemas/OrganizationInvitationExpiredWebhookEvent",
+            "apiKey.expiring": "#/components/schemas/ApiKeyExpiringWebhookEvent",
+            "email.created": "#/components/schemas/EmailCreatedWebhookEvent",
+            "endpoint.test": "#/components/schemas/EndpointTestWebhookEvent"
           }
         }
       },
@@ -6748,6 +8192,8 @@
               "organizationInvitation.accepted",
               "organizationInvitation.revoked",
               "organizationInvitation.expired",
+              "apiKey.expiring",
+              "email.created",
               "endpoint.test"
             ],
             "type": "string"
@@ -6784,7 +8230,9 @@
               "organizationInvitation.updated",
               "organizationInvitation.accepted",
               "organizationInvitation.revoked",
-              "organizationInvitation.expired"
+              "organizationInvitation.expired",
+              "apiKey.expiring",
+              "email.created"
             ],
             "type": "string"
           }
@@ -6811,6 +8259,24 @@
           "since": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "WebhookTestData": {
+        "required": [
+          "object",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "object": {
+            "enum": [
+              "test"
+            ],
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
           }
         }
       },
@@ -6859,5 +8325,406 @@
     {
       "name": "UserApiKeyManagement"
     }
-  ]
+  ],
+  "webhooks": {
+    "user.created": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to user.created.",
+        "operationId": "UserCreatedWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreatedWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "user.updated": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to user.updated.",
+        "operationId": "UserUpdatedWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpdatedWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "user.deleted": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to user.deleted.",
+        "operationId": "UserDeletedWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserDeletedWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "session.created": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to session.created.",
+        "operationId": "SessionCreatedWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionCreatedWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "session.ended": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to session.ended.",
+        "operationId": "SessionEndedWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionEndedWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "organization.created": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to organization.created.",
+        "operationId": "OrganizationCreatedWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationCreatedWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "organization.updated": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to organization.updated.",
+        "operationId": "OrganizationUpdatedWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationUpdatedWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "organization.deleted": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to organization.deleted.",
+        "operationId": "OrganizationDeletedWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationDeletedWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "organizationMembership.created": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to organizationMembership.created.",
+        "operationId": "OrganizationMembershipCreatedWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationMembershipCreatedWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "organizationMembership.updated": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to organizationMembership.updated.",
+        "operationId": "OrganizationMembershipUpdatedWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationMembershipUpdatedWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "organizationMembership.deleted": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to organizationMembership.deleted.",
+        "operationId": "OrganizationMembershipDeletedWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationMembershipDeletedWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "organizationInvitation.created": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to organizationInvitation.created.",
+        "operationId": "OrganizationInvitationCreatedWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationInvitationCreatedWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "organizationInvitation.updated": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to organizationInvitation.updated.",
+        "operationId": "OrganizationInvitationUpdatedWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationInvitationUpdatedWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "organizationInvitation.accepted": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to organizationInvitation.accepted.",
+        "operationId": "OrganizationInvitationAcceptedWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationInvitationAcceptedWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "organizationInvitation.revoked": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to organizationInvitation.revoked.",
+        "operationId": "OrganizationInvitationRevokedWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationInvitationRevokedWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "organizationInvitation.expired": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to organizationInvitation.expired.",
+        "operationId": "OrganizationInvitationExpiredWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationInvitationExpiredWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "apiKey.expiring": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to apiKey.expiring.",
+        "operationId": "ApiKeyExpiringWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiKeyExpiringWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "email.created": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to email.created.",
+        "operationId": "EmailCreatedWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailCreatedWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "endpoint.test": {
+      "post": {
+        "summary": "Sent to one endpoint when a member tests it.",
+        "operationId": "EndpointTestWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EndpointTestWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    }
+  }
 }

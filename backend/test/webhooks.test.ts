@@ -12,10 +12,10 @@ function delivery(overrides: { body?: object; timestamp?: number; key?: Buffer }
         overrides.body ?? {
             id: eventId,
             object: "event",
-            type: "user.created",
+            type: "user.deleted",
             timestamp: Date.now(),
             instance_id: "ins_00000000001",
-            data: { object: "user", id: "user_00000000001", deleted: false },
+            data: { object: "user", id: "user_00000000001", deleted: true },
         },
     );
     const signature = createHmac("sha256", overrides.key ?? secretBytes).update(`${eventId}.${timestamp}.`).update(body).digest("base64");
@@ -40,8 +40,9 @@ describe("verifyWebhookPayload", () => {
         const { body, headers } = delivery();
         const event = verifyWebhookPayload(body, headers, { signingSecret: secret });
 
-        expect(event.type).toBe("user.created");
-        expect(event.data.id).toBe("user_00000000001");
+        expect(event.type).toBe("user.deleted");
+        if (event.type !== "user.deleted") throw new Error("Expected a user.deleted event.");
+        expect(event.data).toEqual({ object: "user", id: "user_00000000001", deleted: true });
     });
 
     it("accepts any of several secrets while one is rotated", () => {

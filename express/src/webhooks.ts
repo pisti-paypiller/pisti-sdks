@@ -1,5 +1,5 @@
 import type { Request } from "express";
-import { verifyWebhook as verify, type PistiWebhookEvent, type VerifyWebhookOptions } from "@pisti-paypiller/backend";
+import { verifyWebhook as verify, type WebhookEvent, type VerifyWebhookOptions } from "@pisti-paypiller/backend";
 
 /**
  * Verifies a webhook delivery, like Clerk's `@clerk/express/webhooks`. Mount the route with
@@ -16,8 +16,8 @@ import { verifyWebhook as verify, type PistiWebhookEvent, type VerifyWebhookOpti
 export function verifyWebhook(
     req: Request,
     options?: VerifyWebhookOptions,
-): Promise<PistiWebhookEvent> {
+): Promise<WebhookEvent> {
     return verify({ body: req.body, headers: req.headers }, options);
 }
 
-export type { PistiWebhookEvent, VerifyWebhookOptions } from "@pisti-paypiller/backend";
+export type { WebhookEvent, WebhookEventOf, VerifyWebhookOptions } from "@pisti-paypiller/backend";
