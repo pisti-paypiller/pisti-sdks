@@ -209,7 +209,7 @@ export type {
     SessionClaims,
     CheckAuthorizationParams,
     PistiClient,
-    PistiWebhookEvent,
+    WebhookEvent,
     TokenType,
     AcceptsToken,
     AnyAuthObject,

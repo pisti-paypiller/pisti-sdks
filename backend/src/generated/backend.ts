@@ -135,7 +135,10 @@ export interface paths {
         put: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     endpointId: string;
                 };
@@ -211,7 +214,10 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     endpointId: string;
                 };
@@ -273,7 +279,10 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     endpointId: string;
                 };
@@ -340,7 +349,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    type?: "user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired" | "endpoint.test";
+                    type?: "user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired" | "apiKey.expiring" | "email.created" | "endpoint.test";
                     limit?: number;
                     cursor?: string;
                 };
@@ -395,7 +404,10 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     endpointId: string;
                 };
@@ -584,7 +596,10 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     deliveryId: string;
                 };
@@ -685,7 +700,10 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path?: never;
                 cookie?: never;
             };
@@ -844,7 +862,10 @@ export interface paths {
         put: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     userId: string;
                 };
@@ -898,7 +919,10 @@ export interface paths {
         delete: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     userId: string;
                 };
@@ -958,7 +982,10 @@ export interface paths {
         put: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     userId: string;
                 };
@@ -1026,7 +1053,10 @@ export interface paths {
         put: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     userId: string;
                 };
@@ -1202,7 +1232,10 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     userId: string;
                 };
@@ -1276,7 +1309,10 @@ export interface paths {
         put: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     userId: string;
                     emailId: string;
@@ -1331,7 +1367,10 @@ export interface paths {
         delete: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     userId: string;
                     emailId: string;
@@ -1392,7 +1431,10 @@ export interface paths {
         put: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     userId: string;
                     emailId: string;
@@ -1500,7 +1542,10 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     userId: string;
                 };
@@ -1576,7 +1621,10 @@ export interface paths {
         delete: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     userId: string;
                     externalId: string;
@@ -1817,7 +1865,10 @@ export interface paths {
         delete: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     sessionId: string;
                 };
@@ -1916,7 +1967,10 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path?: never;
                 cookie?: never;
             };
@@ -2074,7 +2128,10 @@ export interface paths {
         put: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     organizationId: string;
                 };
@@ -2128,7 +2185,10 @@ export interface paths {
         delete: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     organizationId: string;
                 };
@@ -2252,7 +2312,10 @@ export interface paths {
         put: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     organizationId: string;
                     userId: string;
@@ -2307,7 +2370,10 @@ export interface paths {
         delete: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     organizationId: string;
                     userId: string;
@@ -2417,7 +2483,10 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     organizationId: string;
                 };
@@ -2492,7 +2561,10 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     organizationId: string;
                     invitationId: string;
@@ -2569,7 +2641,10 @@ export interface paths {
         delete: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     organizationId: string;
                     invitationId: string;
@@ -2675,7 +2750,10 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     organizationId: string;
                 };
@@ -2749,7 +2827,10 @@ export interface paths {
         put: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     organizationId: string;
                     roleId: string;
@@ -2804,7 +2885,10 @@ export interface paths {
         delete: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     organizationId: string;
                     roleId: string;
@@ -2906,7 +2990,10 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path?: never;
                 cookie?: never;
             };
@@ -2994,7 +3081,10 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path?: never;
                 cookie?: never;
             };
@@ -3057,7 +3147,10 @@ export interface paths {
         put: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     providerId: string;
                 };
@@ -3118,7 +3211,10 @@ export interface paths {
         delete: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     providerId: string;
                 };
@@ -3276,7 +3372,10 @@ export interface paths {
         put: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     keyId: string;
                 };
@@ -3352,7 +3451,10 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path: {
                     keyId: string;
                 };
@@ -3420,7 +3522,10 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
                 path?: never;
                 cookie?: never;
             };
@@ -3473,7 +3578,331 @@ export interface paths {
         trace?: never;
     };
 }
-export type webhooks = Record<string, never>;
+export interface webhooks {
+    "user.created": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to user.created. */
+        post: operations["UserCreatedWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "user.updated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to user.updated. */
+        post: operations["UserUpdatedWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "user.deleted": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to user.deleted. */
+        post: operations["UserDeletedWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "session.created": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to session.created. */
+        post: operations["SessionCreatedWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "session.ended": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to session.ended. */
+        post: operations["SessionEndedWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "organization.created": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to organization.created. */
+        post: operations["OrganizationCreatedWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "organization.updated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to organization.updated. */
+        post: operations["OrganizationUpdatedWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "organization.deleted": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to organization.deleted. */
+        post: operations["OrganizationDeletedWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "organizationMembership.created": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to organizationMembership.created. */
+        post: operations["OrganizationMembershipCreatedWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "organizationMembership.updated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to organizationMembership.updated. */
+        post: operations["OrganizationMembershipUpdatedWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "organizationMembership.deleted": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to organizationMembership.deleted. */
+        post: operations["OrganizationMembershipDeletedWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "organizationInvitation.created": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to organizationInvitation.created. */
+        post: operations["OrganizationInvitationCreatedWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "organizationInvitation.updated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to organizationInvitation.updated. */
+        post: operations["OrganizationInvitationUpdatedWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "organizationInvitation.accepted": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to organizationInvitation.accepted. */
+        post: operations["OrganizationInvitationAcceptedWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "organizationInvitation.revoked": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to organizationInvitation.revoked. */
+        post: operations["OrganizationInvitationRevokedWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "organizationInvitation.expired": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to organizationInvitation.expired. */
+        post: operations["OrganizationInvitationExpiredWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "apiKey.expiring": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to apiKey.expiring. */
+        post: operations["ApiKeyExpiringWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "email.created": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to email.created. */
+        post: operations["EmailCreatedWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "endpoint.test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to one endpoint when a member tests it. */
+        post: operations["EndpointTestWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+}
 export interface components {
     schemas: {
         AddDirectoryEmailInput: {
@@ -3487,6 +3916,25 @@ export interface components {
             provider: string;
             providerAccountId: string;
             email?: null | string;
+        };
+        /** @description The apiKey.expiring event. */
+        ApiKeyExpiringWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
+            id: string;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "apiKey.expiring";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["SecretKeyResponse"];
         };
         ApiKeyResponse: {
             id: string;
@@ -3544,6 +3992,13 @@ export interface components {
         CreatedResponse: {
             id: string;
         };
+        DeletedResource: {
+            /** @enum {string} */
+            object: "user" | "organization" | "organization_membership";
+            id: string;
+            /** @enum {boolean} */
+            deleted: true;
+        };
         DeletionBlockedProblem: {
             blockers: {
                 code: string;
@@ -3575,11 +4030,63 @@ export interface components {
             emailAddress: string;
             verification: components["schemas"]["EmailVerificationResponse"];
         };
+        /** @description The email.created event. */
+        EmailCreatedWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
+            id: string;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "email.created";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["EmailResponse"];
+        };
+        EmailResponse: {
+            id: string;
+            /** @enum {string} */
+            object: "email";
+            /** @enum {string} */
+            slug: "verification_code" | "verification_link" | "verification_notice" | "organization_invitation" | "security_notice";
+            toEmailAddress: string;
+            userId: null | string;
+            subject: string;
+            /** @enum {string} */
+            status: "queued";
+            /** Format: date-time */
+            createdAt: string;
+        };
         EmailVerificationResponse: {
             /** @enum {string} */
             status: "verified" | "unverified";
             /** Format: date-time */
             verifiedAt: null | string;
+        };
+        /** @description The endpoint.test event. */
+        EndpointTestWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
+            id: string;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "endpoint.test";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["WebhookTestData"];
         };
         ExternalAccountResponse: {
             id: string;
@@ -3720,6 +4227,44 @@ export interface components {
             nextCursor: null | string;
             hasMore: boolean;
         };
+        /** @description The organization.created event. */
+        OrganizationCreatedWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
+            id: string;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "organization.created";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["OrganizationDetailsResponse"];
+        };
+        /** @description The organization.deleted event. */
+        OrganizationDeletedWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
+            id: string;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "organization.deleted";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["DeletedResource"];
+        };
         OrganizationDetailsResponse: {
             organization: components["schemas"]["OrganizationResponse"];
             privateMetadata: components["schemas"]["JsonElement"];
@@ -3736,6 +4281,63 @@ export interface components {
             publicMetadata?: null | components["schemas"]["JsonElement"];
             privateMetadata?: null | components["schemas"]["JsonElement"];
         };
+        /** @description The organizationInvitation.accepted event. */
+        OrganizationInvitationAcceptedWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
+            id: string;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "organizationInvitation.accepted";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["OrganizationInvitationResponse"];
+        };
+        /** @description The organizationInvitation.created event. */
+        OrganizationInvitationCreatedWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
+            id: string;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "organizationInvitation.created";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["OrganizationInvitationResponse"];
+        };
+        /** @description The organizationInvitation.expired event. */
+        OrganizationInvitationExpiredWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
+            id: string;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "organizationInvitation.expired";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["OrganizationInvitationResponse"];
+        };
         OrganizationInvitationInput: {
             email: string;
             roleId: string;
@@ -3744,6 +4346,7 @@ export interface components {
         };
         OrganizationInvitationResponse: {
             id: string;
+            organizationId: string;
             email: string;
             roleId: null | string;
             /** @enum {string} */
@@ -3753,8 +4356,47 @@ export interface components {
             /** Format: date-time */
             expiresAt: string;
         };
+        /** @description The organizationInvitation.revoked event. */
+        OrganizationInvitationRevokedWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
+            id: string;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "organizationInvitation.revoked";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["OrganizationInvitationResponse"];
+        };
+        /** @description The organizationInvitation.updated event. */
+        OrganizationInvitationUpdatedWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
+            id: string;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "organizationInvitation.updated";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["OrganizationInvitationResponse"];
+        };
         OrganizationMemberResponse: {
             id: string;
+            organizationId: string;
             userId: string;
             email: null | string;
             roleId: string;
@@ -3762,8 +4404,65 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        /** @description The organizationMembership.created event. */
+        OrganizationMembershipCreatedWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
+            id: string;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "organizationMembership.created";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["OrganizationMemberResponse"];
+        };
+        /** @description The organizationMembership.deleted event. */
+        OrganizationMembershipDeletedWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
+            id: string;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "organizationMembership.deleted";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["DeletedResource"];
+        };
         OrganizationMembershipInput: {
             roleId: string;
+        };
+        /** @description The organizationMembership.updated event. */
+        OrganizationMembershipUpdatedWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
+            id: string;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "organizationMembership.updated";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["OrganizationMemberResponse"];
         };
         OrganizationResponse: {
             id: string;
@@ -3784,6 +4483,25 @@ export interface components {
             name: string;
             description?: null | string;
             permissionIds: string[];
+        };
+        /** @description The organization.updated event. */
+        OrganizationUpdatedWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
+            id: string;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "organization.updated";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["OrganizationDetailsResponse"];
         };
         PermissionResponse: {
             id: string;
@@ -3813,6 +4531,19 @@ export interface components {
             isSystem: boolean;
             permissions: string[];
         };
+        SecretKeyResponse: {
+            id: string;
+            /** @enum {string} */
+            object: "secret_key";
+            name: string;
+            prefix: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt: null | string;
+            /** Format: date-time */
+            lastUsedAt: null | string;
+        };
         SentInvitationResponse: {
             id: string;
             token: string;
@@ -3825,6 +4556,44 @@ export interface components {
         };
         ServiceResponse: {
             service: string;
+        };
+        /** @description The session.created event. */
+        SessionCreatedWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
+            id: string;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "session.created";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["SessionResponse"];
+        };
+        /** @description The session.ended event. */
+        SessionEndedWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
+            id: string;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "session.ended";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["SessionResponse"];
         };
         SessionResponse: {
             id: string;
@@ -3861,6 +4630,44 @@ export interface components {
         UpdateUserApiKeyInput: {
             scopes: string[];
             claims?: null | components["schemas"]["JsonObject"];
+        };
+        /** @description The user.created event. */
+        UserCreatedWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
+            id: string;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "user.created";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["UserResponse"];
+        };
+        /** @description The user.deleted event. */
+        UserDeletedWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
+            id: string;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "user.deleted";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["DeletedResource"];
         };
         UsernameInput: {
             username: null | string;
@@ -3909,6 +4716,25 @@ export interface components {
             /** @enum {string} */
             status: "active" | "disabled" | "locked";
         };
+        /** @description The user.updated event. */
+        UserUpdatedWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
+            id: string;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "user.updated";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["UserResponse"];
+        };
         VerifyUserApiKeyInput: {
             secret: string;
         };
@@ -3937,7 +4763,7 @@ export interface components {
             id: string;
             eventId: string;
             /** @enum {string} */
-            eventType: "user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired" | "endpoint.test";
+            eventType: "user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired" | "apiKey.expiring" | "email.created" | "endpoint.test";
             endpointId: string;
             endpointName: string;
             /** @enum {string} */
@@ -3963,7 +4789,7 @@ export interface components {
         WebhookEndpointInput: {
             name: string;
             url: string;
-            eventTypes: ("user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired")[];
+            eventTypes: ("user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired" | "apiKey.expiring" | "email.created")[];
             enabled: boolean;
             /** Format: date-time */
             expectedUpdatedAt?: null | string;
@@ -3972,7 +4798,7 @@ export interface components {
             id: string;
             name: string;
             url: string;
-            eventTypes: ("user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired")[];
+            eventTypes: ("user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired" | "apiKey.expiring" | "email.created")[];
             enabled: boolean;
             /** Format: date-time */
             failingSince: null | string;
@@ -3983,17 +4809,19 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        /** @description Any webhook event, told apart by its type. */
+        WebhookEvent: components["schemas"]["UserCreatedWebhookEvent"] | components["schemas"]["UserUpdatedWebhookEvent"] | components["schemas"]["UserDeletedWebhookEvent"] | components["schemas"]["SessionCreatedWebhookEvent"] | components["schemas"]["SessionEndedWebhookEvent"] | components["schemas"]["OrganizationCreatedWebhookEvent"] | components["schemas"]["OrganizationUpdatedWebhookEvent"] | components["schemas"]["OrganizationDeletedWebhookEvent"] | components["schemas"]["OrganizationMembershipCreatedWebhookEvent"] | components["schemas"]["OrganizationMembershipUpdatedWebhookEvent"] | components["schemas"]["OrganizationMembershipDeletedWebhookEvent"] | components["schemas"]["OrganizationInvitationCreatedWebhookEvent"] | components["schemas"]["OrganizationInvitationUpdatedWebhookEvent"] | components["schemas"]["OrganizationInvitationAcceptedWebhookEvent"] | components["schemas"]["OrganizationInvitationRevokedWebhookEvent"] | components["schemas"]["OrganizationInvitationExpiredWebhookEvent"] | components["schemas"]["ApiKeyExpiringWebhookEvent"] | components["schemas"]["EmailCreatedWebhookEvent"] | components["schemas"]["EndpointTestWebhookEvent"];
         WebhookEventSummary: {
             id: string;
             /** @enum {string} */
-            type: "user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired" | "endpoint.test";
+            type: "user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired" | "apiKey.expiring" | "email.created" | "endpoint.test";
             /** Format: date-time */
             createdAt: string;
             data: components["schemas"]["JsonElement"];
         };
         WebhookEventType: {
             /** @enum {string} */
-            type: "user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired";
+            type: "user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired" | "apiKey.expiring" | "email.created";
         };
         WebhookReplayResponse: {
             /** Format: int32 */
@@ -4002,6 +4830,11 @@ export interface components {
         WebhookReplaySinceInput: {
             /** Format: date-time */
             since: string;
+        };
+        WebhookTestData: {
+            /** @enum {string} */
+            object: "test";
+            message: string;
         };
         WebhookTestResponse: {
             id: string;
@@ -4015,4 +4848,423 @@ export interface components {
     pathItems: never;
 }
 export type $defs = Record<string, never>;
-export type operations = Record<string, never>;
+export interface operations {
+    UserCreatedWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserCreatedWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    UserUpdatedWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserUpdatedWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    UserDeletedWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserDeletedWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SessionCreatedWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionCreatedWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SessionEndedWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionEndedWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizationCreatedWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationCreatedWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizationUpdatedWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationUpdatedWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizationDeletedWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationDeletedWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizationMembershipCreatedWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationMembershipCreatedWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizationMembershipUpdatedWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationMembershipUpdatedWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizationMembershipDeletedWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationMembershipDeletedWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizationInvitationCreatedWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationInvitationCreatedWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizationInvitationUpdatedWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationInvitationUpdatedWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizationInvitationAcceptedWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationInvitationAcceptedWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizationInvitationRevokedWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationInvitationRevokedWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizationInvitationExpiredWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationInvitationExpiredWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ApiKeyExpiringWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApiKeyExpiringWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    EmailCreatedWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailCreatedWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    EndpointTestWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EndpointTestWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+}

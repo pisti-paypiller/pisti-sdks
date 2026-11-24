@@ -171,8 +171,8 @@ import { verifyWebhook } from "@pisti-paypiller/express/webhooks";
 app.post("/api/webhooks", express.raw({ type: "application/json" }), async (req, res) => {
     try {
         const event = await verifyWebhook(req);
-        // Events are typed and thin: read the current user with the backend API.
-        if (event.type === "user.created") await createLocalUser(await pistiClient.users.getUser(event.data.id));
+        // Events are typed: checking the type narrows data, here to the whole User.
+        if (event.type === "user.created") await createLocalUser(event.data);
         res.sendStatus(204);
     } catch {
         res.sendStatus(400);
@@ -182,7 +182,8 @@ app.post("/api/webhooks", express.raw({ type: "application/json" }), async (req,
 
 It checks the HMAC-SHA256 signature and the signed timestamp (five minutes' tolerance) before
 parsing. Pass `{ signingSecret: [current, previous] }` while rotating. Store `event.id` to ignore
-duplicates.
+duplicates. The event is a `WebhookEvent`, a union on `type` whose `data` is the resource in the
+backend API's shape (see [`@pisti-paypiller/backend`](../backend/README.md#webhooks)).
 
 ## Deploying
 

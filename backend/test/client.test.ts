@@ -21,22 +21,25 @@ interface Call {
     url: URL;
     body: unknown;
     authorization: string | null;
+    idempotencyKey: string | null;
 }
 
 /** Records every request and answers it with an envelope around `data` (or 204 when it is undefined). */
-function stubApi(data: unknown = {}, status = 200, body?: unknown) {
+function stubApi(data: unknown = {}, status = 200, body?: unknown, headers: Record<string, string> = {}) {
     const calls: Call[] = [];
     vi.stubGlobal("fetch", async (input: URL | string, init: RequestInit) => {
+        const sent = new Headers(init.headers);
         calls.push({
             method: String(init.method),
             url: new URL(String(input)),
             body: init.body === undefined ? undefined : JSON.parse(String(init.body)),
-            authorization: new Headers(init.headers).get("authorization"),
+            authorization: sent.get("authorization"),
+            idempotencyKey: sent.get("idempotency-key"),
         });
-        if (status === 204) return new Response(null, { status });
+        if (status === 204) return new Response(null, { status, headers });
         return new Response(JSON.stringify(body ?? { data, meta: { requestId: "req_1" } }), {
             status,
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...headers },
         });
     });
     return calls;
@@ -193,10 +196,23 @@ const routes: Route[] = [
     ["webhooks.endpoints", (p) => p.webhooks.endpoints(), "GET", "/v1/webhooks/endpoints"],
     [
         "webhooks.updateEndpoint",
-        (p) => p.webhooks.updateEndpoint(ENDPOINT, { name: "Main", url: "https://app.example.com/hooks", eventTypes: ["user.created"], enabled: false, expectedUpdatedAt: AT }),
+        (p) =>
+            p.webhooks.updateEndpoint(ENDPOINT, {
+                name: "Main",
+                url: "https://app.example.com/hooks",
+                eventTypes: ["user.created", "apiKey.expiring", "email.created"],
+                enabled: false,
+                expectedUpdatedAt: AT,
+            }),
         "PUT",
         `/v1/webhooks/endpoints/${ENDPOINT}`,
-        { name: "Main", url: "https://app.example.com/hooks", eventTypes: ["user.created"], enabled: false, expectedUpdatedAt: AT },
+        {
+            name: "Main",
+            url: "https://app.example.com/hooks",
+            eventTypes: ["user.created", "apiKey.expiring", "email.created"],
+            enabled: false,
+            expectedUpdatedAt: AT,
+        },
     ],
     ["webhooks.archiveEndpoint", (p) => p.webhooks.archiveEndpoint(ENDPOINT), "POST", `/v1/webhooks/endpoints/${ENDPOINT}/archive`],
     ["webhooks.sendTest", (p) => p.webhooks.sendTest(ENDPOINT), "POST", `/v1/webhooks/endpoints/${ENDPOINT}/test`],
@@ -226,6 +242,7 @@ describe("Backend API routes", () => {
         expect(sent!.url.pathname + sent!.url.search).toBe(path);
         expect(sent!.body).toEqual(body);
         expect(sent!.authorization).toBe(`Bearer ${SECRET_KEY}`);
+        expect(sent!.idempotencyKey).toBeNull();
     });
 
     it("lists every client method in the route table", () => {
@@ -238,6 +255,58 @@ describe("Backend API routes", () => {
         );
         const tested = new Set(routes.map(([name]) => name));
         expect(methods.filter((name) => !tested.has(name))).toEqual([]);
+    });
+});
+
+describe("Idempotency keys", () => {
+    const KEY_VALUE = "order-1842:create-user";
+    const mutations: [name: string, call: (pisti: PistiClient) => Promise<unknown>][] = [
+        ["users.createUser", (p) => p.users.createUser({ email: "a@example.com" }, { idempotencyKey: KEY_VALUE })],
+        ["users.updateUser", (p) => p.users.updateUser(USER, { expectedUpdatedAt: AT, firstName: "A", lastName: "B", publicMetadata: {}, privateMetadata: {}, unsafeMetadata: {} }, { idempotencyKey: KEY_VALUE })],
+        ["users.banUser", (p) => p.users.banUser(USER, { idempotencyKey: KEY_VALUE })],
+        ["users.deleteUser", (p) => p.users.deleteUser(USER, { idempotencyKey: KEY_VALUE })],
+        ["users.setEmailVerification", (p) => p.users.setEmailVerification(USER, EMAIL, "verified", { verificationReason: "Checked by HR system", idempotencyKey: KEY_VALUE })],
+        ["apiKeys.revokeApiKey", (p) => p.apiKeys.revokeApiKey(KEY, { revocationReason: "Leaked", idempotencyKey: KEY_VALUE })],
+        ["organizations.createOrganizationInvitation", (p) => p.organizations.createOrganizationInvitation(ORG, { email: "c@example.com", roleId: ROLE, lifetimeDays: 7 }, { idempotencyKey: KEY_VALUE })],
+        ["webhooks.replayEndpoint", (p) => p.webhooks.replayEndpoint(ENDPOINT, AT, { idempotencyKey: KEY_VALUE })],
+    ];
+
+    it.each(mutations)("%s sends the key as Idempotency-Key", async (_, call) => {
+        const calls = stubApi({ id: USER });
+        await call(client());
+        expect(calls[0]!.idempotencyKey).toBe(KEY_VALUE);
+    });
+
+    it("sends no Idempotency-Key without one", async () => {
+        const calls = stubApi({ id: USER });
+        await client().users.createUser({ email: "a@example.com" });
+        await client().users.createUser({ email: "a@example.com" }, {});
+        expect(calls.map((call) => call.idempotencyKey)).toEqual([null, null]);
+    });
+
+    it.each(["", "x".repeat(256), "naïve", "line\nbreak"])("refuses the malformed key %j before calling the API", async (key) => {
+        const calls = stubApi({ id: USER });
+        await expect(client().users.createUser({ email: "a@example.com" }, { idempotencyKey: key })).rejects.toThrow(/idempotency key/);
+        expect(calls).toHaveLength(0);
+    });
+
+    it("returns a replayed response like the first", async () => {
+        stubApi({ id: USER }, 200, undefined, { "Idempotent-Replayed": "true" });
+        await expect(client().users.createUser({ email: "a@example.com" }, { idempotencyKey: KEY_VALUE })).resolves.toEqual({ id: USER });
+    });
+
+    it.each([
+        [409, "idempotency_key_reused", "The idempotency key was used with another request."],
+        [409, "idempotency_key_in_progress", "A request with this idempotency key is still running."],
+        [400, "invalid_idempotency_key", "The idempotency key is invalid."],
+    ])("turns %i %s into PistiAPIResponseError", async (status, code, detail) => {
+        stubApi(undefined, status, { title: "Conflict", detail, status, code, requestId: "req_7" });
+        const error = await client()
+            .users.createUser({ email: "a@example.com" }, { idempotencyKey: KEY_VALUE })
+            .catch((reason: unknown) => reason);
+
+        expect(error).toBeInstanceOf(PistiAPIResponseError);
+        expect(error).toMatchObject({ status, code, message: detail, requestId: "req_7" });
     });
 });
 

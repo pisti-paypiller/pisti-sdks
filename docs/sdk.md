@@ -108,7 +108,18 @@ replays them. Deleting a user or organization that something still depends on fa
 the blockers (`{ code, count, message }`) in `PistiAPIResponseError.blockers`. Lists page with cursors: each list method takes `{ limit, cursor }`, an
 `orderBy` where the list offers one (users, organizations) and its own filters, and returns
 `{ items, nextCursor, hasMore }`; `list()` (or `list<Things>()` for a nested list) is an async
-iterator over every page, and `getCount()` returns a total. Webhook events are a typed union keyed by `type`. `verifyWebhook(req)` from
+iterator over every page, and `getCount()` returns a total. Every mutation method takes an optional
+`idempotencyKey`, sent as the Backend API's `Idempotency-Key` header (`pisti-backend/docs/api.md#idempotency`):
+a retry with the same key gets the first request's stored response instead of running again. The
+client never retries on its own, so it never generates a key; the caller derives one from its own
+operation, so its retries send the same key. The three idempotency failures are
+`PistiAPIResponseError`s with their `status` and `code`: 409 `idempotency_key_reused`, 409
+`idempotency_key_in_progress` and 400 `invalid_idempotency_key`.
+
+Webhook events (`WebhookEvent`) are aliases of the event schemas in `openapi/backend.json`'s `webhooks`
+section: a union discriminated by `type` whose `data` is the full resource in the Backend API's shape,
+so `event.type === "user.created"` narrows `event.data` to `User`, and a deletion carries a
+`DeletedResource`. `verifyWebhook(req)` from
 `@pisti-paypiller/express/webhooks` (or `@pisti-paypiller/backend/webhooks` for a Fetch `Request`) reads
 `PISTI_WEBHOOK_SIGNING_SECRET`.
 

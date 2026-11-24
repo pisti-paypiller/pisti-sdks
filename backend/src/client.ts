@@ -5,6 +5,7 @@ import type { paths } from "./generated/backend.js";
 import type {
     PistiClientOptions,
     RequestOptions,
+    MutationOptions,
     Instance,
     PageOptions,
     Page,
@@ -180,7 +181,7 @@ type RequestResource = <M extends Method, P extends PathsWith<M>>(
     method: M,
     path: P,
     init: RequestInit<Operation<M, P>>,
-    options?: RequestOptions,
+    options?: M extends "get" ? RequestOptions : MutationOptions,
 ) => Promise<ResponseData<Operation<M, P>>>;
 
 /** Fills a path template's `{name}` parameters and appends the query, leaving out undefined values. */
@@ -318,12 +319,15 @@ export class PistiClient {
         method: string,
         path: string,
         body?: unknown,
-        options: RequestOptions = {},
+        options: MutationOptions = {},
     ): Promise<T> {
         const serialized =
             body === undefined ? undefined : JSON.stringify(body);
         if (serialized && Buffer.byteLength(serialized) > 65_536)
             throw new Error("The backend API request exceeds 64 KiB.");
+        const { idempotencyKey } = options;
+        if (idempotencyKey !== undefined && !/^[ -~]{1,255}$/.test(idempotencyKey))
+            throw new Error("Use an idempotency key of 1 to 255 printable ASCII characters.");
         const secretKey = this.#requireSecretKey();
         let response: Response;
         let payload: unknown;
@@ -339,6 +343,9 @@ export class PistiClient {
                         ...(serialized === undefined
                             ? {}
                             : { "Content-Type": "application/json" }),
+                        ...(idempotencyKey === undefined
+                            ? {}
+                            : { "Idempotency-Key": idempotencyKey }),
                     },
                     ...(serialized === undefined ? {} : { body: serialized }),
                     signal: options.signal
@@ -456,26 +463,26 @@ export class UsersApi {
         ).totalCount;
     getUser = (id: string, options?: RequestOptions): Promise<User> =>
         this.request("get", "/v1/users/{userId}", { path: { userId: publicId(id) } }, options);
-    createUser = (input: CreateUserInput, options?: RequestOptions): Promise<User> =>
+    createUser = (input: CreateUserInput, options?: MutationOptions): Promise<User> =>
         this.request("post", "/v1/users", { body: input }, options);
-    updateUser = (id: string, input: UpdateUserInput, options?: RequestOptions): Promise<void> =>
+    updateUser = (id: string, input: UpdateUserInput, options?: MutationOptions): Promise<void> =>
         this.request("put", "/v1/users/{userId}", { path: { userId: publicId(id) }, body: input }, options);
     /** Sets, changes or (with null) removes the user's username. */
-    updateUsername = (id: string, username: string | null, options?: RequestOptions): Promise<void> =>
+    updateUsername = (id: string, username: string | null, options?: MutationOptions): Promise<void> =>
         this.request("put", "/v1/users/{userId}/username", { path: { userId: publicId(id) }, body: { username } }, options);
-    private setStatus = (id: string, status: UserStatus, options?: RequestOptions): Promise<void> =>
+    private setStatus = (id: string, status: UserStatus, options?: MutationOptions): Promise<void> =>
         this.request("put", "/v1/users/{userId}/status", { path: { userId: publicId(id) }, body: { status } }, options);
     /** Disables the account and ends its sessions. */
-    banUser = (id: string, options?: RequestOptions): Promise<void> =>
+    banUser = (id: string, options?: MutationOptions): Promise<void> =>
         this.setStatus(id, "disabled", options);
-    unbanUser = (id: string, options?: RequestOptions): Promise<void> =>
+    unbanUser = (id: string, options?: MutationOptions): Promise<void> =>
         this.setStatus(id, "active", options);
-    lockUser = (id: string, options?: RequestOptions): Promise<void> =>
+    lockUser = (id: string, options?: MutationOptions): Promise<void> =>
         this.setStatus(id, "locked", options);
-    unlockUser = (id: string, options?: RequestOptions): Promise<void> =>
+    unlockUser = (id: string, options?: MutationOptions): Promise<void> =>
         this.setStatus(id, "active", options);
     /** Deletes the user. Throws `PistiAPIResponseError` (409) with `blockers` while something stops it. */
-    deleteUser = (id: string, options?: RequestOptions): Promise<void> =>
+    deleteUser = (id: string, options?: MutationOptions): Promise<void> =>
         this.request("delete", "/v1/users/{userId}", { path: { userId: publicId(id) } }, options);
     /** The organizations the user belongs to. */
     getUserOrganizationList = (id: string, options: PageOptions = {}): Promise<Page<UserOrganization>> =>
@@ -492,13 +499,13 @@ export class UsersApi {
     /** The user's email addresses, whole, in one page. */
     getUserEmailAddressList = (id: string, options?: RequestOptions): Promise<Page<EmailAddress>> =>
         this.request("get", "/v1/users/{userId}/email-addresses", { path: { userId: publicId(id) } }, options);
-    addEmailAddress = (id: string, input: AddEmailAddressInput, options?: RequestOptions): Promise<{ id: string }> =>
+    addEmailAddress = (id: string, input: AddEmailAddressInput, options?: MutationOptions): Promise<{ id: string }> =>
         this.request("post", "/v1/users/{userId}/email-addresses", { path: { userId: publicId(id) }, body: input }, options);
     setEmailVerification = (
         id: string,
         emailId: string,
         status: "verified" | "unverified",
-        options?: RequestOptions & { verificationReason?: string },
+        options?: MutationOptions & { verificationReason?: string },
     ): Promise<void> =>
         this.request(
             "put",
@@ -512,14 +519,14 @@ export class UsersApi {
             },
             options,
         );
-    setPrimaryEmail = (id: string, emailId: string, options?: RequestOptions): Promise<void> =>
+    setPrimaryEmail = (id: string, emailId: string, options?: MutationOptions): Promise<void> =>
         this.request(
             "put",
             "/v1/users/{userId}/email-addresses/{emailId}/primary",
             { path: { userId: publicId(id), emailId: publicId(emailId) } },
             options,
         );
-    removeEmailAddress = (id: string, emailId: string, options?: RequestOptions): Promise<void> =>
+    removeEmailAddress = (id: string, emailId: string, options?: MutationOptions): Promise<void> =>
         this.request(
             "delete",
             "/v1/users/{userId}/email-addresses/{emailId}",
@@ -533,10 +540,10 @@ export class UsersApi {
     createUserExternalAccount = (
         id: string,
         input: CreateExternalAccountInput,
-        options?: RequestOptions,
+        options?: MutationOptions,
     ): Promise<{ id: string }> =>
         this.request("post", "/v1/users/{userId}/external-accounts", { path: { userId: publicId(id) }, body: input }, options);
-    deleteUserExternalAccount = (id: string, externalAccountId: string, options?: RequestOptions): Promise<void> =>
+    deleteUserExternalAccount = (id: string, externalAccountId: string, options?: MutationOptions): Promise<void> =>
         this.request(
             "delete",
             "/v1/users/{userId}/external-accounts/{externalId}",
@@ -550,11 +557,11 @@ export class ExternalProvidersApi {
     /** The environment's upstream providers, whole, in one page. */
     getExternalProviderList = (options?: RequestOptions): Promise<Page<ExternalProvider>> =>
         this.request("get", "/v1/external_providers", {}, options);
-    create = (input: CreateExternalProviderInput, options?: RequestOptions): Promise<ExternalProvider> =>
+    create = (input: CreateExternalProviderInput, options?: MutationOptions): Promise<ExternalProvider> =>
         this.request("post", "/v1/external_providers", { body: input }, options);
-    update = (id: string, input: UpdateExternalProviderInput, options?: RequestOptions): Promise<ExternalProvider> =>
+    update = (id: string, input: UpdateExternalProviderInput, options?: MutationOptions): Promise<ExternalProvider> =>
         this.request("put", "/v1/external_providers/{providerId}", { path: { providerId: publicId(id) }, body: input }, options);
-    delete = (id: string, options?: RequestOptions): Promise<void> =>
+    delete = (id: string, options?: MutationOptions): Promise<void> =>
         this.request("delete", "/v1/external_providers/{providerId}", { path: { providerId: publicId(id) } }, options);
 }
 
@@ -567,14 +574,14 @@ export class WebhooksApi {
     endpoints = (options?: RequestOptions): Promise<Page<WebhookEndpoint>> =>
         this.request("get", "/v1/webhooks/endpoints", {}, options);
     /** Replaces an endpoint's settings. Pass `expectedUpdatedAt` to fail if it changed since you read it. */
-    updateEndpoint = (id: string, input: UpdateWebhookEndpointInput, options?: RequestOptions): Promise<WebhookEndpoint> =>
+    updateEndpoint = (id: string, input: UpdateWebhookEndpointInput, options?: MutationOptions): Promise<WebhookEndpoint> =>
         this.request("put", "/v1/webhooks/endpoints/{endpointId}", { path: { endpointId: publicId(id) }, body: input }, options);
-    archiveEndpoint = (id: string, options?: RequestOptions): Promise<void> =>
+    archiveEndpoint = (id: string, options?: MutationOptions): Promise<void> =>
         this.request("post", "/v1/webhooks/endpoints/{endpointId}/archive", { path: { endpointId: publicId(id) } }, options);
-    sendTest = (id: string, options?: RequestOptions): Promise<{ id: string; eventId: string }> =>
+    sendTest = (id: string, options?: MutationOptions): Promise<{ id: string; eventId: string }> =>
         this.request("post", "/v1/webhooks/endpoints/{endpointId}/test", { path: { endpointId: publicId(id) } }, options);
     /** Queues every event since `since` (an ISO timestamp) again for one endpoint; returns how many were queued. */
-    replayEndpoint = (id: string, since: string, options?: RequestOptions): Promise<{ queued: number }> =>
+    replayEndpoint = (id: string, since: string, options?: MutationOptions): Promise<{ queued: number }> =>
         this.request(
             "post",
             "/v1/webhooks/endpoints/{endpointId}/replay",
@@ -609,7 +616,7 @@ export class WebhooksApi {
             options,
         )) as WebhookDeliveryDetails;
     /** Sends one delivery again. */
-    replay = (id: string, options?: RequestOptions): Promise<void> =>
+    replay = (id: string, options?: MutationOptions): Promise<void> =>
         this.request("post", "/v1/webhooks/deliveries/{deliveryId}/replay", { path: { deliveryId: publicId(id) } }, options);
 }
 
@@ -633,14 +640,14 @@ export class ApiKeysApi {
     getApiKey = (id: string, options?: RequestOptions): Promise<ApiKey> =>
         this.request("get", "/v1/api_keys/{keyId}", { path: { keyId: publicId(id) } }, options);
     /** Sets what a key may do in your API. Only your backend grants scopes and claims; the key's owner cannot. */
-    updateApiKey = (id: string, input: UpdateApiKeyInput, options?: RequestOptions): Promise<ApiKey> =>
+    updateApiKey = (id: string, input: UpdateApiKeyInput, options?: MutationOptions): Promise<ApiKey> =>
         this.request(
             "put",
             "/v1/api_keys/{keyId}",
             { path: { keyId: publicId(id) }, body: { scopes: input.scopes, claims: input.claims ?? null } },
             options,
         );
-    revokeApiKey = (id: string, options: RequestOptions & { revocationReason?: string } = {}): Promise<void> =>
+    revokeApiKey = (id: string, options: MutationOptions & { revocationReason?: string } = {}): Promise<void> =>
         this.request(
             "post",
             "/v1/api_keys/{keyId}/revoke",
@@ -672,7 +679,7 @@ export class SessionsApi {
         paginate(this.getSessionList, options);
     getSession = (id: string, options?: RequestOptions): Promise<Session> =>
         this.request("get", "/v1/sessions/{sessionId}", { path: { sessionId: publicId(id) } }, options);
-    revokeSession = (id: string, options?: RequestOptions): Promise<void> =>
+    revokeSession = (id: string, options?: MutationOptions): Promise<void> =>
         this.request("delete", "/v1/sessions/{sessionId}", { path: { sessionId: publicId(id) } }, options);
 }
 
@@ -694,9 +701,9 @@ export class OrganizationsApi {
             .totalCount;
     getOrganization = (id: string, options?: RequestOptions): Promise<OrganizationDetails> =>
         this.request("get", "/v1/organizations/{organizationId}", { path: { organizationId: publicId(id) } }, options);
-    createOrganization = (input: CreateOrganizationInput, options?: RequestOptions): Promise<{ id: string }> =>
+    createOrganization = (input: CreateOrganizationInput, options?: MutationOptions): Promise<{ id: string }> =>
         this.request("post", "/v1/organizations", { body: input }, options);
-    updateOrganization = (id: string, input: UpdateOrganizationInput, options?: RequestOptions): Promise<void> =>
+    updateOrganization = (id: string, input: UpdateOrganizationInput, options?: MutationOptions): Promise<void> =>
         this.request(
             "put",
             "/v1/organizations/{organizationId}",
@@ -704,7 +711,7 @@ export class OrganizationsApi {
             options,
         );
     /** Deletes the organization. Throws `PistiAPIResponseError` (409) with `blockers` while something stops it. */
-    deleteOrganization = (id: string, options?: RequestOptions): Promise<void> =>
+    deleteOrganization = (id: string, options?: MutationOptions): Promise<void> =>
         this.request("delete", "/v1/organizations/{organizationId}", { path: { organizationId: publicId(id) } }, options);
     getOrganizationMembershipList = (
         id: string,
@@ -724,14 +731,14 @@ export class OrganizationsApi {
         return paginate((page) => this.getOrganizationMembershipList(id, page), options);
     };
     /** Changes a member's role. */
-    updateOrganizationMembership = (id: string, userId: string, roleId: string, options?: RequestOptions): Promise<void> =>
+    updateOrganizationMembership = (id: string, userId: string, roleId: string, options?: MutationOptions): Promise<void> =>
         this.request(
             "put",
             "/v1/organizations/{organizationId}/memberships/{userId}",
             { path: { organizationId: publicId(id), userId: publicId(userId) }, body: { roleId: publicId(roleId) } },
             options,
         );
-    deleteOrganizationMembership = (id: string, userId: string, options?: RequestOptions): Promise<void> =>
+    deleteOrganizationMembership = (id: string, userId: string, options?: MutationOptions): Promise<void> =>
         this.request(
             "delete",
             "/v1/organizations/{organizationId}/memberships/{userId}",
@@ -758,7 +765,7 @@ export class OrganizationsApi {
     createOrganizationInvitation = (
         id: string,
         input: CreateOrganizationInvitationInput,
-        options?: RequestOptions,
+        options?: MutationOptions,
     ): Promise<InvitationResult> =>
         this.request(
             "post",
@@ -770,7 +777,7 @@ export class OrganizationsApi {
         id: string,
         invitationId: string,
         input: ResendOrganizationInvitationInput,
-        options?: RequestOptions,
+        options?: MutationOptions,
     ): Promise<InvitationResult> =>
         this.request(
             "post",
@@ -778,7 +785,7 @@ export class OrganizationsApi {
             { path: { organizationId: publicId(id), invitationId: publicId(invitationId) }, body: input },
             options,
         );
-    revokeOrganizationInvitation = (id: string, invitationId: string, options?: RequestOptions): Promise<void> =>
+    revokeOrganizationInvitation = (id: string, invitationId: string, options?: MutationOptions): Promise<void> =>
         this.request(
             "delete",
             "/v1/organizations/{organizationId}/invitations/{invitationId}",
@@ -787,21 +794,21 @@ export class OrganizationsApi {
         );
     getRoleList = (id: string, options?: RequestOptions): Promise<Role[]> =>
         this.request("get", "/v1/organizations/{organizationId}/roles", { path: { organizationId: publicId(id) } }, options);
-    createRole = (id: string, input: RoleInput, options?: RequestOptions): Promise<{ id: string }> =>
+    createRole = (id: string, input: RoleInput, options?: MutationOptions): Promise<{ id: string }> =>
         this.request(
             "post",
             "/v1/organizations/{organizationId}/roles",
             { path: { organizationId: publicId(id) }, body: input },
             options,
         );
-    updateRole = (id: string, roleId: string, input: RoleInput, options?: RequestOptions): Promise<void> =>
+    updateRole = (id: string, roleId: string, input: RoleInput, options?: MutationOptions): Promise<void> =>
         this.request(
             "put",
             "/v1/organizations/{organizationId}/roles/{roleId}",
             { path: { organizationId: publicId(id), roleId: publicId(roleId) }, body: input },
             options,
         );
-    deleteRole = (id: string, roleId: string, options?: RequestOptions): Promise<void> =>
+    deleteRole = (id: string, roleId: string, options?: MutationOptions): Promise<void> =>
         this.request(
             "delete",
             "/v1/organizations/{organizationId}/roles/{roleId}",

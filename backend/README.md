@@ -125,7 +125,24 @@ and `list<Things>` for a nested one (`users.listOrganizations(id)`,
 environment, including its `issuerUrl` and `jwtKey`.
 
 Pass `{ signal }` to cancel; `timeoutMs` defaults to 10 seconds; mutations are never retried
-automatically. Errors are `PistiAPIResponseError` with `status`, `requestId`, `code`,
+automatically.
+
+Every mutation (create, update, delete, revoke, replay, …) also takes `{ idempotencyKey }`, sent
+as the `Idempotency-Key` header: 1 to 255 printable ASCII characters, kept by the API for 24 hours
+in the secret key's environment. Retry a request with the same key and the API returns the first
+request's stored response instead of running it again. The SDK never makes up a key: derive one
+from your own operation (a job or order ID) so that your own retries, even from another process,
+send the same one.
+
+```ts
+await pisti.users.createUser({ email }, { idempotencyKey: `signup:${job.id}` });
+```
+
+The same key with another request fails with 409 `idempotency_key_reused`, a key whose first
+request is still running with 409 `idempotency_key_in_progress` (retry it later), and a malformed
+key with 400 `invalid_idempotency_key`.
+
+Errors are `PistiAPIResponseError` with `status`, `requestId`, `code`,
 `fieldErrors`, `blockers` and `retryAfterSeconds`. `deleteUser` and `deleteOrganization` fail with
 409 while something stops the deletion; `blockers` then lists each as `{ code, count, message }`.
 The client refuses to run in a browser. Every method's path, query and body are checked at compile
@@ -144,7 +161,7 @@ import { verifyWebhook } from "@pisti-paypiller/backend/webhooks";
 export async function POST(request: Request) {
     try {
         const event = await verifyWebhook(request);
-        if (event.type === "organizationMembership.created") await addMember(event.data.organization_id, event.data.user_id);
+        if (event.type === "organizationMembership.created") await addMember(event.data.organizationId, event.data.userId);
         return new Response(null, { status: 204 });
     } catch {
         return new Response("Invalid signature", { status: 400 });
@@ -152,9 +169,13 @@ export async function POST(request: Request) {
 }
 ```
 
-`PistiWebhookEvent` is a union keyed by `type`, so checking `event.type` narrows `event.data`.
-Events are thin: `data` holds the resource's ID and references; read the current state with
-the backend API. Verification checks the HMAC-SHA256 signature and timestamp (five minutes'
+`WebhookEvent` is a union keyed by `type`, so checking `event.type` narrows `event.data`.
+`data` is the whole resource in the shape the backend API returns it: a `User` for `user.created`
+and `user.updated`, a `Session`, an `Organization`, an `OrganizationMembership` or an
+`OrganizationInvitation`, a `SecretKey` for `apiKey.expiring`, an `Email` for `email.created`,
+and a `DeletedResource` (`{ object, id, deleted: true }`) for a deletion. The types are aliases of
+the event schemas in the Backend API contract; `WebhookEventOf<"user.created">` is one event type.
+Events have no global order, so compare the resource's `updatedAt` where order matters. Verification checks the HMAC-SHA256 signature and timestamp (five minutes'
 tolerance) on the raw body. Pass `{ signingSecret: [current, previous] }` while rotating and
 `{ expectedInstanceId: "ins_…" }` to pin events to one environment. Store `event.id` to ignore
 duplicates.

@@ -3,7 +3,6 @@
 // review. Only the SDK's own options and the error details the contract does not describe are written
 // by hand.
 import type { components, paths } from "./generated/backend.js";
-import type { PistiWebhookEvent } from "./webhooks.js";
 
 type Schemas = components["schemas"];
 type Query<P extends keyof paths> = NonNullable<NonNullable<paths[P]["get"]>["parameters"]["query"]>;
@@ -42,6 +41,16 @@ export interface ApiKeyListOptions extends PageOptions {
 
 export interface RequestOptions {
     signal?: AbortSignal;
+}
+
+/** The options of a Backend API mutation. */
+export interface MutationOptions extends RequestOptions {
+    /**
+     * Sent as the `Idempotency-Key` header (1 to 255 printable ASCII characters, kept for 24 hours). Send the same
+     * key when you retry the same request and the API returns the first request's stored response instead of
+     * running it again. Use a new key for each distinct change, for example a UUID stored with your own job.
+     */
+    idempotencyKey?: string;
 }
 
 /** One page of a list: `limit` (1–100, default 50) and the `nextCursor` of the page before. */
@@ -162,7 +171,7 @@ export type WebhookEventType = Schemas["WebhookEventType"]["type"];
 /** One entry of the webhook event catalog. */
 export type WebhookCatalogEntry = Schemas["WebhookEventType"];
 
-/** `eventTypes` holds 1–16 event types. */
+/** `eventTypes` holds 1–32 event types. */
 export type WebhookEndpointInput = Omit<Schemas["WebhookEndpointInput"], "expectedUpdatedAt">;
 /** `expectedUpdatedAt` is the `updatedAt` you read; the update fails if the endpoint changed since. */
 export type UpdateWebhookEndpointInput = Schemas["WebhookEndpointInput"];
@@ -183,6 +192,24 @@ export interface WebhookDeliveryListOptions extends PageOptions {
 export type WebhookDelivery = Schemas["WebhookDeliverySummary"];
 /** A delivery with its payload and the most recent 100 attempts, including interrupted attempts without a result. */
 export type WebhookDeliveryDetails = Omit<Schemas["WebhookDeliveryDetailsResponse"], "payload"> & {
-    payload: PistiWebhookEvent;
+    payload: WebhookEvent;
 };
 export type WebhookDeliveryAttempt = Schemas["WebhookAttemptResponse"];
+
+/**
+ * A webhook event, like Clerk's `WebhookEvent`: the envelope (`id`, `object`, `type`, `timestamp`, `instance_id`)
+ * with the changed resource in `data`, in the shape the Backend API returns it. A union on `type`, so checking
+ * `event.type` narrows `event.data`: `user.created` carries a `User`, `user.deleted` a `DeletedResource`,
+ * `organizationMembership.created` an `OrganizationMembership`.
+ */
+export type WebhookEvent = Schemas["WebhookEvent"];
+/** The event of one type, for example `WebhookEventOf<"user.created">`. */
+export type WebhookEventOf<T extends WebhookEvent["type"]> = Extract<WebhookEvent, { type: T }>;
+/** The data of a deletion event (`user.deleted`, `organization.deleted`, `organizationMembership.deleted`). */
+export type DeletedResource = Schemas["DeletedResource"];
+/** The data of `email.created`: the email's kind (`slug`), recipient, user and subject, never its body. */
+export type Email = Schemas["EmailResponse"];
+/** The data of `apiKey.expiring`: the environment's secret key (name, prefix, expiry), never the secret. */
+export type SecretKey = Schemas["SecretKeyResponse"];
+/** The data of `endpoint.test`, the event a test delivery carries. */
+export type WebhookTestData = Schemas["WebhookTestData"];
