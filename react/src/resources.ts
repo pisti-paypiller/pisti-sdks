@@ -129,27 +129,27 @@ export interface Organization {
 }
 /** Public metadata is read-only here: only your backend sets it, because your app may trust it. */
 export type OrganizationInput = Pick<FrontendSchemas["OrganizationInput"], "name" | "slug" | "imageUrl" | "expectedUpdatedAt">;
+/** A member and their role, by key (`org:admin`) and name. */
 export interface OrganizationMember {
+    id: string;
     userId: string;
-    email: string;
-    roleId: string;
-    roleKey: string;
+    email: string | null;
+    role: string;
+    roleName: string;
     createdAt: string;
 }
+/** An invitation and the role it grants, by key and name. */
 export interface OrganizationInvitation {
     id: string;
     email: string;
-    roleId: string;
+    role: string;
+    roleName: string;
     status: string;
     expiresAt: string;
     createdAt: string;
 }
-export interface OrganizationRole {
-    id: string;
-    key: string;
-    name: string;
-    permissions: string[];
-}
+/** One of the environment's organization roles, which every organization shares. */
+export type OrganizationRole = FrontendSchemas["OrganizationRoleResponse"];
 
 export type ResourceRequest = <T>(
     method: string,
@@ -360,17 +360,25 @@ export class OrganizationResource {
             (query) => this.invitationsPage(id, query),
             this.beginOperation(),
         );
-    roles = (id: string): Promise<OrganizationRole[]> =>
-        this.request("GET", `/v1/account/organizations/${publicId(id)}/roles`);
+    /** The roles the signed-in member may give others in the organization: none without
+     * `org:sys_memberships:manage`, otherwise every role whose permissions they all hold. */
+    assignableRoles = async (id: string): Promise<OrganizationRole[]> =>
+        (
+            await this.request<FrontendSchemas["ListPageOfOrganizationRoleResponse"]>(
+                "GET",
+                `/v1/account/organizations/${publicId(id)}/roles`,
+            )
+        ).items;
+    /** Invites someone into a role, by key (`org:member`); without one, the environment's default role. */
     invite = (
         id: string,
         email: string,
-        roleId: string,
+        role?: string,
     ): Promise<{ id: string; expiresAt: string }> =>
         this.request(
             "POST",
             `/v1/account/organizations/${publicId(id)}/invitations`,
-            { email, roleId: publicId(roleId) },
+            role === undefined ? { email } : { email, role },
         );
     acceptInvitation = (token: string): Promise<void> =>
         this.request("POST", "/v1/account/organizations/accept-invitation", {
@@ -381,15 +389,16 @@ export class OrganizationResource {
             "DELETE",
             `/v1/account/organizations/${publicId(id)}/invitations/${publicId(invitationId)}`,
         );
+    /** Changes a member's role, by key (`org:admin`). */
     setMemberRole = (
         id: string,
         userId: string,
-        roleId: string,
+        role: string,
     ): Promise<void> =>
         this.request(
             "PUT",
             `/v1/account/organizations/${publicId(id)}/memberships/${publicId(userId)}`,
-            { roleId: publicId(roleId) },
+            { role },
         );
     removeMember = (id: string, userId: string): Promise<void> =>
         this.request(
@@ -401,7 +410,7 @@ export class OrganizationResource {
             "POST",
             `/v1/account/organizations/${publicId(id)}/leave`,
         );
-    /** Deletes the organization. Only an owner can; every membership and pending invitation ends with it. */
+    /** Deletes the organization, with `org:sys_profile:delete`; every membership and pending invitation ends with it. */
     delete = (id: string): Promise<void> =>
         this.request("DELETE", `/v1/account/organizations/${publicId(id)}`);
 }

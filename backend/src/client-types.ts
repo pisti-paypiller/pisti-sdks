@@ -143,7 +143,7 @@ export type OrganizationMembership = Schemas["OrganizationMemberResponse"];
 
 export type OrganizationInvitation = Schemas["OrganizationInvitationResponse"];
 
-/** `lifetimeDays` is 1–30. */
+/** `role` is the role's key; the environment's default role when omitted. `lifetimeDays` is 1–30. */
 export type CreateOrganizationInvitationInput = Schemas["OrganizationInvitationInput"];
 
 /** `expectedExpiresAt` is the invitation's `expiresAt`; the resend fails if it changed since. */
@@ -151,11 +151,21 @@ export type ResendOrganizationInvitationInput = Schemas["ResendInvitationInput"]
 
 export type InvitationResult = Schemas["SentInvitationResponse"];
 
-export type Role = Schemas["RoleSummary"];
+/** An organization role of the environment, with the permissions it grants. */
+export type Role = Schemas["OrganizationRoleResponse"];
 
-export type RoleInput = Schemas["OrganizationRoleInput"];
+export type CreateRoleInput = Schemas["CreateOrganizationRoleInput"];
 
-export type Permission = Schemas["PermissionResponse"];
+/** `expectedUpdatedAt` is the `updatedAt` you read; the update fails if the role changed since. */
+export type UpdateRoleInput = Schemas["UpdateOrganizationRoleInput"];
+
+/** An organization permission: `type` is `system` (`org:sys_…`) or `user` (your own). */
+export type Permission = Schemas["OrganizationPermissionResponse"];
+
+export type CreatePermissionInput = Schemas["CreateOrganizationPermissionInput"];
+
+/** `expectedUpdatedAt` is the `updatedAt` you read; the update fails if the permission changed since. */
+export type UpdatePermissionInput = Schemas["UpdateOrganizationPermissionInput"];
 
 export type ExternalProvider = Schemas["ExternalProviderSummary"];
 
@@ -205,7 +215,8 @@ export type WebhookDeliveryAttempt = Schemas["WebhookAttemptResponse"];
 export type WebhookEvent = Schemas["WebhookEvent"];
 /** The event of one type, for example `WebhookEventOf<"user.created">`. */
 export type WebhookEventOf<T extends WebhookEvent["type"]> = Extract<WebhookEvent, { type: T }>;
-/** The data of a deletion event (`user.deleted`, `organization.deleted`, `organizationMembership.deleted`). */
+/** The data of a deletion event (`user.deleted`, `organization.deleted`, `organizationMembership.deleted`, `role.deleted`,
+ * `permission.deleted`). */
 export type DeletedResource = Schemas["DeletedResource"];
 /** The data of `email.created`: the email's kind (`slug`), recipient, user and subject, never its body. */
 export type Email = Schemas["EmailResponse"];

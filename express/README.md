@@ -68,8 +68,8 @@ app.get("/api/profile", requireAuth(), async (req, res) => {
 });
 
 // Organization permissions, roles and a recent sign-in
-app.post("/api/invoices", requireAuth({ permission: "invoices:write" }), createInvoice);
-app.delete("/api/workspace", requireAuth({ role: "owner", reverification: "strict" }), destroy);
+app.post("/api/invoices", requireAuth({ permission: "org:invoices:create" }), createInvoice);
+app.delete("/api/workspace", requireAuth({ role: "org:admin", reverification: "strict" }), destroy);
 
 // Or the same checks in code
 app.post("/api/payouts", (req, res) => {
@@ -155,7 +155,7 @@ for await (const each of pistiClient.users.list({ orderBy: "-lastActiveAt" })) {
     // …
 }
 await pistiClient.users.banUser(userId);
-await pistiClient.organizations.createOrganizationInvitation(orgId, { email, roleId });
+await pistiClient.organizations.createOrganizationInvitation(orgId, { email, role: "org:member" });
 ```
 
 `pistiClient` is created from `PISTI_SECRET_KEY` and `PISTI_PUBLISHABLE_KEY` the first time you

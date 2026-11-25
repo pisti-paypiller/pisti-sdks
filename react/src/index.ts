@@ -8,6 +8,7 @@ export {
     useReverification,
     useOrganization,
     useOrganizationList,
+    useOrganizationSettings,
     useSignIn,
     useSignUp,
     useSession,

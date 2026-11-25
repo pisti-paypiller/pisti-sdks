@@ -1,5 +1,5 @@
 import { useCallback, useId, useState, type FormEvent } from "react";
-import { useAuth, useOrganizationList, usePisti } from "./context.js";
+import { useAuth, useOrganizationList, useOrganizationSettings, usePisti } from "./context.js";
 import {
     ActionNotice,
     ErrorNotice,
@@ -28,7 +28,8 @@ export function OrganizationSwitcher({
     const query = useResource(load);
     const action = useAction();
     const id = useId();
-    if (!auth.isSignedIn) return null;
+    const settings = useOrganizationSettings();
+    if (!auth.isSignedIn || !settings.enabled) return null;
     return (
         <div className={"pisti-ui " + className}>
             <label htmlFor={id}>
@@ -69,8 +70,11 @@ export function CreateOrganization({
     const auth = useAuth();
     const action = useAction();
     const id = useId();
-    if (!auth.isLoaded) return <Loading />;
+    const settings = useOrganizationSettings();
+    if (!auth.isLoaded || !settings.isLoaded) return <Loading />;
+    if (!settings.enabled) return null;
     if (!auth.isSignedIn) return <p>Sign in to create an organization.</p>;
+    if (!settings.allowUserCreation) return <p>Organizations are created for you by this application.</p>;
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const form = event.currentTarget;
@@ -136,7 +140,9 @@ export function AcceptOrganizationInvitation({
     const auth = useAuth();
     const pisti = usePisti();
     const action = useAction();
-    if (!auth.isLoaded) return <Loading />;
+    const settings = useOrganizationSettings();
+    if (!auth.isLoaded || !settings.isLoaded) return <Loading />;
+    if (!settings.enabled) return null;
     return (
         <section className={"pisti-ui " + className}>
             <h2>Join your organization</h2>
@@ -181,27 +187,27 @@ export function OrganizationProfile({
     const auth = useAuth();
     const id = useId();
     const organizationId = auth.user?.organizationId;
+    const settings = useOrganizationSettings();
     const canReadMembers = auth.has({
-        permission: "organization.members.read",
+        permission: "org:sys_memberships:read",
     });
     const canManageMembers = auth.has({
-        permission: "organization.members.write",
+        permission: "org:sys_memberships:manage",
     });
-    const canInvite = auth.has({
-        permission: "organization.invitations.write",
-    });
-    const canUpdate = auth.has({ permission: "organization.write" });
+    const canUpdate = auth.has({ permission: "org:sys_profile:manage" });
+    const canDelete = auth.has({ permission: "org:sys_profile:delete" });
     const load = useCallback(async () => {
-        if (!organizationId) return null;
+        if (!organizationId || !settings.enabled) return null;
+        // The roles come from the server: the environment's roles this member may give others.
         const [list, members, roles, invitations] = await Promise.all([
             organizations.list(),
             canReadMembers
                 ? organizations.members(organizationId)
                 : Promise.resolve([]),
-            canReadMembers
-                ? organizations.roles(organizationId)
+            canManageMembers
+                ? organizations.assignableRoles(organizationId)
                 : Promise.resolve([]),
-            canInvite
+            canManageMembers
                 ? organizations.invitations(organizationId)
                 : Promise.resolve([]),
         ]);
@@ -214,15 +220,17 @@ export function OrganizationProfile({
     }, [
         organizations,
         organizationId,
+        settings.enabled,
         canReadMembers,
-        canInvite,
+        canManageMembers,
         auth.userId,
         auth.sessionId,
         auth.user?.organizationRole,
     ]);
     const query = useResource(load);
     const action = useAction();
-    if (!auth.isLoaded || (query.isLoading && !query.data)) return <Loading />;
+    if (!auth.isLoaded || !settings.isLoaded || (query.isLoading && !query.data)) return <Loading />;
+    if (!settings.enabled) return null;
     if (!auth.isSignedIn) return <p>Sign in to manage your organization.</p>;
     if (!organizationId)
         return <p>Select an organization to view its settings.</p>;
@@ -235,13 +243,7 @@ export function OrganizationProfile({
                 retry={query.reload}
             />
         );
-    const { organization, roles, members, invitations } = query.data;
-    const assignableRoles = roles.filter((role) =>
-        role.permissions.every((permission) => auth.has({ permission })),
-    );
-    const defaultRole =
-        assignableRoles.find((role) => role.key === "member")?.id ??
-        assignableRoles[0]?.id;
+    const { organization, roles: assignableRoles, members, invitations } = query.data;
     return (
         <section className={"pisti-ui " + className}>
             <h1>{organization.name}</h1>
@@ -293,10 +295,10 @@ export function OrganizationProfile({
                     </fieldset>
                 </form>
             )}
-            {canInvite && (
+            {canManageMembers && (
                 <section className="pisti-section">
                     <h2>Invite a teammate</h2>
-                    {defaultRole ? (
+                    {assignableRoles.length > 0 ? (
                         <form
                             className="pisti-form"
                             onSubmit={(event) => {
@@ -304,10 +306,11 @@ export function OrganizationProfile({
                                 const form = event.currentTarget;
                                 const fields = new FormData(form);
                                 void action.run(async () => {
+                                    const role = String(fields.get("role"));
                                     await organizations.invite(
                                         organizationId,
                                         String(fields.get("email")),
-                                        String(fields.get("role")),
+                                        role === "" ? undefined : role,
                                     );
                                     form.reset();
                                     query.reload();
@@ -330,12 +333,13 @@ export function OrganizationProfile({
                                     <select
                                         id={id + "-role"}
                                         name="role"
-                                        defaultValue={defaultRole}
+                                        defaultValue=""
                                     >
+                                        <option value="">Default role</option>
                                         {assignableRoles.map((role) => (
                                             <option
                                                 key={role.id}
-                                                value={role.id}
+                                                value={role.key}
                                             >
                                                 {role.name}
                                             </option>
@@ -354,7 +358,7 @@ export function OrganizationProfile({
                                 <div>
                                     {invitation.email}
                                     <p className="pisti-muted">
-                                        {invitation.status}
+                                        {invitation.roleName} · {invitation.status}
                                     </p>
                                 </div>
                                 {invitation.status === "pending" && (
@@ -386,11 +390,11 @@ export function OrganizationProfile({
                     {members.length === 0 && <p>No members found.</p>}
                     <ul className="pisti-list">
                         {members.map((member) => (
-                            <li key={member.userId + ":" + member.roleId}>
+                            <li key={member.id}>
                                 <div>
                                     {member.email}
                                     <p className="pisti-muted">
-                                        {member.roleKey}
+                                        {member.roleName}
                                     </p>
                                 </div>
                                 {canManageMembers &&
@@ -398,21 +402,13 @@ export function OrganizationProfile({
                                         <div className="pisti-actions">
                                             <label
                                                 className="pisti-sr-only"
-                                                htmlFor={
-                                                    id +
-                                                    member.userId +
-                                                    member.roleId
-                                                }
+                                                htmlFor={id + member.id}
                                             >
                                                 Role for {member.email}
                                             </label>
                                             <select
-                                                id={
-                                                    id +
-                                                    member.userId +
-                                                    member.roleId
-                                                }
-                                                value={member.roleId}
+                                                id={id + member.id}
+                                                value={member.role}
                                                 disabled={action.isPending}
                                                 onChange={(event) =>
                                                     void action.run(
@@ -431,19 +427,19 @@ export function OrganizationProfile({
                                             >
                                                 {!assignableRoles.some(
                                                     (role) =>
-                                                        role.id ===
-                                                        member.roleId,
+                                                        role.key ===
+                                                        member.role,
                                                 ) && (
                                                     <option
-                                                        value={member.roleId}
+                                                        value={member.role}
                                                     >
-                                                        {member.roleKey}
+                                                        {member.roleName}
                                                     </option>
                                                 )}
                                                 {assignableRoles.map((role) => (
                                                     <option
                                                         key={role.id}
-                                                        value={role.id}
+                                                        value={role.key}
                                                     >
                                                         {role.name}
                                                     </option>
@@ -485,7 +481,7 @@ export function OrganizationProfile({
             <section className="pisti-section">
                 <h2>Leave organization</h2>
                 <p className="pisti-muted">
-                    If you are the final owner, make someone else an owner
+                    If you are the final admin, make someone else an admin
                     before leaving. As the only member, you can simply leave.
                 </p>
                 <button
@@ -502,7 +498,7 @@ export function OrganizationProfile({
                     Leave organization
                 </button>
             </section>
-            {auth.orgRole === "owner" && auth.orgId === organizationId && (
+            {canDelete && auth.orgId === organizationId && (
                 <section className="pisti-section">
                     <h2>Delete organization</h2>
                     <p className="pisti-muted">

@@ -98,7 +98,9 @@ await pisti.apiKeys.revokeApiKey(keyId, { revocationReason: "Leaked in a log" })
 | `users` | `getUserList({ orderBy, search, status })`, `list`, `getCount({ search, status })`, `getUser`, `createUser`, `updateUser`, `updateUsername`, `deleteUser`, `banUser`, `unbanUser`, `lockUser`, `unlockUser`, `getUserOrganizationList`, `listOrganizations`, `getUserEmailAddressList`, `addEmailAddress`, `setEmailVerification`, `setPrimaryEmail`, `removeEmailAddress`, `getUserExternalAccountList`, `createUserExternalAccount`, `deleteUserExternalAccount` |
 | `sessions` | `getSessionList({ userId, status })`, `list`, `getSession`, `revokeSession` |
 | `apiKeys` | `getApiKeyList({ userId, includeRevoked })`, `list`, `getApiKey`, `updateApiKey(id, { scopes, claims })`, `revokeApiKey`, `verifySecret` |
-| `organizations` | `getOrganizationList({ orderBy, search })`, `list`, `getCount({ search })`, `getOrganization`, `createOrganization`, `updateOrganization`, `deleteOrganization`, `getOrganizationMembershipList`, `listMemberships`, `updateOrganizationMembership(id, userId, roleId)`, `deleteOrganizationMembership(id, userId)`, `getOrganizationInvitationList`, `listInvitations`, `createOrganizationInvitation`, `resendOrganizationInvitation`, `revokeOrganizationInvitation`, `getRoleList`, `createRole`, `updateRole`, `deleteRole`, `getPermissionList` |
+| `organizations` | `getOrganizationList({ orderBy, search })`, `list`, `getCount({ search })`, `getOrganization`, `createOrganization`, `updateOrganization`, `deleteOrganization`, `getOrganizationMembershipList`, `listMemberships`, `updateOrganizationMembership(id, userId, role)` (the role's key, such as `org:admin`), `deleteOrganizationMembership(id, userId)`, `getOrganizationInvitationList`, `listInvitations`, `createOrganizationInvitation(id, { email, role })` (`role` optional: the environment's default role), `resendOrganizationInvitation`, `revokeOrganizationInvitation` |
+| `roles` | The environment's organization roles, shared by all its organizations: `getRoleList`, `getRole`, `createRole({ key, name, description, permissions })`, `updateRole(id, { name, description, permissions })`, `deleteRole` |
+| `permissions` | The environment's organization permissions (system `org:sys_…` and your own `org:<feature>:<action>`): `getPermissionList`, `getPermission`, `createPermission({ key, name, description })`, `updatePermission`, `deletePermission` |
 | `webhooks` | `catalog` (`{ type }` entries), `endpoints`, `updateEndpoint` (with an optional `expectedUpdatedAt`), `archiveEndpoint(id)`, `sendTest`, `replayEndpoint(id, since)`, `events({ type })`, `listEvents`, `deliveries`, `listDeliveries`, `delivery`, `replay` (one delivery) |
 | `externalProviders` | `getExternalProviderList`, `create`, `update`, `delete` |
 
@@ -108,8 +110,8 @@ filters, and returns a `Page<T>`: `{ items, nextCursor, hasMore }`. Pass `nextCu
 with others). `getUserList` sorts by `orderBy`: `-createdAt` (the default), `createdAt`,
 `±lastSignInAt` or `±lastActiveAt`; `getOrganizationList` by `-createdAt`, `createdAt`, `name`
 or `-name`; every other list is newest first. Small fixed lists (`getUserEmailAddressList`,
-`getUserExternalAccountList`, `getPermissionList`, `getExternalProviderList`, `webhooks.catalog`,
-`webhooks.endpoints`) return one whole page with `hasMore` false. `getRoleList` returns an array.
+`getUserExternalAccountList`, `roles.getRoleList`, `permissions.getPermissionList`, `getExternalProviderList`,
+`webhooks.catalog`, `webhooks.endpoints`) return one whole page with `hasMore` false.
 Totals come from `getCount`, which takes the same filters.
 
 Each cursor-paged list also has an async iterator that pages until `hasMore` is false: `list`

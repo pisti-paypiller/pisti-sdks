@@ -38,8 +38,11 @@ import type {
     ResendOrganizationInvitationInput,
     InvitationResult,
     Role,
-    RoleInput,
+    CreateRoleInput,
+    UpdateRoleInput,
     Permission,
+    CreatePermissionInput,
+    UpdatePermissionInput,
     DeletionBlocker,
     ExternalProvider,
     CreateExternalProviderInput,
@@ -215,6 +218,8 @@ export class PistiClient {
     readonly externalProviders: ExternalProvidersApi;
     readonly webhooks: WebhooksApi;
     readonly apiKeys: ApiKeysApi;
+    readonly roles: RolesApi;
+    readonly permissions: PermissionsApi;
     readonly #api: RequestResource;
 
     constructor(options: PistiClientOptions = {}) {
@@ -263,6 +268,8 @@ export class PistiClient {
         this.externalProviders = new ExternalProvidersApi(request);
         this.webhooks = new WebhooksApi(request);
         this.apiKeys = new ApiKeysApi(request);
+        this.roles = new RolesApi(request);
+        this.permissions = new PermissionsApi(request);
     }
 
     /**
@@ -730,12 +737,12 @@ export class OrganizationsApi {
         publicId(id);
         return paginate((page) => this.getOrganizationMembershipList(id, page), options);
     };
-    /** Changes a member's role. */
-    updateOrganizationMembership = (id: string, userId: string, roleId: string, options?: MutationOptions): Promise<void> =>
+    /** Adds a user to the organization, or changes a member's role, by the role's key (`org:admin`). */
+    updateOrganizationMembership = (id: string, userId: string, role: string, options?: MutationOptions): Promise<void> =>
         this.request(
             "put",
             "/v1/organizations/{organizationId}/memberships/{userId}",
-            { path: { organizationId: publicId(id), userId: publicId(userId) }, body: { roleId: publicId(roleId) } },
+            { path: { organizationId: publicId(id), userId: publicId(userId) }, body: { role } },
             options,
         );
     deleteOrganizationMembership = (id: string, userId: string, options?: MutationOptions): Promise<void> =>
@@ -770,7 +777,7 @@ export class OrganizationsApi {
         this.request(
             "post",
             "/v1/organizations/{organizationId}/invitations",
-            { path: { organizationId: publicId(id) }, body: { ...input, roleId: publicId(input.roleId) } },
+            { path: { organizationId: publicId(id) }, body: input },
             options,
         );
     resendOrganizationInvitation = (
@@ -792,34 +799,43 @@ export class OrganizationsApi {
             { path: { organizationId: publicId(id), invitationId: publicId(invitationId) } },
             options,
         );
-    getRoleList = (id: string, options?: RequestOptions): Promise<Role[]> =>
-        this.request("get", "/v1/organizations/{organizationId}/roles", { path: { organizationId: publicId(id) } }, options);
-    createRole = (id: string, input: RoleInput, options?: MutationOptions): Promise<{ id: string }> =>
-        this.request(
-            "post",
-            "/v1/organizations/{organizationId}/roles",
-            { path: { organizationId: publicId(id) }, body: input },
-            options,
-        );
-    updateRole = (id: string, roleId: string, input: RoleInput, options?: MutationOptions): Promise<void> =>
-        this.request(
-            "put",
-            "/v1/organizations/{organizationId}/roles/{roleId}",
-            { path: { organizationId: publicId(id), roleId: publicId(roleId) }, body: input },
-            options,
-        );
-    deleteRole = (id: string, roleId: string, options?: MutationOptions): Promise<void> =>
-        this.request(
-            "delete",
-            "/v1/organizations/{organizationId}/roles/{roleId}",
-            { path: { organizationId: publicId(id), roleId: publicId(roleId) } },
-            options,
-        );
+}
+
+/** The environment's organization roles, shared by all its organizations: `org:admin`, `org:member` and your own. */
+export class RolesApi {
+    constructor(private readonly request: RequestResource) {}
+    /** Every role, whole, in one page. */
+    getRoleList = (options?: RequestOptions): Promise<Page<Role>> => this.request("get", "/v1/roles", {}, options);
+    getRole = (id: string, options?: RequestOptions): Promise<Role> =>
+        this.request("get", "/v1/roles/{roleId}", { path: { roleId: publicId(id) } }, options);
+    /** `key` is `org:` and lowercase letters, digits or underscores, and never changes; `permissions` are permission keys. */
+    createRole = (input: CreateRoleInput, options?: MutationOptions): Promise<Role> =>
+        this.request("post", "/v1/roles", { body: input }, options);
+    /** Replaces the role's name, description and permissions. `org:admin` always holds every permission. */
+    updateRole = (id: string, input: UpdateRoleInput, options?: MutationOptions): Promise<Role> =>
+        this.request("put", "/v1/roles/{roleId}", { path: { roleId: publicId(id) }, body: input }, options);
+    /** Deletes a custom role. Throws `PistiAPIResponseError` (409) for a system role, or with `blockers` while the role is in use. */
+    deleteRole = (id: string, options?: MutationOptions): Promise<void> =>
+        this.request("delete", "/v1/roles/{roleId}", { path: { roleId: publicId(id) } }, options);
+}
+
+/** The environment's organization permissions: the system ones (`org:sys_…`) and your own (`org:<feature>:<action>`). */
+export class PermissionsApi {
+    constructor(private readonly request: RequestResource) {}
     /** Every permission, whole, in one page. */
     getPermissionList = (options?: RequestOptions): Promise<Page<Permission>> =>
         this.request("get", "/v1/permissions", {}, options);
+    getPermission = (id: string, options?: RequestOptions): Promise<Permission> =>
+        this.request("get", "/v1/permissions/{permissionId}", { path: { permissionId: publicId(id) } }, options);
+    /** Adds a custom permission, which `org:admin` gets at once. */
+    createPermission = (input: CreatePermissionInput, options?: MutationOptions): Promise<Permission> =>
+        this.request("post", "/v1/permissions", { body: input }, options);
+    updatePermission = (id: string, input: UpdatePermissionInput, options?: MutationOptions): Promise<Permission> =>
+        this.request("put", "/v1/permissions/{permissionId}", { path: { permissionId: publicId(id) }, body: input }, options);
+    /** Deletes a custom permission; every role that granted it loses it. */
+    deletePermission = (id: string, options?: MutationOptions): Promise<void> =>
+        this.request("delete", "/v1/permissions/{permissionId}", { path: { permissionId: publicId(id) } }, options);
 }
-
 
 /**
  * Creates a backend client, like Clerk's `createClerkClient`. Without options it reads

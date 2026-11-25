@@ -422,6 +422,12 @@
                 "organizationInvitation.accepted",
                 "organizationInvitation.revoked",
                 "organizationInvitation.expired",
+                "role.created",
+                "role.updated",
+                "role.deleted",
+                "permission.created",
+                "permission.updated",
+                "permission.deleted",
                 "apiKey.expiring",
                 "email.created",
                 "endpoint.test"
@@ -3667,18 +3673,147 @@
         }
       }
     },
-    "/v1/organizations/{organizationId}/roles": {
+    "/v1/roles": {
       "get": {
         "tags": [
-          "OrganizationManagement"
+          "OrganizationRoles"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ListPageOfOrganizationRoleResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "OrganizationRoles"
         ],
         "parameters": [
           {
-            "name": "organizationId",
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrganizationRoleInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrganizationRoleInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrganizationRoleInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OrganizationRoleResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/roles/{roleId}": {
+      "get": {
+        "tags": [
+          "OrganizationRoles"
+        ],
+        "parameters": [
+          {
+            "name": "roleId",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^(org)_[0-9A-Za-z]{11}$",
+              "pattern": "^(role)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
           }
@@ -3696,10 +3831,7 @@
                   "type": "object",
                   "properties": {
                     "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/RoleSummary"
-                      }
+                      "$ref": "#/components/schemas/OrganizationRoleResponse"
                     },
                     "meta": {
                       "required": [
@@ -3739,131 +3871,11 @@
           }
         }
       },
-      "post": {
-        "tags": [
-          "OrganizationManagement"
-        ],
-        "parameters": [
-          {
-            "name": "organizationId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "pattern": "^(org)_[0-9A-Za-z]{11}$",
-              "type": "string"
-            }
-          },
-          {
-            "name": "Idempotency-Key",
-            "in": "header",
-            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
-            "schema": {
-              "maxLength": 255,
-              "minLength": 1,
-              "pattern": "^[ -~]{1,255}$",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OrganizationRoleInput"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OrganizationRoleInput"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/OrganizationRoleInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/CreatedResponse"
-                    },
-                    "meta": {
-                      "required": [
-                        "requestId"
-                      ],
-                      "type": "object",
-                      "properties": {
-                        "requestId": {
-                          "type": "string"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "The resource does not exist, or the caller cannot see it.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/organizations/{organizationId}/roles/{roleId}": {
       "put": {
         "tags": [
-          "OrganizationManagement"
+          "OrganizationRoles"
         ],
         "parameters": [
-          {
-            "name": "organizationId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "pattern": "^(org)_[0-9A-Za-z]{11}$",
-              "type": "string"
-            }
-          },
           {
             "name": "roleId",
             "in": "path",
@@ -3889,17 +3901,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/OrganizationRoleInput"
+                "$ref": "#/components/schemas/UpdateOrganizationRoleInput"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/OrganizationRoleInput"
+                "$ref": "#/components/schemas/UpdateOrganizationRoleInput"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/OrganizationRoleInput"
+                "$ref": "#/components/schemas/UpdateOrganizationRoleInput"
               }
             }
           },
@@ -3907,7 +3919,34 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OrganizationRoleResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
             "description": "The request is invalid.",
@@ -3943,18 +3982,9 @@
       },
       "delete": {
         "tags": [
-          "OrganizationManagement"
+          "OrganizationRoles"
         ],
         "parameters": [
-          {
-            "name": "organizationId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "pattern": "^(org)_[0-9A-Za-z]{11}$",
-              "type": "string"
-            }
-          },
           {
             "name": "roleId",
             "in": "path",
@@ -3977,8 +4007,316 @@
           }
         ],
         "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist, or the caller cannot see it.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state; a deletion lists what blocks it.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletionBlockedProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/permissions": {
+      "get": {
+        "tags": [
+          "OrganizationRoles"
+        ],
+        "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ListPageOfOrganizationPermissionResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "OrganizationRoles"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrganizationPermissionInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrganizationPermissionInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrganizationPermissionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OrganizationPermissionResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/permissions/{permissionId}": {
+      "get": {
+        "tags": [
+          "OrganizationRoles"
+        ],
+        "parameters": [
+          {
+            "name": "permissionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^(perm)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OrganizationPermissionResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist, or the caller cannot see it.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "OrganizationRoles"
+        ],
+        "parameters": [
+          {
+            "name": "permissionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^(perm)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrganizationPermissionInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrganizationPermissionInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrganizationPermissionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OrganizationPermissionResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
             "description": "The request is invalid.",
@@ -4011,40 +4349,63 @@
             }
           }
         }
-      }
-    },
-    "/v1/permissions": {
-      "get": {
+      },
+      "delete": {
         "tags": [
-          "OrganizationManagement"
+          "OrganizationRoles"
+        ],
+        "parameters": [
+          {
+            "name": "permissionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^(perm)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again.",
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[ -~]{1,255}$",
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "The request is invalid.",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/ListPageOfPermissionResponse"
-                    },
-                    "meta": {
-                      "required": [
-                        "requestId"
-                      ],
-                      "type": "object",
-                      "properties": {
-                        "requestId": {
-                          "type": "string"
-                        }
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist, or the caller cannot see it.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
                 }
               }
             }
@@ -5251,6 +5612,68 @@
           }
         }
       },
+      "CreateOrganizationPermissionInput": {
+        "required": [
+          "key",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CreateOrganizationRoleInput": {
+        "required": [
+          "key",
+          "name",
+          "permissions"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "permissions": {
+            "maxItems": 104,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "DeletedResource": {
         "required": [
           "object",
@@ -5263,7 +5686,9 @@
             "enum": [
               "user",
               "organization",
-              "organization_membership"
+              "organization_membership",
+              "role",
+              "permission"
             ],
             "type": "string"
           },
@@ -5990,6 +6415,31 @@
           }
         }
       },
+      "ListPageOfOrganizationPermissionResponse": {
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationPermissionResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      },
       "ListPageOfOrganizationResponse": {
         "required": [
           "items",
@@ -6015,7 +6465,7 @@
           }
         }
       },
-      "ListPageOfPermissionResponse": {
+      "ListPageOfOrganizationRoleResponse": {
         "required": [
           "items",
           "nextCursor",
@@ -6026,7 +6476,7 @@
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/PermissionResponse"
+              "$ref": "#/components/schemas/OrganizationRoleResponse"
             }
           },
           "nextCursor": {
@@ -6512,8 +6962,7 @@
       },
       "OrganizationInvitationInput": {
         "required": [
-          "email",
-          "roleId"
+          "email"
         ],
         "type": "object",
         "properties": {
@@ -6522,9 +6971,13 @@
             "minLength": 0,
             "type": "string"
           },
-          "roleId": {
-            "pattern": "^(role)_[0-9A-Za-z]{11}$",
-            "type": "string"
+          "role": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "lifetimeDays": {
             "maximum": 30,
@@ -6539,7 +6992,8 @@
           "id",
           "organizationId",
           "email",
-          "roleId",
+          "role",
+          "roleName",
           "status",
           "createdAt",
           "expiresAt"
@@ -6555,11 +7009,11 @@
           "email": {
             "type": "string"
           },
-          "roleId": {
-            "type": [
-              "null",
-              "string"
-            ]
+          "role": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
           },
           "status": {
             "enum": [
@@ -6672,8 +7126,8 @@
           "organizationId",
           "userId",
           "email",
-          "roleId",
-          "roleKey",
+          "role",
+          "roleName",
           "createdAt"
         ],
         "type": "object",
@@ -6693,10 +7147,10 @@
               "string"
             ]
           },
-          "roleId": {
+          "role": {
             "type": "string"
           },
-          "roleKey": {
+          "roleName": {
             "type": "string"
           },
           "createdAt": {
@@ -6793,12 +7247,11 @@
       },
       "OrganizationMembershipInput": {
         "required": [
-          "roleId"
+          "role"
         ],
         "type": "object",
         "properties": {
-          "roleId": {
-            "pattern": "^(role)_[0-9A-Za-z]{11}$",
+          "role": {
             "type": "string"
           }
         }
@@ -6845,6 +7298,57 @@
           }
         },
         "description": "The organizationMembership.updated event."
+      },
+      "OrganizationPermissionResponse": {
+        "required": [
+          "id",
+          "object",
+          "key",
+          "name",
+          "description",
+          "type",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "enum": [
+              "permission"
+            ],
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "type": {
+            "enum": [
+              "system",
+              "user"
+            ],
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       },
       "OrganizationResponse": {
         "required": [
@@ -6898,39 +7402,57 @@
           }
         }
       },
-      "OrganizationRoleInput": {
+      "OrganizationRoleResponse": {
         "required": [
+          "id",
+          "object",
           "key",
           "name",
-          "permissionIds"
+          "description",
+          "isSystem",
+          "permissions",
+          "createdAt",
+          "updatedAt"
         ],
         "type": "object",
         "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "enum": [
+              "role"
+            ],
+            "type": "string"
+          },
           "key": {
-            "maxLength": 100,
-            "minLength": 0,
-            "pattern": "^[a-z][a-z0-9:_-]*$",
             "type": "string"
           },
           "name": {
-            "maxLength": 100,
-            "minLength": 1,
             "type": "string"
           },
           "description": {
-            "maxLength": 500,
-            "minLength": 0,
             "type": [
               "null",
               "string"
             ]
           },
-          "permissionIds": {
-            "maxItems": 100,
+          "isSystem": {
+            "type": "boolean"
+          },
+          "permissions": {
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/OrganizationPermissionResponse"
             }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -6977,35 +7499,134 @@
         },
         "description": "The organization.updated event."
       },
-      "PermissionResponse": {
+      "PermissionCreatedWebhookEvent": {
         "required": [
           "id",
-          "key",
-          "name",
-          "description",
-          "isSystem"
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
         ],
         "type": "object",
         "properties": {
           "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
             "type": "string"
           },
-          "key": {
+          "type": {
+            "enum": [
+              "permission.created"
+            ],
             "type": "string"
           },
-          "name": {
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
             "type": "string"
           },
-          "description": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "isSystem": {
-            "type": "boolean"
+          "data": {
+            "$ref": "#/components/schemas/OrganizationPermissionResponse"
           }
-        }
+        },
+        "description": "The permission.created event."
+      },
+      "PermissionDeletedWebhookEvent": {
+        "required": [
+          "id",
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "permission.deleted"
+            ],
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DeletedResource"
+          }
+        },
+        "description": "The permission.deleted event."
+      },
+      "PermissionUpdatedWebhookEvent": {
+        "required": [
+          "id",
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "permission.updated"
+            ],
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OrganizationPermissionResponse"
+          }
+        },
+        "description": "The permission.updated event."
       },
       "RedeemHandshakeInput": {
         "required": [
@@ -7051,42 +7672,134 @@
           }
         }
       },
-      "RoleSummary": {
+      "RoleCreatedWebhookEvent": {
         "required": [
           "id",
-          "key",
-          "name",
-          "description",
-          "isSystem",
-          "permissions"
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
         ],
         "type": "object",
         "properties": {
           "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
             "type": "string"
           },
-          "key": {
+          "type": {
+            "enum": [
+              "role.created"
+            ],
             "type": "string"
           },
-          "name": {
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
             "type": "string"
           },
-          "description": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "isSystem": {
-            "type": "boolean"
-          },
-          "permissions": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+          "data": {
+            "$ref": "#/components/schemas/OrganizationRoleResponse"
           }
-        }
+        },
+        "description": "The role.created event."
+      },
+      "RoleDeletedWebhookEvent": {
+        "required": [
+          "id",
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "role.deleted"
+            ],
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DeletedResource"
+          }
+        },
+        "description": "The role.deleted event."
+      },
+      "RoleUpdatedWebhookEvent": {
+        "required": [
+          "id",
+          "object",
+          "type",
+          "timestamp",
+          "instance_id",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^(evt)_[0-9A-Za-z]{11}$",
+            "type": "string",
+            "description": "The event's ID: time-ordered, and the webhook-id header. Events carry no other order."
+          },
+          "object": {
+            "enum": [
+              "event"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "role.updated"
+            ],
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer",
+            "description": "When the change happened, in milliseconds since the Unix epoch.",
+            "format": "int64"
+          },
+          "instance_id": {
+            "pattern": "^(ins)_[0-9A-Za-z]{11}$",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OrganizationRoleResponse"
+          }
+        },
+        "description": "The role.updated event."
       },
       "SecretKeyResponse": {
         "required": [
@@ -7380,6 +8093,70 @@
           },
           "unsafeMetadata": {
             "$ref": "#/components/schemas/JsonElement"
+          }
+        }
+      },
+      "UpdateOrganizationPermissionInput": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedUpdatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "UpdateOrganizationRoleInput": {
+        "required": [
+          "name",
+          "permissions"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedUpdatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "permissions": {
+            "maxItems": 104,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -7869,6 +8646,12 @@
               "organizationInvitation.accepted",
               "organizationInvitation.revoked",
               "organizationInvitation.expired",
+              "role.created",
+              "role.updated",
+              "role.deleted",
+              "permission.created",
+              "permission.updated",
+              "permission.deleted",
               "apiKey.expiring",
               "email.created",
               "endpoint.test"
@@ -7982,6 +8765,12 @@
                 "organizationInvitation.accepted",
                 "organizationInvitation.revoked",
                 "organizationInvitation.expired",
+                "role.created",
+                "role.updated",
+                "role.deleted",
+                "permission.created",
+                "permission.updated",
+                "permission.deleted",
                 "apiKey.expiring",
                 "email.created"
               ],
@@ -8043,6 +8832,12 @@
                 "organizationInvitation.accepted",
                 "organizationInvitation.revoked",
                 "organizationInvitation.expired",
+                "role.created",
+                "role.updated",
+                "role.deleted",
+                "permission.created",
+                "permission.updated",
+                "permission.deleted",
                 "apiKey.expiring",
                 "email.created"
               ],
@@ -8127,6 +8922,24 @@
             "$ref": "#/components/schemas/OrganizationInvitationExpiredWebhookEvent"
           },
           {
+            "$ref": "#/components/schemas/RoleCreatedWebhookEvent"
+          },
+          {
+            "$ref": "#/components/schemas/RoleUpdatedWebhookEvent"
+          },
+          {
+            "$ref": "#/components/schemas/RoleDeletedWebhookEvent"
+          },
+          {
+            "$ref": "#/components/schemas/PermissionCreatedWebhookEvent"
+          },
+          {
+            "$ref": "#/components/schemas/PermissionUpdatedWebhookEvent"
+          },
+          {
+            "$ref": "#/components/schemas/PermissionDeletedWebhookEvent"
+          },
+          {
             "$ref": "#/components/schemas/ApiKeyExpiringWebhookEvent"
           },
           {
@@ -8156,6 +8969,12 @@
             "organizationInvitation.accepted": "#/components/schemas/OrganizationInvitationAcceptedWebhookEvent",
             "organizationInvitation.revoked": "#/components/schemas/OrganizationInvitationRevokedWebhookEvent",
             "organizationInvitation.expired": "#/components/schemas/OrganizationInvitationExpiredWebhookEvent",
+            "role.created": "#/components/schemas/RoleCreatedWebhookEvent",
+            "role.updated": "#/components/schemas/RoleUpdatedWebhookEvent",
+            "role.deleted": "#/components/schemas/RoleDeletedWebhookEvent",
+            "permission.created": "#/components/schemas/PermissionCreatedWebhookEvent",
+            "permission.updated": "#/components/schemas/PermissionUpdatedWebhookEvent",
+            "permission.deleted": "#/components/schemas/PermissionDeletedWebhookEvent",
             "apiKey.expiring": "#/components/schemas/ApiKeyExpiringWebhookEvent",
             "email.created": "#/components/schemas/EmailCreatedWebhookEvent",
             "endpoint.test": "#/components/schemas/EndpointTestWebhookEvent"
@@ -8192,6 +9011,12 @@
               "organizationInvitation.accepted",
               "organizationInvitation.revoked",
               "organizationInvitation.expired",
+              "role.created",
+              "role.updated",
+              "role.deleted",
+              "permission.created",
+              "permission.updated",
+              "permission.deleted",
               "apiKey.expiring",
               "email.created",
               "endpoint.test"
@@ -8231,6 +9056,12 @@
               "organizationInvitation.accepted",
               "organizationInvitation.revoked",
               "organizationInvitation.expired",
+              "role.created",
+              "role.updated",
+              "role.deleted",
+              "permission.created",
+              "permission.updated",
+              "permission.deleted",
               "apiKey.expiring",
               "email.created"
             ],
@@ -8315,6 +9146,9 @@
     },
     {
       "name": "OrganizationManagement"
+    },
+    {
+      "name": "OrganizationRoles"
     },
     {
       "name": "Handshake"
@@ -8651,6 +9485,132 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/OrganizationInvitationExpiredWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "role.created": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to role.created.",
+        "operationId": "RoleCreatedWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleCreatedWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "role.updated": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to role.updated.",
+        "operationId": "RoleUpdatedWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleUpdatedWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "role.deleted": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to role.deleted.",
+        "operationId": "RoleDeletedWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleDeletedWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "permission.created": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to permission.created.",
+        "operationId": "PermissionCreatedWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PermissionCreatedWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "permission.updated": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to permission.updated.",
+        "operationId": "PermissionUpdatedWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PermissionUpdatedWebhookEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "2XX": {
+            "description": "The receiver took the event. Anything else is retried or fails."
+          }
+        }
+      }
+    },
+    "permission.deleted": {
+      "post": {
+        "summary": "Sent to the endpoints that subscribe to permission.deleted.",
+        "operationId": "PermissionDeletedWebhookEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PermissionDeletedWebhookEvent"
               }
             }
           },

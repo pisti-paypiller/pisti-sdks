@@ -492,7 +492,14 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["ListPageOfOrganizationRoleResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
                 };
                 /** @description The request is invalid. */
                 400: {
@@ -4308,6 +4315,11 @@ export interface components {
         EmailCodeInput: {
             identifier: string;
         };
+        EnvironmentOrganizations: {
+            allowUserCreation: boolean;
+            /** Format: int32 */
+            membershipLimit: null | number;
+        };
         EnvironmentPaths: {
             signInUrl: null | string;
             signUpUrl: null | string;
@@ -4329,6 +4341,7 @@ export interface components {
             requireMfa: boolean;
             multiSession: boolean;
             paths: components["schemas"]["EnvironmentPaths"];
+            organizations: null | components["schemas"]["EnvironmentOrganizations"];
         };
         EnvironmentSignIn: {
             password: boolean;
@@ -4367,6 +4380,11 @@ export interface components {
         };
         JsonElement: Record<string, unknown>;
         JsonObject: Record<string, unknown>;
+        ListPageOfOrganizationRoleResponse: {
+            items: components["schemas"]["OrganizationRoleResponse"][];
+            nextCursor: null | string;
+            hasMore: boolean;
+        };
         OrganizationInput: {
             /** Format: date-time */
             expectedUpdatedAt?: null | string;
@@ -4381,12 +4399,40 @@ export interface components {
         };
         OrganizationInvitationInput: {
             email: string;
-            roleId: string;
+            role?: null | string;
             /** Format: int32 */
             lifetimeDays?: number;
         };
         OrganizationMembershipInput: {
-            roleId: string;
+            role: string;
+        };
+        OrganizationPermissionResponse: {
+            id: string;
+            /** @enum {string} */
+            object: "permission";
+            key: string;
+            name: string;
+            description: null | string;
+            /** @enum {string} */
+            type: "system" | "user";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        OrganizationRoleResponse: {
+            id: string;
+            /** @enum {string} */
+            object: "role";
+            key: string;
+            name: string;
+            description: null | string;
+            isSystem: boolean;
+            permissions: components["schemas"]["OrganizationPermissionResponse"][];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
         };
         PasskeyCredentialInput: {
             requestId: string;

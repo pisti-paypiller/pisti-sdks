@@ -517,7 +517,34 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ListPageOfOrganizationRoleResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
             "description": "The request is invalid.",
@@ -4755,6 +4782,25 @@
           }
         }
       },
+      "EnvironmentOrganizations": {
+        "required": [
+          "allowUserCreation",
+          "membershipLimit"
+        ],
+        "type": "object",
+        "properties": {
+          "allowUserCreation": {
+            "type": "boolean"
+          },
+          "membershipLimit": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "EnvironmentPaths": {
         "required": [
           "signInUrl",
@@ -4824,7 +4870,8 @@
           "signUp",
           "requireMfa",
           "multiSession",
-          "paths"
+          "paths",
+          "organizations"
         ],
         "type": "object",
         "properties": {
@@ -4852,6 +4899,16 @@
           },
           "paths": {
             "$ref": "#/components/schemas/EnvironmentPaths"
+          },
+          "organizations": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EnvironmentOrganizations"
+              }
+            ]
           }
         }
       },
@@ -5038,6 +5095,31 @@
       "JsonObject": {
         "type": "object"
       },
+      "ListPageOfOrganizationRoleResponse": {
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationRoleResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      },
       "OrganizationInput": {
         "required": [
           "name",
@@ -5105,8 +5187,7 @@
       },
       "OrganizationInvitationInput": {
         "required": [
-          "email",
-          "roleId"
+          "email"
         ],
         "type": "object",
         "properties": {
@@ -5115,9 +5196,13 @@
             "minLength": 0,
             "type": "string"
           },
-          "roleId": {
-            "pattern": "^(role)_[0-9A-Za-z]{11}$",
-            "type": "string"
+          "role": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "lifetimeDays": {
             "maximum": 30,
@@ -5129,13 +5214,117 @@
       },
       "OrganizationMembershipInput": {
         "required": [
-          "roleId"
+          "role"
         ],
         "type": "object",
         "properties": {
-          "roleId": {
-            "pattern": "^(role)_[0-9A-Za-z]{11}$",
+          "role": {
             "type": "string"
+          }
+        }
+      },
+      "OrganizationPermissionResponse": {
+        "required": [
+          "id",
+          "object",
+          "key",
+          "name",
+          "description",
+          "type",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "enum": [
+              "permission"
+            ],
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "type": {
+            "enum": [
+              "system",
+              "user"
+            ],
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "OrganizationRoleResponse": {
+        "required": [
+          "id",
+          "object",
+          "key",
+          "name",
+          "description",
+          "isSystem",
+          "permissions",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "enum": [
+              "role"
+            ],
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isSystem": {
+            "type": "boolean"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationPermissionResponse"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },

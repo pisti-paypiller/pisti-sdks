@@ -120,7 +120,7 @@ Each prop falls back to an environment variable, so most apps pass none.
 | `<PistiLoaded>`, `<PistiLoading>` | Render after and before the session is known |
 | `<UserProfile apiKeys? />` | Profile, email, password, two-step verification, recovery codes, devices; with `apiKeys`, an API keys page |
 | `<APIKeys />` | Lets the user create, copy and revoke `ak_…` keys for your API. Your backend accepts them with `acceptsToken: "api_key"`. |
-| `<OrganizationSwitcher />`, `<CreateOrganization />`, `<OrganizationProfile />`, `<AcceptOrganizationInvitation />` | Organizations, members, roles, invitations |
+| `<OrganizationSwitcher />`, `<CreateOrganization />`, `<OrganizationProfile />`, `<AcceptOrganizationInvitation />` | Organizations, members and invitations, in the environment's roles. Nothing renders while the environment has organizations off; `<CreateOrganization />` says so while users may not create them |
 
 ## Hooks
 
@@ -132,7 +132,8 @@ Each prop falls back to an environment variable, so most apps pass none.
 | `usePisti()` | The client: `openSignIn()`, `openSignUp()`, `openUserProfile()`, `closeModal()`, `redirectToSignIn()`, `navigate()`, `signOut()`, `getToken()` |
 | `useAuthenticatedFetch()` | `fetch` with the session token as `Authorization: Bearer`; retries once on 401 |
 | `useSignIn()`, `useSignUp()` | The individual steps, for fully custom forms |
-| `useOrganization()` | Active organization, role, permissions, `setActive(id \| null)` |
+| `useOrganization()` | Active organization, its role key (`org:admin`), permissions (system `org:sys_…` and custom), `setActive(id \| null)` |
+| `useOrganizationSettings()` | `isLoaded`, `enabled`, `allowUserCreation`, `membershipLimit`, from `/v1/environment` |
 | `useOrganizationList()`, `useAccount()` | Organization and account resources |
 | `useReverification(fn)` | Runs `fn`, asking for the password again if the server needs a recent sign-in |
 
