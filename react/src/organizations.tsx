@@ -244,6 +244,10 @@ export function OrganizationProfile({
             />
         );
     const { organization, roles: assignableRoles, members, invitations } = query.data;
+    // Only roles the server says this member may give: the environment's default role may not be one of them.
+    const defaultRole =
+        assignableRoles.find((role) => role.key === "org:member")?.key ??
+        assignableRoles[0]?.key;
     return (
         <section className={"pisti-ui " + className}>
             <h1>{organization.name}</h1>
@@ -306,11 +310,10 @@ export function OrganizationProfile({
                                 const form = event.currentTarget;
                                 const fields = new FormData(form);
                                 void action.run(async () => {
-                                    const role = String(fields.get("role"));
                                     await organizations.invite(
                                         organizationId,
                                         String(fields.get("email")),
-                                        role === "" ? undefined : role,
+                                        String(fields.get("role")),
                                     );
                                     form.reset();
                                     query.reload();
@@ -333,9 +336,8 @@ export function OrganizationProfile({
                                     <select
                                         id={id + "-role"}
                                         name="role"
-                                        defaultValue=""
+                                        defaultValue={defaultRole}
                                     >
-                                        <option value="">Default role</option>
                                         {assignableRoles.map((role) => (
                                             <option
                                                 key={role.id}
