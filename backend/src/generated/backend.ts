@@ -349,7 +349,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    type?: "user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired" | "apiKey.expiring" | "email.created" | "endpoint.test";
+                    type?: "user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired" | "role.created" | "role.updated" | "role.deleted" | "permission.created" | "permission.updated" | "permission.deleted" | "apiKey.expiring" | "email.created" | "endpoint.test";
                     limit?: number;
                     cursor?: string;
                 };
@@ -2694,7 +2694,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/organizations/{organizationId}/roles": {
+    "/v1/roles": {
         parameters: {
             query?: never;
             header?: never;
@@ -2705,9 +2705,7 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path: {
-                    organizationId: string;
-                };
+                path?: never;
                 cookie?: never;
             };
             requestBody?: never;
@@ -2719,29 +2717,11 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            data: components["schemas"]["RoleSummary"][];
+                            data: components["schemas"]["ListPageOfOrganizationRoleResponse"];
                             meta: {
                                 requestId: string;
                             };
                         };
-                    };
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The resource does not exist, or the caller cannot see it. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
                     };
                 };
             };
@@ -2754,16 +2734,14 @@ export interface paths {
                     /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
                     "Idempotency-Key"?: string;
                 };
-                path: {
-                    organizationId: string;
-                };
+                path?: never;
                 cookie?: never;
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["OrganizationRoleInput"];
-                    "text/json": components["schemas"]["OrganizationRoleInput"];
-                    "application/*+json": components["schemas"]["OrganizationRoleInput"];
+                    "application/json": components["schemas"]["CreateOrganizationRoleInput"];
+                    "text/json": components["schemas"]["CreateOrganizationRoleInput"];
+                    "application/*+json": components["schemas"]["CreateOrganizationRoleInput"];
                 };
             };
             responses: {
@@ -2774,7 +2752,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            data: components["schemas"]["CreatedResponse"];
+                            data: components["schemas"]["OrganizationRoleResponse"];
                             meta: {
                                 requestId: string;
                             };
@@ -2783,15 +2761,6 @@ export interface paths {
                 };
                 /** @description The request is invalid. */
                 400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The resource does not exist, or the caller cannot see it. */
-                404: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -2816,14 +2785,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/organizations/{organizationId}/roles/{roleId}": {
+    "/v1/roles/{roleId}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    roleId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["OrganizationRoleResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The resource does not exist, or the caller cannot see it. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
         put: {
             parameters: {
                 query?: never;
@@ -2832,16 +2845,15 @@ export interface paths {
                     "Idempotency-Key"?: string;
                 };
                 path: {
-                    organizationId: string;
                     roleId: string;
                 };
                 cookie?: never;
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["OrganizationRoleInput"];
-                    "text/json": components["schemas"]["OrganizationRoleInput"];
-                    "application/*+json": components["schemas"]["OrganizationRoleInput"];
+                    "application/json": components["schemas"]["UpdateOrganizationRoleInput"];
+                    "text/json": components["schemas"]["UpdateOrganizationRoleInput"];
+                    "application/*+json": components["schemas"]["UpdateOrganizationRoleInput"];
                 };
             };
             responses: {
@@ -2850,7 +2862,14 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["OrganizationRoleResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
                 };
                 /** @description The request is invalid. */
                 400: {
@@ -2890,8 +2909,157 @@ export interface paths {
                     "Idempotency-Key"?: string;
                 };
                 path: {
-                    organizationId: string;
                     roleId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The resource does not exist, or the caller cannot see it. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The change conflicts with the resource's state; a deletion lists what blocks it. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["DeletionBlockedProblem"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["ListPageOfOrganizationPermissionResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateOrganizationPermissionInput"];
+                    "text/json": components["schemas"]["CreateOrganizationPermissionInput"];
+                    "application/*+json": components["schemas"]["CreateOrganizationPermissionInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["OrganizationPermissionResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/permissions/{permissionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    permissionId: string;
                 };
                 cookie?: never;
             };
@@ -2899,6 +3067,118 @@ export interface paths {
             responses: {
                 /** @description OK */
                 200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["OrganizationPermissionResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The resource does not exist, or the caller cannot see it. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
+                path: {
+                    permissionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateOrganizationPermissionInput"];
+                    "text/json": components["schemas"]["UpdateOrganizationPermissionInput"];
+                    "application/*+json": components["schemas"]["UpdateOrganizationPermissionInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["OrganizationPermissionResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The resource does not exist, or the caller cannot see it. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Makes the request safe to retry for 24 hours: a request with a key already used in this environment gets the first one's stored response (with Idempotent-Replayed: true) instead of running again. While the first is still running, a second waits up to 10 seconds for it, then gets its response, runs (if the first failed with a 5xx), or is refused with 409 (idempotency_key_in_progress) and nothing stored, to retry later. The same key with another method, path or body is refused with 409 (idempotency_key_reused). 2xx and 4xx responses are stored; after a 5xx or 429 the key is free again. */
+                    "Idempotency-Key"?: string;
+                };
+                path: {
+                    permissionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -2933,46 +3213,6 @@ export interface paths {
                 };
             };
         };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/permissions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            data: components["schemas"]["ListPageOfPermissionResponse"];
-                            meta: {
-                                requestId: string;
-                            };
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -3851,6 +4091,108 @@ export interface webhooks {
         patch?: never;
         trace?: never;
     };
+    "role.created": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to role.created. */
+        post: operations["RoleCreatedWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "role.updated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to role.updated. */
+        post: operations["RoleUpdatedWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "role.deleted": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to role.deleted. */
+        post: operations["RoleDeletedWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "permission.created": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to permission.created. */
+        post: operations["PermissionCreatedWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "permission.updated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to permission.updated. */
+        post: operations["PermissionUpdatedWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "permission.deleted": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent to the endpoints that subscribe to permission.deleted. */
+        post: operations["PermissionDeletedWebhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "apiKey.expiring": {
         parameters: {
             query?: never;
@@ -3992,9 +4334,20 @@ export interface components {
         CreatedResponse: {
             id: string;
         };
+        CreateOrganizationPermissionInput: {
+            key: string;
+            name: string;
+            description?: null | string;
+        };
+        CreateOrganizationRoleInput: {
+            key: string;
+            name: string;
+            description?: null | string;
+            permissions: string[];
+        };
         DeletedResource: {
             /** @enum {string} */
-            object: "user" | "organization" | "organization_membership";
+            object: "user" | "organization" | "organization_membership" | "role" | "permission";
             id: string;
             /** @enum {boolean} */
             deleted: true;
@@ -4182,13 +4535,18 @@ export interface components {
             nextCursor: null | string;
             hasMore: boolean;
         };
+        ListPageOfOrganizationPermissionResponse: {
+            items: components["schemas"]["OrganizationPermissionResponse"][];
+            nextCursor: null | string;
+            hasMore: boolean;
+        };
         ListPageOfOrganizationResponse: {
             items: components["schemas"]["OrganizationResponse"][];
             nextCursor: null | string;
             hasMore: boolean;
         };
-        ListPageOfPermissionResponse: {
-            items: components["schemas"]["PermissionResponse"][];
+        ListPageOfOrganizationRoleResponse: {
+            items: components["schemas"]["OrganizationRoleResponse"][];
             nextCursor: null | string;
             hasMore: boolean;
         };
@@ -4340,7 +4698,7 @@ export interface components {
         };
         OrganizationInvitationInput: {
             email: string;
-            roleId: string;
+            role?: null | string;
             /** Format: int32 */
             lifetimeDays?: number;
         };
@@ -4348,7 +4706,8 @@ export interface components {
             id: string;
             organizationId: string;
             email: string;
-            roleId: null | string;
+            role: string;
+            roleName: string;
             /** @enum {string} */
             status: "pending" | "accepted" | "revoked" | "expired";
             /** Format: date-time */
@@ -4399,8 +4758,8 @@ export interface components {
             organizationId: string;
             userId: string;
             email: null | string;
-            roleId: string;
-            roleKey: string;
+            role: string;
+            roleName: string;
             /** Format: date-time */
             createdAt: string;
         };
@@ -4443,7 +4802,7 @@ export interface components {
             data: components["schemas"]["DeletedResource"];
         };
         OrganizationMembershipInput: {
-            roleId: string;
+            role: string;
         };
         /** @description The organizationMembership.updated event. */
         OrganizationMembershipUpdatedWebhookEvent: {
@@ -4464,6 +4823,20 @@ export interface components {
             instance_id: string;
             data: components["schemas"]["OrganizationMemberResponse"];
         };
+        OrganizationPermissionResponse: {
+            id: string;
+            /** @enum {string} */
+            object: "permission";
+            key: string;
+            name: string;
+            description: null | string;
+            /** @enum {string} */
+            type: "system" | "user";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
         OrganizationResponse: {
             id: string;
             instanceId: string;
@@ -4478,11 +4851,19 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
-        OrganizationRoleInput: {
+        OrganizationRoleResponse: {
+            id: string;
+            /** @enum {string} */
+            object: "role";
             key: string;
             name: string;
-            description?: null | string;
-            permissionIds: string[];
+            description: null | string;
+            isSystem: boolean;
+            permissions: components["schemas"]["OrganizationPermissionResponse"][];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
         };
         /** @description The organization.updated event. */
         OrganizationUpdatedWebhookEvent: {
@@ -4503,12 +4884,62 @@ export interface components {
             instance_id: string;
             data: components["schemas"]["OrganizationDetailsResponse"];
         };
-        PermissionResponse: {
+        /** @description The permission.created event. */
+        PermissionCreatedWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
             id: string;
-            key: string;
-            name: string;
-            description: null | string;
-            isSystem: boolean;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "permission.created";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["OrganizationPermissionResponse"];
+        };
+        /** @description The permission.deleted event. */
+        PermissionDeletedWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
+            id: string;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "permission.deleted";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["DeletedResource"];
+        };
+        /** @description The permission.updated event. */
+        PermissionUpdatedWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
+            id: string;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "permission.updated";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["OrganizationPermissionResponse"];
         };
         RedeemHandshakeInput: {
             nonce: string;
@@ -4523,13 +4954,62 @@ export interface components {
         RevokeUserApiKeyInput: {
             revocationReason?: null | string;
         };
-        RoleSummary: {
+        /** @description The role.created event. */
+        RoleCreatedWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
             id: string;
-            key: string;
-            name: string;
-            description: null | string;
-            isSystem: boolean;
-            permissions: string[];
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "role.created";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["OrganizationRoleResponse"];
+        };
+        /** @description The role.deleted event. */
+        RoleDeletedWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
+            id: string;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "role.deleted";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["DeletedResource"];
+        };
+        /** @description The role.updated event. */
+        RoleUpdatedWebhookEvent: {
+            /** @description The event's ID: time-ordered, and the webhook-id header. Events carry no other order. */
+            id: string;
+            /** @enum {string} */
+            object: "event";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "role.updated";
+            /**
+             * Format: int64
+             * @description When the change happened, in milliseconds since the Unix epoch.
+             */
+            timestamp: number;
+            instance_id: string;
+            data: components["schemas"]["OrganizationRoleResponse"];
         };
         SecretKeyResponse: {
             id: string;
@@ -4626,6 +5106,19 @@ export interface components {
             publicMetadata: components["schemas"]["JsonElement"];
             privateMetadata: components["schemas"]["JsonElement"];
             unsafeMetadata: components["schemas"]["JsonElement"];
+        };
+        UpdateOrganizationPermissionInput: {
+            /** Format: date-time */
+            expectedUpdatedAt?: null | string;
+            name: string;
+            description?: null | string;
+        };
+        UpdateOrganizationRoleInput: {
+            /** Format: date-time */
+            expectedUpdatedAt?: null | string;
+            name: string;
+            description?: null | string;
+            permissions: string[];
         };
         UpdateUserApiKeyInput: {
             scopes: string[];
@@ -4763,7 +5256,7 @@ export interface components {
             id: string;
             eventId: string;
             /** @enum {string} */
-            eventType: "user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired" | "apiKey.expiring" | "email.created" | "endpoint.test";
+            eventType: "user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired" | "role.created" | "role.updated" | "role.deleted" | "permission.created" | "permission.updated" | "permission.deleted" | "apiKey.expiring" | "email.created" | "endpoint.test";
             endpointId: string;
             endpointName: string;
             /** @enum {string} */
@@ -4789,7 +5282,7 @@ export interface components {
         WebhookEndpointInput: {
             name: string;
             url: string;
-            eventTypes: ("user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired" | "apiKey.expiring" | "email.created")[];
+            eventTypes: ("user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired" | "role.created" | "role.updated" | "role.deleted" | "permission.created" | "permission.updated" | "permission.deleted" | "apiKey.expiring" | "email.created")[];
             enabled: boolean;
             /** Format: date-time */
             expectedUpdatedAt?: null | string;
@@ -4798,7 +5291,7 @@ export interface components {
             id: string;
             name: string;
             url: string;
-            eventTypes: ("user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired" | "apiKey.expiring" | "email.created")[];
+            eventTypes: ("user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired" | "role.created" | "role.updated" | "role.deleted" | "permission.created" | "permission.updated" | "permission.deleted" | "apiKey.expiring" | "email.created")[];
             enabled: boolean;
             /** Format: date-time */
             failingSince: null | string;
@@ -4810,18 +5303,18 @@ export interface components {
             updatedAt: string;
         };
         /** @description Any webhook event, told apart by its type. */
-        WebhookEvent: components["schemas"]["UserCreatedWebhookEvent"] | components["schemas"]["UserUpdatedWebhookEvent"] | components["schemas"]["UserDeletedWebhookEvent"] | components["schemas"]["SessionCreatedWebhookEvent"] | components["schemas"]["SessionEndedWebhookEvent"] | components["schemas"]["OrganizationCreatedWebhookEvent"] | components["schemas"]["OrganizationUpdatedWebhookEvent"] | components["schemas"]["OrganizationDeletedWebhookEvent"] | components["schemas"]["OrganizationMembershipCreatedWebhookEvent"] | components["schemas"]["OrganizationMembershipUpdatedWebhookEvent"] | components["schemas"]["OrganizationMembershipDeletedWebhookEvent"] | components["schemas"]["OrganizationInvitationCreatedWebhookEvent"] | components["schemas"]["OrganizationInvitationUpdatedWebhookEvent"] | components["schemas"]["OrganizationInvitationAcceptedWebhookEvent"] | components["schemas"]["OrganizationInvitationRevokedWebhookEvent"] | components["schemas"]["OrganizationInvitationExpiredWebhookEvent"] | components["schemas"]["ApiKeyExpiringWebhookEvent"] | components["schemas"]["EmailCreatedWebhookEvent"] | components["schemas"]["EndpointTestWebhookEvent"];
+        WebhookEvent: components["schemas"]["UserCreatedWebhookEvent"] | components["schemas"]["UserUpdatedWebhookEvent"] | components["schemas"]["UserDeletedWebhookEvent"] | components["schemas"]["SessionCreatedWebhookEvent"] | components["schemas"]["SessionEndedWebhookEvent"] | components["schemas"]["OrganizationCreatedWebhookEvent"] | components["schemas"]["OrganizationUpdatedWebhookEvent"] | components["schemas"]["OrganizationDeletedWebhookEvent"] | components["schemas"]["OrganizationMembershipCreatedWebhookEvent"] | components["schemas"]["OrganizationMembershipUpdatedWebhookEvent"] | components["schemas"]["OrganizationMembershipDeletedWebhookEvent"] | components["schemas"]["OrganizationInvitationCreatedWebhookEvent"] | components["schemas"]["OrganizationInvitationUpdatedWebhookEvent"] | components["schemas"]["OrganizationInvitationAcceptedWebhookEvent"] | components["schemas"]["OrganizationInvitationRevokedWebhookEvent"] | components["schemas"]["OrganizationInvitationExpiredWebhookEvent"] | components["schemas"]["RoleCreatedWebhookEvent"] | components["schemas"]["RoleUpdatedWebhookEvent"] | components["schemas"]["RoleDeletedWebhookEvent"] | components["schemas"]["PermissionCreatedWebhookEvent"] | components["schemas"]["PermissionUpdatedWebhookEvent"] | components["schemas"]["PermissionDeletedWebhookEvent"] | components["schemas"]["ApiKeyExpiringWebhookEvent"] | components["schemas"]["EmailCreatedWebhookEvent"] | components["schemas"]["EndpointTestWebhookEvent"];
         WebhookEventSummary: {
             id: string;
             /** @enum {string} */
-            type: "user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired" | "apiKey.expiring" | "email.created" | "endpoint.test";
+            type: "user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired" | "role.created" | "role.updated" | "role.deleted" | "permission.created" | "permission.updated" | "permission.deleted" | "apiKey.expiring" | "email.created" | "endpoint.test";
             /** Format: date-time */
             createdAt: string;
             data: components["schemas"]["JsonElement"];
         };
         WebhookEventType: {
             /** @enum {string} */
-            type: "user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired" | "apiKey.expiring" | "email.created";
+            type: "user.created" | "user.updated" | "user.deleted" | "session.created" | "session.ended" | "organization.created" | "organization.updated" | "organization.deleted" | "organizationMembership.created" | "organizationMembership.updated" | "organizationMembership.deleted" | "organizationInvitation.created" | "organizationInvitation.updated" | "organizationInvitation.accepted" | "organizationInvitation.revoked" | "organizationInvitation.expired" | "role.created" | "role.updated" | "role.deleted" | "permission.created" | "permission.updated" | "permission.deleted" | "apiKey.expiring" | "email.created";
         };
         WebhookReplayResponse: {
             /** Format: int32 */
@@ -5189,6 +5682,138 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["OrganizationInvitationExpiredWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RoleCreatedWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleCreatedWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RoleUpdatedWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleUpdatedWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RoleDeletedWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleDeletedWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PermissionCreatedWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PermissionCreatedWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PermissionUpdatedWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PermissionUpdatedWebhookEvent"];
+            };
+        };
+        responses: {
+            /** @description The receiver took the event. Anything else is retried or fails. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PermissionDeletedWebhookEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PermissionDeletedWebhookEvent"];
             };
         };
         responses: {

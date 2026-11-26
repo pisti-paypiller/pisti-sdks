@@ -5,6 +5,7 @@ import { API_ORIGIN, publishableKey } from "./support.js";
 const SECRET_KEY = `sk_test_${"a".repeat(16)}.${"b".repeat(64)}`;
 const USER = "user_0Hk3pQ9xZb2";
 const ORG = "org_0Hk3pQ9xZb2";
+const PERMISSION = "perm_0Hk3pQ9xZb7";
 const ROLE = "role_0Hk3pQ9xZb2";
 const EMAIL = "idn_0Hk3pQ9xZb2";
 const EXTERNAL = "eac_0Hk3pQ9xZb2";
@@ -134,20 +135,20 @@ const routes: Route[] = [
     ["organizations.listMemberships", (p) => p.organizations.listMemberships(ORG).next(), "GET", `/v1/organizations/${ORG}/memberships`],
     [
         "organizations.updateOrganizationMembership",
-        (p) => p.organizations.updateOrganizationMembership(ORG, USER, ROLE),
+        (p) => p.organizations.updateOrganizationMembership(ORG, USER, "org:admin"),
         "PUT",
         `/v1/organizations/${ORG}/memberships/${USER}`,
-        { roleId: ROLE },
+        { role: "org:admin" },
     ],
     ["organizations.deleteOrganizationMembership", (p) => p.organizations.deleteOrganizationMembership(ORG, USER), "DELETE", `/v1/organizations/${ORG}/memberships/${USER}`],
     ["organizations.getOrganizationInvitationList", (p) => p.organizations.getOrganizationInvitationList(ORG), "GET", `/v1/organizations/${ORG}/invitations`],
     ["organizations.listInvitations", (p) => p.organizations.listInvitations(ORG).next(), "GET", `/v1/organizations/${ORG}/invitations`],
     [
         "organizations.createOrganizationInvitation",
-        (p) => p.organizations.createOrganizationInvitation(ORG, { email: "c@example.com", roleId: ROLE, lifetimeDays: 7 }),
+        (p) => p.organizations.createOrganizationInvitation(ORG, { email: "c@example.com", role: "org:member", lifetimeDays: 7 }),
         "POST",
         `/v1/organizations/${ORG}/invitations`,
-        { email: "c@example.com", roleId: ROLE, lifetimeDays: 7 },
+        { email: "c@example.com", role: "org:member", lifetimeDays: 7 },
     ],
     [
         "organizations.resendOrganizationInvitation",
@@ -157,23 +158,40 @@ const routes: Route[] = [
         { expectedExpiresAt: AT },
     ],
     ["organizations.revokeOrganizationInvitation", (p) => p.organizations.revokeOrganizationInvitation(ORG, INVITATION), "DELETE", `/v1/organizations/${ORG}/invitations/${INVITATION}`],
-    ["organizations.getRoleList", (p) => p.organizations.getRoleList(ORG), "GET", `/v1/organizations/${ORG}/roles`],
+    ["roles.getRoleList", (p) => p.roles.getRoleList(), "GET", "/v1/roles"],
+    ["roles.getRole", (p) => p.roles.getRole(ROLE), "GET", `/v1/roles/${ROLE}`],
     [
-        "organizations.createRole",
-        (p) => p.organizations.createRole(ORG, { key: "editor", name: "Editor", permissionIds: [] }),
+        "roles.createRole",
+        (p) => p.roles.createRole({ key: "org:editor", name: "Editor", permissions: ["org:sys_memberships:read"] }),
         "POST",
-        `/v1/organizations/${ORG}/roles`,
-        { key: "editor", name: "Editor", permissionIds: [] },
+        "/v1/roles",
+        { key: "org:editor", name: "Editor", permissions: ["org:sys_memberships:read"] },
     ],
     [
-        "organizations.updateRole",
-        (p) => p.organizations.updateRole(ORG, ROLE, { key: "editor", name: "Editor", permissionIds: [] }),
+        "roles.updateRole",
+        (p) => p.roles.updateRole(ROLE, { name: "Editor", permissions: [], expectedUpdatedAt: AT }),
         "PUT",
-        `/v1/organizations/${ORG}/roles/${ROLE}`,
-        { key: "editor", name: "Editor", permissionIds: [] },
+        `/v1/roles/${ROLE}`,
+        { name: "Editor", permissions: [], expectedUpdatedAt: AT },
     ],
-    ["organizations.deleteRole", (p) => p.organizations.deleteRole(ORG, ROLE), "DELETE", `/v1/organizations/${ORG}/roles/${ROLE}`],
-    ["organizations.getPermissionList", (p) => p.organizations.getPermissionList(), "GET", "/v1/permissions"],
+    ["roles.deleteRole", (p) => p.roles.deleteRole(ROLE), "DELETE", `/v1/roles/${ROLE}`],
+    ["permissions.getPermissionList", (p) => p.permissions.getPermissionList(), "GET", "/v1/permissions"],
+    ["permissions.getPermission", (p) => p.permissions.getPermission(PERMISSION), "GET", `/v1/permissions/${PERMISSION}`],
+    [
+        "permissions.createPermission",
+        (p) => p.permissions.createPermission({ key: "org:invoices:create", name: "Create invoices" }),
+        "POST",
+        "/v1/permissions",
+        { key: "org:invoices:create", name: "Create invoices" },
+    ],
+    [
+        "permissions.updatePermission",
+        (p) => p.permissions.updatePermission(PERMISSION, { name: "Create invoices" }),
+        "PUT",
+        `/v1/permissions/${PERMISSION}`,
+        { name: "Create invoices" },
+    ],
+    ["permissions.deletePermission", (p) => p.permissions.deletePermission(PERMISSION), "DELETE", `/v1/permissions/${PERMISSION}`],
 
     ["externalProviders.getExternalProviderList", (p) => p.externalProviders.getExternalProviderList(), "GET", "/v1/external_providers"],
     [
@@ -267,7 +285,7 @@ describe("Idempotency keys", () => {
         ["users.deleteUser", (p) => p.users.deleteUser(USER, { idempotencyKey: KEY_VALUE })],
         ["users.setEmailVerification", (p) => p.users.setEmailVerification(USER, EMAIL, "verified", { verificationReason: "Checked by HR system", idempotencyKey: KEY_VALUE })],
         ["apiKeys.revokeApiKey", (p) => p.apiKeys.revokeApiKey(KEY, { revocationReason: "Leaked", idempotencyKey: KEY_VALUE })],
-        ["organizations.createOrganizationInvitation", (p) => p.organizations.createOrganizationInvitation(ORG, { email: "c@example.com", roleId: ROLE, lifetimeDays: 7 }, { idempotencyKey: KEY_VALUE })],
+        ["organizations.createOrganizationInvitation", (p) => p.organizations.createOrganizationInvitation(ORG, { email: "c@example.com", role: "org:member", lifetimeDays: 7 }, { idempotencyKey: KEY_VALUE })],
         ["webhooks.replayEndpoint", (p) => p.webhooks.replayEndpoint(ENDPOINT, AT, { idempotencyKey: KEY_VALUE })],
     ];
 

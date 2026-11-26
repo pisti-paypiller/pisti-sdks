@@ -100,7 +100,8 @@ first-party `pisti_client` cookie (`SameSite=Lax`) alone.
 `/v1/organizations`, `/v1/sessions`, `/v1/api_keys`, `/v1/webhooks`, …) act on the secret key's own
 environment, with Clerk-style method names (`users.getUser`, `users.getUserList`, `users.getCount`, `users.banUser`,
 `sessions.getSessionList`, `apiKeys.verifySecret`, `organizations.getOrganizationList`,
-`organizations.createOrganizationInvitation`) and also offers `authenticateRequest()` and
+`organizations.createOrganizationInvitation`, `roles.createRole`, `permissions.createPermission`) and also offers
+`authenticateRequest()` and
 `verifyToken()`. The backend API needs only the secret key; the publishable key is needed for
 `authenticateRequest()` and `verifyToken()`. Secret keys never mint credentials: webhook endpoints are created and their
 signing secrets rotated in the console, and the client only lists, updates, archives, tests and
@@ -122,6 +123,21 @@ so `event.type === "user.created"` narrows `event.data` to `User`, and a deletio
 `DeletedResource`. `verifyWebhook(req)` from
 `@pisti-paypiller/express/webhooks` (or `@pisti-paypiller/backend/webhooks` for a Fetch `Request`) reads
 `PISTI_WEBHOOK_SIGNING_SECRET`.
+
+## Organizations
+
+Roles and permissions belong to the environment and every organization in it uses them, as in Clerk
+(`pisti-backend/docs/api.md#organizations`). The system roles are `org:admin` and `org:member`; the system permissions
+are `org:sys_profile:manage`, `org:sys_profile:delete`, `org:sys_memberships:read` and `org:sys_memberships:manage`,
+and custom ones are `org:<feature>:<action>`. Memberships and invitations name a role by key:
+`organizations.updateOrganizationMembership(orgId, userId, "org:admin")`, `createOrganizationInvitation(orgId,
+{ email, role })` (without `role`, the environment's default role). The backend client manages the definitions with
+`roles` and `permissions`. Session tokens carry the active organization's role key (`orgRole`) and every permission it
+grants (`orgPermissions`, system and custom), so `has({ permission: "org:invoices:create" })` and
+`has({ role: "org:admin" })` work offline. In React, `<OrganizationProfile />` offers the roles the server says the member
+may give (`organizations.assignableRoles(id)`), `useOrganizationSettings()` reads the environment's organization
+settings, and the organization components render nothing while the environment has organizations off (its
+organization routes then answer `403 organizations_disabled`).
 
 ## API contract
 

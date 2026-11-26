@@ -119,6 +119,14 @@ function ModalHost({ client }: { client: PistiClient }) {
 
 function InvitationGate({ client, children }: { client: PistiClient; children: ReactNode }) {
     const snapshot = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getServerSnapshot);
+    const [organizationsEnabled, setOrganizationsEnabled] = useState(true);
+    useEffect(() => {
+        let active = true;
+        client.loadEnvironment().then((value) => active && setOrganizationsEnabled(value.organizations !== null), () => {});
+        return () => {
+            active = false;
+        };
+    }, [client]);
     const [token, setToken] = useState<string | null>(null);
     const [pending, setPending] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -126,7 +134,7 @@ function InvitationGate({ client, children }: { client: PistiClient; children: R
     useEffect(() => {
         setToken(new URLSearchParams(window.location.hash.slice(1)).get("pisti_invitation"));
     }, []);
-    if (!token) return children;
+    if (!token || !organizationsEnabled) return children;
     const clear = () => {
         const url = new URL(window.location.href);
         const fragment = new URLSearchParams(url.hash.slice(1));
@@ -238,6 +246,35 @@ export function useReverification<Arguments extends unknown[], Result>(operation
 
 export function useOrganizationList() {
     return usePisti().organizations;
+}
+
+/**
+ * The environment's organization settings, from `/v1/environment`: `enabled` is false while the environment has
+ * organizations turned off, and `isLoaded` false until the environment is loaded. The organization components render
+ * nothing while organizations are off.
+ */
+export function useOrganizationSettings(): {
+    isLoaded: boolean;
+    enabled: boolean;
+    allowUserCreation: boolean;
+    membershipLimit: number | null;
+} {
+    const client = usePisti();
+    const [environment, setEnvironment] = useState(client.environment);
+    useEffect(() => {
+        let active = true;
+        client.loadEnvironment().then((value) => active && setEnvironment(value), () => {});
+        return () => {
+            active = false;
+        };
+    }, [client]);
+    const organizations = environment?.organizations ?? null;
+    return {
+        isLoaded: environment !== null,
+        enabled: organizations !== null,
+        allowUserCreation: organizations?.allowUserCreation ?? false,
+        membershipLimit: organizations?.membershipLimit ?? null,
+    };
 }
 
 export function useOrganization() {
