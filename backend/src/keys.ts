@@ -1,6 +1,6 @@
 export interface PublishableKeyInfo {
     environment: "test" | "live";
-    /** The environment's own host, for example https://auth.acme.com. Its Frontend API and account API are `/v1/…` there. */
+    /** The environment's own host, for example https://auth.acme.com. Its Frontend API and session API are `/v1/…` there. */
     frontendApi: URL;
     /** This environment's own token issuer: its host with a trailing slash, for example https://auth.acme.com/. Its
      * published keys sign the environment's session, OAuth and M2M tokens, and no other environment's. */

@@ -18,7 +18,6 @@ export interface PistiUser {
     hasImage: boolean;
     issuer: string;
     authenticatedAt: number | null;
-    mfaAuthenticatedAt: number | null;
     instanceId: string;
     organizationId: string | null;
     organizationSlug: string | null;
@@ -75,6 +74,9 @@ export interface AuthSnapshot {
     sessionId: string | null;
     /** Claims of the latest session token. */
     sessionClaims: Readonly<Record<string, unknown>> | null;
+    /** Minutes since the session last verified its first and second factor (`-1` for never), as Clerk's
+     * `session.factorVerificationAge`. Sensitive actions need it within their window, or reverification. */
+    factorVerificationAge: readonly [number, number] | null;
     error: Error | null;
 }
 

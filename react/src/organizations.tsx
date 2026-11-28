@@ -1,5 +1,7 @@
-import { useCallback, useId, useState, type FormEvent } from "react";
-import { useAuth, useOrganizationList, useOrganizationSettings, usePisti } from "./context.js";
+import { useCallback, useId, type FormEvent } from "react";
+import { PistiClientError } from "./client.js";
+import { useAuth, useMe, useOrganizationList, useOrganizationSettings, usePisti } from "./context.js";
+import { readAll } from "./resources.js";
 import {
     ActionNotice,
     ErrorNotice,
@@ -8,17 +10,51 @@ import {
     useResource,
 } from "./ui.js";
 
+/**
+ * Says what a failed organization request means. An organization the user is not a member of answers `404` (it is not
+ * told apart from one that does not exist), and an action the member's role does not allow answers `403`.
+ */
+export function describeOrganizationError(error: unknown): Error {
+    if (error instanceof PistiClientError) {
+        if (error.status === 404)
+            return new PistiClientError("This organization isn’t available: it was deleted, or you are no longer a member.", 404, error.code);
+        if (error.status === 403 && (!error.code || error.code === "forbidden"))
+            return new PistiClientError("Your role in this organization doesn’t allow that.", 403, error.code);
+    }
+    return error instanceof Error ? error : new Error("The request could not be completed.");
+}
+
+/** Runs an organization request, turning 404 and 403 into messages the user can act on. */
+async function organizationRequest<T>(task: () => Promise<T>): Promise<T> {
+    try {
+        return await task();
+    } catch (error) {
+        throw describeOrganizationError(error);
+    }
+}
+
+/** Reads a list the member may not be allowed to see: `null` on 403. */
+async function ifPermitted<T>(task: () => Promise<T>): Promise<T | null> {
+    try {
+        return await task();
+    } catch (error) {
+        if (error instanceof PistiClientError && error.status === 403 && error.code !== "organizations_disabled") return null;
+        throw error;
+    }
+}
+
 export function OrganizationSwitcher({
     className = "",
 }: {
     className?: string;
 }) {
-    const organizations = useOrganizationList();
+    const me = useMe();
+    const pisti = usePisti();
     const auth = useAuth();
     const load = useCallback(
-        () => (auth.isSignedIn ? organizations.list() : Promise.resolve([])),
+        async () => (auth.isSignedIn ? (await readAll(me.getOrganizationMemberships)).map((membership) => membership.organization) : []),
         [
-            organizations,
+            me,
             auth.isSignedIn,
             auth.userId,
             auth.sessionId,
@@ -40,7 +76,7 @@ export function OrganizationSwitcher({
                     disabled={query.isLoading || action.isPending}
                     onChange={(event) =>
                         void action.run(() =>
-                            organizations.setActive(event.target.value || null),
+                            pisti.setActiveOrganization(event.target.value || null),
                         )
                     }
                 >
@@ -67,6 +103,7 @@ export function CreateOrganization({
     className?: string;
 }) {
     const organizations = useOrganizationList();
+    const pisti = usePisti();
     const auth = useAuth();
     const action = useAction();
     const id = useId();
@@ -84,7 +121,7 @@ export function CreateOrganization({
                 name: String(fields.get("name")),
                 slug: String(fields.get("slug")),
             });
-            await organizations.setActive(created.id);
+            await pisti.setActiveOrganization(created.id);
             form.reset();
             onCreated?.(created.id);
         }, "Your organization has been created.");
@@ -127,53 +164,58 @@ export function CreateOrganization({
     );
 }
 
-export function AcceptOrganizationInvitation({
-    token,
+/** The signed-in user's pending organization invitations (to their verified addresses), to accept by ID. Accepting
+ * one joins the organization and makes it the session's active organization. */
+export function OrganizationInvitations({
     onAccepted,
     className = "",
 }: {
-    token: string;
-    onAccepted?: () => void;
+    onAccepted?: (organizationId: string) => void;
     className?: string;
 }) {
-    const organizations = useOrganizationList();
+    const me = useMe();
     const auth = useAuth();
-    const pisti = usePisti();
     const action = useAction();
     const settings = useOrganizationSettings();
+    const load = useCallback(
+        () => (auth.isSignedIn ? readAll(me.getOrganizationInvitations) : Promise.resolve([])),
+        [me, auth.isSignedIn, auth.sessionId],
+    );
+    const query = useResource(load);
     if (!auth.isLoaded || !settings.isLoaded) return <Loading />;
-    if (!settings.enabled) return null;
+    if (!settings.enabled || !auth.isSignedIn) return null;
     return (
         <section className={"pisti-ui " + className}>
-            <h2>Join your organization</h2>
-            <p className="pisti-muted">
-                Sign in using the email address that received this invitation.
-            </p>
-            {auth.isSignedIn ? (
-                <button
-                    type="button"
-                    disabled={action.isPending}
-                    onClick={() =>
-                        void action.run(async () => {
-                            await organizations.acceptInvitation(token);
-                            onAccepted?.();
-                        }, "You have joined the organization.")
-                    }
-                >
-                    {action.isPending ? "Joining…" : "Accept invitation"}
-                </button>
-            ) : (
-                <button
-                    type="button"
-                    disabled={action.isPending}
-                    onClick={() =>
-                        pisti.redirectToSignIn()
-                    }
-                >
-                    Sign in to continue
-                </button>
-            )}
+            <h2>Invitations</h2>
+            {query.isLoading && <Loading />}
+            <ErrorNotice error={query.error} retry={query.reload} />
             <ActionNotice action={action} />
+            {query.data?.length === 0 && <p>You have no pending invitations.</p>}
+            <ul className="pisti-list">
+                {query.data?.map((invitation) => (
+                    <li key={invitation.id}>
+                        <div>
+                            <strong>{invitation.publicOrganizationData.name}</strong>
+                            <p className="pisti-muted">
+                                {invitation.roleName} · sent to {invitation.emailAddress}
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            disabled={action.isPending}
+                            onClick={() =>
+                                void action.run(async () => {
+                                    await organizationRequest(() => me.acceptOrganizationInvitation(invitation.id));
+                                    query.reload();
+                                    onAccepted?.(invitation.publicOrganizationData.id);
+                                }, "You have joined " + invitation.publicOrganizationData.name + ".")
+                            }
+                        >
+                            Accept
+                        </button>
+                    </li>
+                ))}
+            </ul>
         </section>
     );
 }
@@ -184,6 +226,8 @@ export function OrganizationProfile({
     className?: string;
 }) {
     const organizations = useOrganizationList();
+    const me = useMe();
+    const pisti = usePisti();
     const auth = useAuth();
     const id = useId();
     const organizationId = auth.user?.organizationId;
@@ -198,25 +242,15 @@ export function OrganizationProfile({
     const canDelete = auth.has({ permission: "org:sys_profile:delete" });
     const load = useCallback(async () => {
         if (!organizationId || !settings.enabled) return null;
+        // The token's permissions decide what to ask for; the server still decides, so a 403 hides that part.
         // The roles come from the server: the environment's roles this member may give others.
-        const [list, members, roles, invitations] = await Promise.all([
-            organizations.list(),
-            canReadMembers
-                ? organizations.members(organizationId)
-                : Promise.resolve([]),
-            canManageMembers
-                ? organizations.assignableRoles(organizationId)
-                : Promise.resolve([]),
-            canManageMembers
-                ? organizations.invitations(organizationId)
-                : Promise.resolve([]),
+        const [organization, members, roles, invitations] = await Promise.all([
+            organizationRequest(() => organizations.get(organizationId)),
+            canReadMembers ? ifPermitted(() => readAll((page) => organizations.getMemberships(organizationId, page))) : null,
+            canManageMembers ? ifPermitted(() => organizations.getRoles(organizationId)) : null,
+            canManageMembers ? ifPermitted(() => readAll((page) => organizations.getInvitations(organizationId, page))) : null,
         ]);
-        return {
-            organization: list.find((item) => item.id === organizationId),
-            members,
-            roles,
-            invitations,
-        };
+        return { organization, members, roles: roles ?? [], invitations };
     }, [
         organizations,
         organizationId,
@@ -234,16 +268,29 @@ export function OrganizationProfile({
     if (!auth.isSignedIn) return <p>Sign in to manage your organization.</p>;
     if (!organizationId)
         return <p>Select an organization to view its settings.</p>;
-    if (!query.data?.organization)
+    if (!query.data?.organization) {
+        const missing = query.error instanceof PistiClientError && query.error.status === 404;
         return (
-            <ErrorNotice
-                error={
-                    query.error ?? new Error("The organization is unavailable.")
-                }
-                retry={query.reload}
-            />
+            <section className={"pisti-ui " + className}>
+                <ErrorNotice error={query.error ?? new Error("The organization is unavailable.")} {...(missing ? {} : { retry: query.reload })} />
+                {missing && (
+                    <button type="button" className="pisti-secondary" onClick={() => void pisti.setActiveOrganization(null)}>
+                        Switch to your personal account
+                    </button>
+                )}
+            </section>
         );
+    }
     const { organization, roles: assignableRoles, members, invitations } = query.data;
+    // Every organization action reports 404 and 403 the same way, and reloads so a lost membership shows at once.
+    const run = (task: () => Promise<unknown>, message: string) =>
+        void action.run(async () => {
+            try {
+                await organizationRequest(task);
+            } finally {
+                query.reload();
+            }
+        }, message);
     // Only roles the server says this member may give: the environment's default role may not be one of them.
     const defaultRole =
         assignableRoles.find((role) => role.key === "org:member")?.key ??
@@ -261,15 +308,15 @@ export function OrganizationProfile({
                         event.preventDefault();
                         const form = event.currentTarget;
                         const fields = new FormData(form);
-                        void action.run(async () => {
-                            await organizations.update(organizationId, {
-                                name: String(fields.get("name")),
-                                slug: String(fields.get("slug")),
-                                expectedUpdatedAt: organization.updatedAt,
-                                imageUrl: organization.imageUrl,
-                            });
-                            query.reload();
-                        }, "Organization updated.");
+                        run(
+                            () =>
+                                organizations.update(organizationId, {
+                                    name: String(fields.get("name")),
+                                    slug: String(fields.get("slug")),
+                                    expectedUpdatedAt: organization.updatedAt,
+                                }),
+                            "Organization updated.",
+                        );
                     }}
                 >
                     <fieldset disabled={action.isPending}>
@@ -309,14 +356,12 @@ export function OrganizationProfile({
                                 event.preventDefault();
                                 const form = event.currentTarget;
                                 const fields = new FormData(form);
-                                void action.run(async () => {
-                                    await organizations.invite(
-                                        organizationId,
-                                        String(fields.get("email")),
-                                        String(fields.get("role")),
-                                    );
+                                run(async () => {
+                                    await organizations.inviteMember(organizationId, {
+                                        emailAddress: String(fields.get("email")),
+                                        role: String(fields.get("role")),
+                                    });
                                     form.reset();
-                                    query.reload();
                                 }, "Invitation queued for delivery.");
                             }}
                         >
@@ -354,8 +399,9 @@ export function OrganizationProfile({
                     ) : (
                         <p>No roles are available for you to assign.</p>
                     )}
+                    {invitations === null && <p className="pisti-muted">Your role doesn’t allow seeing invitations.</p>}
                     <ul className="pisti-list">
-                        {invitations.map((invitation) => (
+                        {invitations?.map((invitation) => (
                             <li key={invitation.id}>
                                 <div>
                                     {invitation.email}
@@ -369,13 +415,7 @@ export function OrganizationProfile({
                                         className="pisti-secondary"
                                         disabled={action.isPending}
                                         onClick={() =>
-                                            void action.run(async () => {
-                                                await organizations.revokeInvitation(
-                                                    organizationId,
-                                                    invitation.id,
-                                                );
-                                                query.reload();
-                                            }, "Invitation revoked.")
+                                            run(() => organizations.revokeInvitation(organizationId, invitation.id), "Invitation revoked.")
                                         }
                                     >
                                         Revoke invitation
@@ -389,9 +429,10 @@ export function OrganizationProfile({
             {canReadMembers && (
                 <section className="pisti-section">
                     <h2>Members</h2>
-                    {members.length === 0 && <p>No members found.</p>}
+                    {members === null && <p className="pisti-muted">Your role doesn’t allow seeing members.</p>}
+                    {members?.length === 0 && <p>No members found.</p>}
                     <ul className="pisti-list">
-                        {members.map((member) => (
+                        {members?.map((member) => (
                             <li key={member.id}>
                                 <div>
                                     {member.email}
@@ -413,16 +454,8 @@ export function OrganizationProfile({
                                                 value={member.role}
                                                 disabled={action.isPending}
                                                 onChange={(event) =>
-                                                    void action.run(
-                                                        async () => {
-                                                            await organizations.setMemberRole(
-                                                                organizationId,
-                                                                member.userId,
-                                                                event.target
-                                                                    .value,
-                                                            );
-                                                            query.reload();
-                                                        },
+                                                    run(
+                                                        () => organizations.updateMember(organizationId, member.userId, { role: event.target.value }),
                                                         "Member role updated.",
                                                     )
                                                 }
@@ -459,16 +492,7 @@ export function OrganizationProfile({
                                                                 " from this organization?",
                                                         )
                                                     )
-                                                        void action.run(
-                                                            async () => {
-                                                                await organizations.removeMember(
-                                                                    organizationId,
-                                                                    member.userId,
-                                                                );
-                                                                query.reload();
-                                                            },
-                                                            "Member removed.",
-                                                        );
+                                                        run(() => organizations.removeMember(organizationId, member.userId), "Member removed.");
                                                 }}
                                             >
                                                 Remove
@@ -492,9 +516,7 @@ export function OrganizationProfile({
                     disabled={action.isPending}
                     onClick={() => {
                         if (window.confirm("Leave " + organization.name + "?"))
-                            void action.run(() =>
-                                organizations.leave(organizationId),
-                            );
+                            run(() => me.leaveOrganization(organizationId), "You left " + organization.name + ".");
                     }}
                 >
                     Leave organization
@@ -512,7 +534,7 @@ export function OrganizationProfile({
                         disabled={action.isPending}
                         onClick={() => {
                             if (window.confirm("Delete " + organization.name + " for everyone?"))
-                                void action.run(() => organizations.delete(organizationId));
+                                run(() => organizations.destroy(organizationId), organization.name + " was deleted.");
                         }}
                     >
                         Delete organization

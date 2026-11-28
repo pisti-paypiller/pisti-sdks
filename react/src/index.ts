@@ -4,7 +4,7 @@ export {
     useUser,
     usePisti,
     useAuthenticatedFetch,
-    useAccount,
+    useMe,
     useReverification,
     useOrganization,
     useOrganizationList,
@@ -13,9 +13,9 @@ export {
     useSignUp,
     useSession,
 } from "./context.js";
-export type { UserApiKey } from "./resources.js";
 export type { PistiProviderProps, PistiAppearance } from "./context.js";
-export { PistiClient, PistiClientError, parsePublishableKey } from "./client.js";
+export { PistiClient, PistiClientError, parsePublishableKey, reverificationOf } from "./client.js";
+export type { ReverificationRequirement, SessionVerification } from "./client.js";
 export { SignIn, SignUp } from "./auth.js";
 export type { SignInProps, SignUpProps } from "./auth.js";
 export type { ShowWhen } from "./ui.js";
@@ -34,14 +34,15 @@ export type {
     GetTokenOptions,
     PermissionCheck,
 } from "./types.js";
-export { AccountResource, OrganizationResource } from "./resources.js";
+export { MeResource, OrganizationResource, readAll } from "./resources.js";
 export { UserProfile } from "./user-profile.js";
 export { APIKeys } from "./api-keys.js";
 export {
     OrganizationSwitcher,
     OrganizationProfile,
     CreateOrganization,
-    AcceptOrganizationInvitation,
+    OrganizationInvitations,
+    describeOrganizationError,
 } from "./organizations.js";
 export {
     Show,
@@ -55,20 +56,27 @@ export {
     PistiLoading,
 } from "./ui.js";
 export type {
-    Profile,
-    AccountSession,
-    SecurityState,
-    SecurityProof,
-    VerificationRequest,
-    AuthenticatorEnrollment,
+    Me,
+    UpdateMeInput,
+    UserEmailAddress,
+    UserEmailAddressData,
+    Passkey,
+    TOTP,
+    BackupCodes,
+    ExternalAccount,
+    UserSession,
+    UserApiKey,
+    CreatedApiKey,
+    OrganizationMembership,
+    UserOrganizationInvitation,
     Organization,
-    OrganizationInput,
+    CreateOrganizationInput,
+    UpdateOrganizationInput,
     OrganizationMember,
     OrganizationInvitation,
+    SentInvitation,
     OrganizationRole,
-    Page,
-    Passkey,
-    ConnectedAccount,
     CursorPage,
+    PageQuery,
     DirectoryQuery,
 } from "./resources.js";
