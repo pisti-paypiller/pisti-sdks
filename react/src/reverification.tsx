@@ -62,7 +62,7 @@ export function ReverificationDialog({ client }: { client: PistiClient }) {
     const firstFactors = (verification?.supportedFirstFactors ?? [])
         .map((factor) => factor.strategy)
         .filter((strategy): strategy is FirstFactor => strategy in labels && strategy !== "totp" && strategy !== "backup_code")
-        .filter((strategy) => strategy !== "passkey" || (typeof window !== "undefined" && "PublicKeyCredential" in window));
+        .filter((strategy) => strategy !== "passkey" || client.passkeysAvailable);
     const secondFactors = (verification?.supportedSecondFactors ?? [])
         .map((factor) => factor.strategy)
         .filter((strategy): strategy is SecondFactor => strategy === "totp" || strategy === "backup_code");

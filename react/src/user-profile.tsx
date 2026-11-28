@@ -198,9 +198,10 @@ function AccountSessions() {
 
 function AccountPasskeys() {
     const me = useMe();
+    const pisti = usePisti();
     const query = useResource(me.getPasskeys);
     const action = useAction();
-    const supported = typeof window !== "undefined" && "PublicKeyCredential" in window;
+    const supported = pisti.passkeysAvailable;
     return (
         <section className="pisti-section">
             <h3>Passkeys</h3>
@@ -567,7 +568,7 @@ function AccountSecurity() {
                                 await me.updatePassword({ newPassword: value(form, "newPassword") });
                                 form.reset();
                                 profile.reload();
-                            }, "Your password has been saved.");
+                            }, "Your password has been saved. Your other devices were signed out; this one stays signed in.");
                         }}
                     >
                         <fieldset disabled={action.isPending}>
@@ -616,7 +617,7 @@ export function UserProfile({
     /** Adds an "API keys" page with <APIKeys />. */
     apiKeys?: boolean;
 }) {
-    const { isLoaded, isSignedIn, error, user, sessionId } = useAuth();
+    const { isLoaded, isSignedIn, error, user } = useAuth();
     const [page, setPage] = useState<"profile" | "security" | "sessions" | "api keys">(
         "profile",
     );
@@ -628,7 +629,8 @@ export function UserProfile({
     if (!isSignedIn) return <p>Sign in to manage your account.</p>;
     return (
         <div
-            key={user?.id + ":" + sessionId}
+            // Keyed by user, not session: a new password replaces the session, and its confirmation must stay on screen.
+            key={user?.id}
             className={"pisti-ui pisti-account " + className}
         >
             <header>

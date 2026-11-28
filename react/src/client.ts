@@ -458,8 +458,20 @@ export class PistiClient {
 
     /** Makes another of this browser's sessions the active one. */
     readonly setActive = async (sessionId: string): Promise<void> => {
+        const touch = (organizationId: string | null) =>
+            this.fapi<ClientState>("POST", `client/sessions/${encodeURIComponent(sessionId)}/touch`, { organizationId });
         const organizationId = this.clientState?.sessions.find((item) => item.id === sessionId)?.organizationId ?? null;
-        await this.apply(await this.fapi<ClientState>("POST", `client/sessions/${encodeURIComponent(sessionId)}/touch`, { organizationId }), sessionId);
+        let state: ClientState;
+        try {
+            state = await touch(organizationId);
+        } catch (error) {
+            // The session's organization may have gone elsewhere (membership removed, organization deleted): read the
+            // client again and switch once more without it, landing on the personal account.
+            if (organizationId === null || !(error instanceof PistiClientError) || (error.status !== 403 && error.status !== 404)) throw error;
+            await this.load();
+            state = await touch(null);
+        }
+        await this.apply(state, sessionId);
         await this.getToken({ skipCache: true }).catch(() => {});
         this.channel?.postMessage("changed");
     };
@@ -622,6 +634,23 @@ export class PistiClient {
     readonly openSignUp = (options: RedirectOptions = {}): void => this.setModal("sign-up", options);
     readonly openUserProfile = (): void => this.setModal("user-profile");
     readonly closeModal = (): void => this.setModal(null);
+
+    /**
+     * Whether a passkey ceremony can run on this page. WebAuthn must be available, and the page must be able to use the
+     * environment's relying party: in production its primary domain (the Frontend API host's parent, `acme.com` for
+     * `auth.acme.com`), over HTTPS, on that domain or a subdomain of it; in development the hosted pages' host
+     * (`quiet-fox-12-accounts.<dev-domain>` for `quiet-fox-12.<dev-domain>`), since generated hosts share a domain.
+     */
+    get passkeysAvailable(): boolean {
+        if (typeof window === "undefined" || !("PublicKeyCredential" in window) || typeof navigator === "undefined" || !navigator.credentials)
+            return false;
+        const here = window.location;
+        const [label, ...rest] = this.frontendApi.hostname.split(".");
+        if (!label || rest.length === 0) return false;
+        if (this.development) return here.hostname === `${label}-accounts.${rest.join(".")}`;
+        const relyingParty = rest.join(".");
+        return here.protocol === "https:" && (here.hostname === relyingParty || here.hostname.endsWith("." + relyingParty));
+    }
 
     // ----- Reverification (sensitive account changes) -----
 

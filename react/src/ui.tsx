@@ -2,6 +2,9 @@ import {
     cloneElement,
     isValidElement,
     useEffect,
+    useId,
+    useRef,
+    useState,
     type ButtonHTMLAttributes,
     type MouseEvent,
     type ReactElement,
@@ -266,5 +269,83 @@ export function UserButton({
                 <SignOutButton role="menuitem" className="pisti-menu-item" />
             </div>
         </details>
+    );
+}
+
+/**
+ * A styled, accessible confirmation, in place of `window.confirm`: a modal dialog with the action's own wording.
+ * With `confirmationText`, the user types it (an organization's name, say) before the action unlocks.
+ */
+export function ConfirmDialog({
+    open,
+    title,
+    description,
+    confirmLabel,
+    confirmationText,
+    danger = false,
+    onConfirm,
+    onCancel,
+}: {
+    open: boolean;
+    title: string;
+    description: ReactNode;
+    confirmLabel: string;
+    confirmationText?: string | undefined;
+    danger?: boolean;
+    onConfirm: () => void;
+    onCancel: () => void;
+}) {
+    const dialog = useRef<HTMLDialogElement>(null);
+    const id = useId();
+    const [typed, setTyped] = useState("");
+    useEffect(() => {
+        const element = dialog.current;
+        if (!element) return;
+        if (open && !element.open) {
+            setTyped("");
+            element.showModal();
+        }
+        if (!open && element.open) element.close();
+    }, [open]);
+    const ready = confirmationText === undefined || typed.trim() === confirmationText;
+    return (
+        <dialog
+            ref={dialog}
+            className="pisti-ui pisti-reverification"
+            role="alertdialog"
+            aria-labelledby={id + "-title"}
+            aria-describedby={id + "-description"}
+            onCancel={(event) => {
+                event.preventDefault();
+                onCancel();
+            }}
+        >
+            <h2 id={id + "-title"}>{title}</h2>
+            <div id={id + "-description"} className="pisti-muted">
+                {description}
+            </div>
+            <form
+                className="pisti-form"
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    if (ready) onConfirm();
+                }}
+            >
+                {confirmationText !== undefined && (
+                    <label htmlFor={id + "-typed"}>
+                        Type <strong>{confirmationText}</strong> to confirm
+                        <input id={id + "-typed"} value={typed} onChange={(event) => setTyped(event.target.value)} autoComplete="off" required />
+                    </label>
+                )}
+                <div className="pisti-actions">
+                    <button type="submit" className={danger ? "pisti-danger" : undefined} disabled={!ready}>
+                        {confirmLabel}
+                    </button>
+                    <button type="button" className="pisti-secondary" onClick={onCancel} autoFocus>
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </dialog>
     );
 }

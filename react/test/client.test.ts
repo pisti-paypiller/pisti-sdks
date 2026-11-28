@@ -250,6 +250,73 @@ describe("session naming", () => {
     });
 });
 
+describe("switching sessions", () => {
+    const withOrganization = (sessionId: string, organizationId: string | null): ClientState => {
+        const state = clientState(sessionId);
+        return { ...state, sessions: state.sessions.map((session) => ({ ...session, organizationId })) };
+    };
+
+    it.each([403, 404])("lands on the personal account when the session's organization is gone (%i)", async (status) => {
+        let organization: string | null = ORG;
+        const calls = stubApi((sent) => {
+            if (sent.url.pathname === "/v1/client") return { data: withOrganization(SESSION, organization) };
+            if (sent.url.pathname.endsWith("/touch")) {
+                const body = sent.body as { organizationId: string | null };
+                if (body.organizationId) return { status, problem: { code: status === 403 ? "forbidden" : "not_found" } };
+                return { data: withOrganization(SESSION, null) };
+            }
+            return undefined;
+        });
+        const client = await signedIn();
+        organization = null;
+        await client.setActive(SESSION);
+
+        const touches = calls.filter((call) => call.url.pathname.endsWith("/touch")).map((call) => call.body);
+        expect(touches).toEqual([{ organizationId: ORG }, { organizationId: null }]);
+        expect(client.getSnapshot().user?.organizationId).toBeNull();
+    });
+
+    it("does not retry other failures", async () => {
+        const calls = stubApi((sent) => {
+            if (sent.url.pathname === "/v1/client") return { data: withOrganization(SESSION, ORG) };
+            if (sent.url.pathname.endsWith("/touch")) return { status: 409, problem: { code: "conflict" } };
+            return undefined;
+        });
+        const client = await signedIn();
+        await expect(client.setActive(SESSION)).rejects.toMatchObject({ status: 409 });
+        expect(calls.filter((call) => call.url.pathname.endsWith("/touch"))).toHaveLength(1);
+    });
+});
+
+describe("passkey availability", () => {
+    const at = (href: string) => vi.stubGlobal("window", { location: new URL(href), PublicKeyCredential: class {} });
+
+    it("needs the environment's relying party: its primary domain in production", async () => {
+        stubApi();
+        const client = await signedIn();
+        vi.stubGlobal("navigator", { credentials: {} });
+        at("https://app.example.com/account");
+        expect(client.passkeysAvailable).toBe(true);
+        at("https://example.org/account");
+        expect(client.passkeysAvailable).toBe(false);
+        at("http://app.example.com/account");
+        expect(client.passkeysAvailable).toBe(false);
+    });
+
+    it("needs the hosted pages' host in development, and WebAuthn", async () => {
+        vi.stubGlobal("localStorage", { getItem: () => CLIENT_TOKEN, setItem: () => {} });
+        stubApi();
+        const client = await signedIn("test");
+        vi.stubGlobal("navigator", { credentials: {} });
+        at("http://localhost:5173/");
+        expect(client.passkeysAvailable).toBe(false);
+        at("http://quiet-fox-12-accounts.pisti.localhost:3000/user");
+        expect(client.passkeysAvailable).toBe(true);
+        vi.stubGlobal("window", { location: new URL("http://quiet-fox-12-accounts.pisti.localhost:3000/user") });
+        expect(client.passkeysAvailable).toBe(false);
+    });
+});
+
 describe("CSRF", () => {
     it("fetches the token once and sends it on every cookie mutation, not on reads", async () => {
         const calls = stubApi((sent) => (sent.url.pathname === "/v1/me" && sent.method === "GET" ? { data: {} } : undefined));

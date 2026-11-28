@@ -19,7 +19,7 @@ export function APIKeys({ className = "" }: { className?: string }) {
     const keys = useResource(me.getApiKeys);
     const action = useAction();
     const [creating, setCreating] = useState(false);
-    const [secret, setSecret] = useState<{ name: string; value: string } | null>(null);
+    const [secret, setSecret] = useState<{ id: string; name: string; value: string } | null>(null);
     const [copied, setCopied] = useState(false);
     if (!isLoaded) return <Loading />;
     if (!isSignedIn) return <p>Sign in to manage your API keys.</p>;
@@ -35,7 +35,7 @@ export function APIKeys({ className = "" }: { className?: string }) {
                 name,
                 ...(lifetime ? { secondsUntilExpiration: lifetime } : {}),
             });
-            setSecret({ name: created.apiKey.name, value: created.secret });
+            setSecret({ id: created.apiKey.id, name: created.apiKey.name, value: created.secret });
             setCopied(false);
             setCreating(false);
             keys.reload();
@@ -97,6 +97,8 @@ export function APIKeys({ className = "" }: { className?: string }) {
                             onClick={() =>
                                 void action.run(async () => {
                                     await me.revokeApiKey(key.id);
+                                    // A revoked key's secret is useless and should not stay on screen.
+                                    setSecret((shown) => (shown?.id === key.id ? null : shown));
                                     keys.reload();
                                 }, "API key revoked.")
                             }

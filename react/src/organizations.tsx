@@ -1,9 +1,10 @@
-import { useCallback, useId, type FormEvent } from "react";
+import { useCallback, useEffect, useId, useState, type FormEvent } from "react";
 import { PistiClientError } from "./client.js";
 import { useAuth, useMe, useOrganizationList, useOrganizationSettings, usePisti } from "./context.js";
 import { readAll } from "./resources.js";
 import {
     ActionNotice,
+    ConfirmDialog,
     ErrorNotice,
     Loading,
     useAction,
@@ -263,6 +264,22 @@ export function OrganizationProfile({
     ]);
     const query = useResource(load);
     const action = useAction();
+    const [confirming, setConfirming] = useState<
+        { kind: "remove"; userId: string; email: string } | { kind: "leave" } | { kind: "delete" } | null
+    >(null);
+    // Memberships change elsewhere (a member leaves, an admin removes you): read them again when the page regains focus.
+    const reload = query.reload;
+    useEffect(() => {
+        const refresh = () => {
+            if (document.visibilityState === "visible") reload();
+        };
+        window.addEventListener("focus", refresh);
+        document.addEventListener("visibilitychange", refresh);
+        return () => {
+            window.removeEventListener("focus", refresh);
+            document.removeEventListener("visibilitychange", refresh);
+        };
+    }, [reload]);
     if (!auth.isLoaded || !settings.isLoaded || (query.isLoading && !query.data)) return <Loading />;
     if (!settings.enabled) return null;
     if (!auth.isSignedIn) return <p>Sign in to manage your organization.</p>;
@@ -484,16 +501,7 @@ export function OrganizationProfile({
                                                 type="button"
                                                 className="pisti-secondary"
                                                 disabled={action.isPending}
-                                                onClick={() => {
-                                                    if (
-                                                        window.confirm(
-                                                            "Remove " +
-                                                                member.email +
-                                                                " from this organization?",
-                                                        )
-                                                    )
-                                                        run(() => organizations.removeMember(organizationId, member.userId), "Member removed.");
-                                                }}
+                                                onClick={() => setConfirming({ kind: "remove", userId: member.userId, email: member.email ?? member.userId })}
                                             >
                                                 Remove
                                             </button>
@@ -514,10 +522,7 @@ export function OrganizationProfile({
                     type="button"
                     className="pisti-danger"
                     disabled={action.isPending}
-                    onClick={() => {
-                        if (window.confirm("Leave " + organization.name + "?"))
-                            run(() => me.leaveOrganization(organizationId), "You left " + organization.name + ".");
-                    }}
+                    onClick={() => setConfirming({ kind: "leave" })}
                 >
                     Leave organization
                 </button>
@@ -532,15 +537,43 @@ export function OrganizationProfile({
                         type="button"
                         className="pisti-danger"
                         disabled={action.isPending}
-                        onClick={() => {
-                            if (window.confirm("Delete " + organization.name + " for everyone?"))
-                                run(() => organizations.destroy(organizationId), organization.name + " was deleted.");
-                        }}
+                        onClick={() => setConfirming({ kind: "delete" })}
                     >
                         Delete organization
                     </button>
                 </section>
             )}
+            <ConfirmDialog
+                open={confirming !== null}
+                danger
+                title={
+                    confirming?.kind === "remove"
+                        ? "Remove member"
+                        : confirming?.kind === "leave"
+                          ? "Leave " + organization.name
+                          : "Delete " + organization.name
+                }
+                description={
+                    confirming?.kind === "remove"
+                        ? <>Remove {confirming.email} from {organization.name}? They lose access at once.</>
+                        : confirming?.kind === "leave"
+                          ? "You lose access to this organization until someone invites you again."
+                          : "This removes every member and pending invitation, for everyone. It can’t be undone."
+                }
+                confirmLabel={confirming?.kind === "remove" ? "Remove member" : confirming?.kind === "leave" ? "Leave organization" : "Delete organization"}
+                confirmationText={confirming?.kind === "delete" ? organization.name : undefined}
+                onCancel={() => setConfirming(null)}
+                onConfirm={() => {
+                    const chosen = confirming;
+                    setConfirming(null);
+                    if (chosen?.kind === "remove")
+                        run(() => organizations.removeMember(organizationId, chosen.userId), "Member removed.");
+                    else if (chosen?.kind === "leave")
+                        run(() => me.leaveOrganization(organizationId), "You left " + organization.name + ".");
+                    else if (chosen?.kind === "delete")
+                        run(() => organizations.destroy(organizationId), organization.name + " was deleted.");
+                }}
+            />
         </section>
     );
 }
