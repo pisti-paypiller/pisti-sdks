@@ -122,7 +122,7 @@ const routes: Route[] = [
     ["me.revokeSession", (c) => c.me.revokeSession(OTHER_SESSION), "POST", `/v1/me/sessions/${OTHER_SESSION}/revoke`],
     ["me.revokeAllSessions", (c) => c.me.revokeAllSessions(), "POST", "/v1/me/sessions/revoke_all"],
     ["me.getApiKeys", (c) => c.me.getApiKeys(), "GET", "/v1/me/api_keys"],
-    ["me.createApiKey", (c) => c.me.createApiKey({ name: "Deploy", secondsUntilExpiration: 3600 }), "POST", "/v1/me/api_keys", { name: "Deploy", secondsUntilExpiration: 3600 }],
+    ["me.createApiKey", (c) => c.me.createApiKey({ name: "Deploy", secondsUntilExpiration: 3600 }), "POST", "/v1/me/api_keys", { name: "Deploy", secondsUntilExpiration: "3600" }],
     ["me.revokeApiKey", (c) => c.me.revokeApiKey(KEY, "lost"), "POST", `/v1/me/api_keys/${KEY}/revoke`, { revocationReason: "lost" }],
     ["me.getOrganizationMemberships", (c) => c.me.getOrganizationMemberships({ search: "acme" }), "GET", "/v1/me/organization_memberships?search=acme"],
     ["me.leaveOrganization", (c) => c.me.leaveOrganization(ORG), "DELETE", `/v1/me/organization_memberships/${ORG}`],
@@ -253,6 +253,17 @@ describe("CSRF", () => {
         expect(first?.headers.get("x-csrf-token")).toBe("csrf-1");
         expect(second?.headers.get("x-csrf-token")).toBe("csrf-1");
         expect(calls.filter((call) => call.url.pathname === "/v1/client/csrf")).toHaveLength(1);
+    });
+
+    it("sends no token when choosing the active organization, which checks only the origin", async () => {
+        const calls = stubApi((sent) => (sent.url.pathname.endsWith("/touch") ? { data: clientState() } : undefined));
+        const client = await signedIn();
+        await client.setActiveOrganization(ORG);
+
+        const touch = calls.find((call) => call.url.pathname === `/v1/client/sessions/${SESSION}/touch`);
+        expect(touch?.body).toEqual({ organizationId: ORG });
+        expect(touch?.headers.get("x-csrf-token")).toBeNull();
+        expect(calls.some((call) => call.url.pathname === "/v1/client/csrf")).toBe(false);
     });
 
     it("fetches a new token and retries once on csrf_invalid", async () => {

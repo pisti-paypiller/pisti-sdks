@@ -172,8 +172,12 @@ export class MeResource {
     getApiKeys = async (): Promise<UserApiKey[]> => (await this.request<CursorPage<UserApiKey>>("GET", "/v1/me/api_keys")).items;
     /** Creates an API key. It starts with no scopes or claims (your backend grants those), stops working when the
      * user's credentials change, and its secret is returned only once. Needs both factors. */
-    createApiKey = (input: { name: string; description?: string; secondsUntilExpiration?: number }): Promise<CreatedApiKey> =>
-        this.request("POST", "/v1/me/api_keys", input);
+    createApiKey = ({ secondsUntilExpiration, ...input }: { name: string; description?: string; secondsUntilExpiration?: number }): Promise<CreatedApiKey> =>
+        // The contract carries 64-bit integers as decimal strings.
+        this.request("POST", "/v1/me/api_keys", {
+            ...input,
+            ...(secondsUntilExpiration === undefined ? {} : { secondsUntilExpiration: String(secondsUntilExpiration) }),
+        });
     revokeApiKey = (id: string, revocationReason?: string): Promise<void> =>
         this.request("POST", `/v1/me/api_keys/${publicId(id)}/revoke`, revocationReason ? { revocationReason } : {});
 

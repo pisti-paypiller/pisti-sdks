@@ -50,7 +50,7 @@ Each value can also be passed as an option, for example
 
 ```ts
 import express from "express";
-import { pistiMiddleware, requireAuth, getAuth, pistiClient } from "@pisti-paypiller/express";
+import { pistiMiddleware, requireAuth, getAuth, pistiClient, reverificationRequirement } from "@pisti-paypiller/express";
 
 const app = express();
 app.use(express.json());
@@ -75,8 +75,9 @@ app.delete("/api/workspace", requireAuth({ role: "org:admin", reverification: "s
 app.post("/api/payouts", (req, res) => {
     const auth = getAuth(req);
     if (!auth.has({ permission: "billing:manage" })) return res.sendStatus(403);
-    if (!auth.has({ reverification: { level: "second_factor", afterMinutes: 10 } }))
-        return res.status(403).json({ code: "reverification_required" });
+    const reverification = { level: "second_factor", afterMinutes: 10 } as const;
+    if (!auth.has({ reverification }))
+        return res.status(403).json({ code: "session_reverification_required", reverification: reverificationRequirement(reverification) });
     // …
 });
 
@@ -91,8 +92,11 @@ own keys, its issuer, expiry, that the token belongs to your environment and, wh
 requesting origin. A token from another environment fails on both issuer and signature. An expired or
 invalid cookie leaves the request signed out; an invalid bearer token answers 401.
 
-`requireAuth()` answers with RFC 9457 problem details: `401 signed_out`, or `403 forbidden` or
-`reverification_required`. With `signInUrl` (or `PISTI_SIGN_IN_URL`), browser page requests
+`requireAuth()` answers with RFC 9457 problem details: `401 signed_out`, `403 forbidden`, or
+`403 session_reverification_required` with `reverification: { level, afterMinutes }`, the problem the Frontend API
+itself answers, so `useReverification(fn)` from `@pisti-paypiller/react` verifies the session and retries (`level` is
+`first_factor` or `multi_factor`; `second_factor` is reported as `multi_factor`, which asks for a second factor only
+from users who have one). With `signInUrl` (or `PISTI_SIGN_IN_URL`), browser page requests
 are redirected there with `redirect_url` set, and `@pisti-paypiller/react` sends people back after
 sign-in.
 

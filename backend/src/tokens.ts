@@ -223,6 +223,19 @@ const presets = {
     lax: { level: "second_factor", afterMinutes: 1440 },
 } as const;
 
+/**
+ * The requirement a failed `reverification` check reports, in the shape of the Frontend API's
+ * `403 session_reverification_required` problem, so `@pisti-paypiller/react`'s `useReverification` can verify the
+ * session and retry. Its verification has two levels: `second_factor` becomes `multi_factor`, which also asks for
+ * the second factor only from users who have one.
+ */
+export function reverificationRequirement(
+    reverification: NonNullable<CheckAuthorizationParams["reverification"]>,
+): { level: "first_factor" | "multi_factor"; afterMinutes: number } {
+    const { level, afterMinutes } = typeof reverification === "string" ? presets[reverification] : reverification;
+    return { level: level === "first_factor" ? "first_factor" : "multi_factor", afterMinutes };
+}
+
 /** Builds the auth object for verified session claims. */
 export function authObject(claims: SessionClaims, token: string): AuthObject {
     const permissions = Array.isArray(claims.org_permissions)

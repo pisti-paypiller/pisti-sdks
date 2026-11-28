@@ -1,6 +1,6 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { PistiError } from "../src/errors.js";
-import { authenticateRequest, authObject, HANDSHAKE_PARAMETER, verifyToken } from "../src/tokens.js";
+import { authenticateRequest, authObject, HANDSHAKE_PARAMETER, reverificationRequirement, verifyToken } from "../src/tokens.js";
 import type { SessionClaims } from "../src/types.js";
 import { API_ORIGIN, APP_ORIGIN, HOST_ORIGIN, KINDS, publishableKey, sessionClaims, sign, signingKey, type SigningKey } from "./support.js";
 
@@ -148,6 +148,12 @@ describe("authObject", () => {
         expect(reverified.has({ reverification: "strict_mfa" })).toBe(true);
         expect(missing.factorVerificationAge).toEqual([-1, -1]);
         expect(missing.has({ reverification: "lax" })).toBe(false);
+    });
+
+    it("reports a failed check as the Frontend API's reverification requirement", () => {
+        expect(reverificationRequirement("strict_mfa")).toEqual({ level: "multi_factor", afterMinutes: 10 });
+        expect(reverificationRequirement("moderate")).toEqual({ level: "multi_factor", afterMinutes: 60 });
+        expect(reverificationRequirement({ level: "first_factor", afterMinutes: 5 })).toEqual({ level: "first_factor", afterMinutes: 5 });
     });
 
     it("falls back to the first factor for users without a second one, except for strict_mfa", () => {

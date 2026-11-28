@@ -6,6 +6,7 @@ export {
     signedOutAuthObject,
     unauthenticatedObject,
     acceptedTokenTypes,
+    reverificationRequirement,
     tokenFrom,
     readCookie,
     SESSION_COOKIE,

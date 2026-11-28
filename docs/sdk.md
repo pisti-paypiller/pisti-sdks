@@ -64,7 +64,8 @@ An application environment has two kinds of key:
 6. Every session API request names the session it acts as with `_pisti_session_id` (a browser may hold several)
    and authenticates with the browser client: its `pisti_client` cookie or, in development, the `X-Pisti-Client`
    header. Cookie mutations also send the antiforgery token from `GET /v1/client/csrf` in `X-CSRF-TOKEN`; the SDK
-   caches it and fetches a new one when a request is refused with `csrf_invalid`. The SDK never uses a bearer token
+   caches it and fetches a new one when a request is refused with `csrf_invalid`. Reverification (`/v1/client/sessions/{id}/verify…`) is
+   checked the same way; `touch` checks only the origin and needs no token. The SDK never uses a bearer token
    on the session API. A new password returns the browser client, and the SDK switches to its new
    `lastActiveSessionId`. The active organization is set with `touch` and read from `GET /v1/client`.
 7. A sensitive action answers `403 session_reverification_required` with `reverification: { level, afterMinutes }`.
