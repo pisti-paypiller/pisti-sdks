@@ -4,43 +4,30 @@
  */
 
 export interface paths {
-    "/v1/account/profile": {
+    "/v1/organizations": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: {
+        get?: never;
+        put?: never;
+        post: {
             parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
                 };
-            };
-        };
-        put: {
-            parameters: {
-                query?: never;
                 header?: never;
                 path?: never;
                 cookie?: never;
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["UpdateOwnProfileInput"];
-                    "text/json": components["schemas"]["UpdateOwnProfileInput"];
-                    "application/*+json": components["schemas"]["UpdateOwnProfileInput"];
+                    "application/json": components["schemas"]["CreateMemberOrganizationInput"];
+                    "text/json": components["schemas"]["CreateMemberOrganizationInput"];
+                    "application/*+json": components["schemas"]["CreateMemberOrganizationInput"];
                 };
             };
             responses: {
@@ -49,7 +36,14 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["OrganizationResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
                 };
                 /** @description The request is invalid. */
                 400: {
@@ -71,14 +65,13 @@ export interface paths {
                 };
             };
         };
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/account/organizations": {
+    "/v1/organizations/{organizationId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -88,242 +81,70 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    paged?: boolean;
-                    limit?: number;
-                    cursor?: string;
-                    search?: string;
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
                 };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["OrganizationInput"];
-                    "text/json": components["schemas"]["OrganizationInput"];
-                    "application/*+json": components["schemas"]["OrganizationInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/organizations/accept-invitation": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["AcceptOrganizationInvitationInput"];
-                    "text/json": components["schemas"]["AcceptOrganizationInvitationInput"];
-                    "application/*+json": components["schemas"]["AcceptOrganizationInvitationInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/organizations/active": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["ActiveOrganizationInput"];
-                    "text/json": components["schemas"]["ActiveOrganizationInput"];
-                    "application/*+json": components["schemas"]["ActiveOrganizationInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/organizations/{organizationId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: {
-            parameters: {
-                query?: never;
                 header?: never;
                 path: {
                     organizationId: string;
                 };
                 cookie?: never;
             };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["OrganizationInput"];
-                    "text/json": components["schemas"]["OrganizationInput"];
-                    "application/*+json": components["schemas"]["OrganizationInput"];
-                };
-            };
+            requestBody?: never;
             responses: {
                 /** @description OK */
                 200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["OrganizationResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The resource does not exist, or the caller cannot see it. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /** @description Reverification: the session's first_factor verified within 10 minutes, or 403 with code session_reverification_required. */
+        delete: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path: {
+                    organizationId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -358,20 +179,166 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path: {
+                    organizationId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateMemberOrganizationInput"];
+                    "text/json": components["schemas"]["UpdateMemberOrganizationInput"];
+                    "application/*+json": components["schemas"]["UpdateMemberOrganizationInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["OrganizationResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The resource does not exist, or the caller cannot see it. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/v1/organizations/{organizationId}/memberships": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    search?: string;
+                    limit?: number;
+                    cursor?: string;
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path: {
+                    organizationId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["ListPageOfOrganizationMemberResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The resource does not exist, or the caller cannot see it. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{organizationId}/memberships/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         post?: never;
         delete: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
                 header?: never;
                 path: {
                     organizationId: string;
+                    userId: string;
                 };
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
-                200: {
+                /** @description No Content */
+                204: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -408,34 +375,29 @@ export interface paths {
         };
         options?: never;
         head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/organizations/{organizationId}/memberships": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
+        patch: {
             parameters: {
                 query?: {
-                    paged?: boolean;
-                    limit?: number;
-                    cursor?: string;
-                    search?: string;
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
                 };
                 header?: never;
                 path: {
                     organizationId: string;
+                    userId: string;
                 };
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["OrganizationMembershipInput"];
+                    "text/json": components["schemas"]["OrganizationMembershipInput"];
+                    "application/*+json": components["schemas"]["OrganizationMembershipInput"];
+                };
+            };
             responses: {
-                /** @description OK */
-                200: {
+                /** @description No Content */
+                204: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -459,17 +421,20 @@ export interface paths {
                         "application/problem+json": components["schemas"]["ApiProblem"];
                     };
                 };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
             };
         };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
-    "/v1/account/organizations/{organizationId}/roles": {
+    "/v1/organizations/{organizationId}/invitations": {
         parameters: {
             query?: never;
             header?: never;
@@ -478,7 +443,204 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    search?: string;
+                    limit?: number;
+                    cursor?: string;
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path: {
+                    organizationId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["ListPageOfOrganizationInvitationResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The resource does not exist, or the caller cannot see it. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path: {
+                    organizationId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["OrganizationInvitationInput"];
+                    "text/json": components["schemas"]["OrganizationInvitationInput"];
+                    "application/*+json": components["schemas"]["OrganizationInvitationInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["SentInvitationResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The resource does not exist, or the caller cannot see it. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{organizationId}/invitations/{invitationId}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path: {
+                    organizationId: string;
+                    invitationId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The resource does not exist, or the caller cannot see it. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organizations/{organizationId}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
                 header?: never;
                 path: {
                     organizationId: string;
@@ -529,7 +691,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/account/organizations/{organizationId}/invitations": {
+    "/v1/me": {
         parameters: {
             query?: never;
             header?: never;
@@ -539,14 +701,309 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    paged?: boolean;
-                    limit?: number;
-                    cursor?: string;
-                    search?: string;
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["MeResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /** @description Reverification: the session's multi_factor verified within 10 minutes, or 403 with code session_reverification_required. */
+        delete: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /** @description Reverification when it sets username or primaryEmailAddressId: the session's first_factor verified within 10 minutes, or 403 with code session_reverification_required. */
+        patch: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateMeInput"];
+                    "text/json": components["schemas"]["UpdateMeInput"];
+                    "application/*+json": components["schemas"]["UpdateMeInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["MeResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/v1/me/change_password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Reverification: the session's multi_factor verified within 10 minutes, or 403 with code session_reverification_required. */
+        post: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ChangePasswordInput"];
+                    "text/json": components["schemas"]["ChangePasswordInput"];
+                    "application/*+json": components["schemas"]["ChangePasswordInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["ClientState"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/email_addresses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["ListPageOfUserEmailAddressResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** @description Reverification: the session's first_factor verified within 10 minutes, or 403 with code session_reverification_required. */
+        post: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateEmailAddressInput"];
+                    "text/json": components["schemas"]["CreateEmailAddressInput"];
+                    "application/*+json": components["schemas"]["CreateEmailAddressInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["UserEmailAddressResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/email_addresses/{emailAddressId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
                 };
                 header?: never;
                 path: {
-                    organizationId: string;
+                    emailAddressId: string;
                 };
                 cookie?: never;
             };
@@ -554,6 +1011,57 @@ export interface paths {
             responses: {
                 /** @description OK */
                 200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["UserEmailAddressResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The resource does not exist, or the caller cannot see it. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /** @description Reverification: the session's first_factor verified within 10 minutes, or 403 with code session_reverification_required. */
+        delete: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path: {
+                    emailAddressId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -577,28 +1085,890 @@ export interface paths {
                         "application/problem+json": components["schemas"]["ApiProblem"];
                     };
                 };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/email_addresses/{emailAddressId}/prepare_verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
         put?: never;
         post: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
                 header?: never;
                 path: {
-                    organizationId: string;
+                    emailAddressId: string;
                 };
                 cookie?: never;
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["OrganizationInvitationInput"];
-                    "text/json": components["schemas"]["OrganizationInvitationInput"];
-                    "application/*+json": components["schemas"]["OrganizationInvitationInput"];
+                    "application/json": components["schemas"]["PrepareEmailVerificationInput"];
+                    "text/json": components["schemas"]["PrepareEmailVerificationInput"];
+                    "application/*+json": components["schemas"]["PrepareEmailVerificationInput"];
                 };
             };
             responses: {
                 /** @description OK */
                 200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["UserEmailAddressResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The resource does not exist, or the caller cannot see it. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/email_addresses/{emailAddressId}/attempt_verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path: {
+                    emailAddressId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AttemptEmailVerificationInput"];
+                    "text/json": components["schemas"]["AttemptEmailVerificationInput"];
+                    "application/*+json": components["schemas"]["AttemptEmailVerificationInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["UserEmailAddressResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The resource does not exist, or the caller cannot see it. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/passkeys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["ListPageOfPasskeyResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** @description Reverification: the session's multi_factor verified within 10 minutes, or 403 with code session_reverification_required. */
+        post: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreatePasskeyInput"];
+                    "text/json": components["schemas"]["CreatePasskeyInput"];
+                    "application/*+json": components["schemas"]["CreatePasskeyInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["PendingPasskeyResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/passkeys/{passkeyId}/attempt_verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Reverification: the session's multi_factor verified within 10 minutes, or 403 with code session_reverification_required. */
+        post: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path: {
+                    passkeyId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AttemptPasskeyVerificationInput"];
+                    "text/json": components["schemas"]["AttemptPasskeyVerificationInput"];
+                    "application/*+json": components["schemas"]["AttemptPasskeyVerificationInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["PasskeyResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The resource does not exist, or the caller cannot see it. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/passkeys/{passkeyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** @description Reverification: the session's multi_factor verified within 10 minutes, or 403 with code session_reverification_required. */
+        delete: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path: {
+                    passkeyId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The resource does not exist, or the caller cannot see it. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/totp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Reverification: the session's multi_factor verified within 10 minutes, or 403 with code session_reverification_required. */
+        post: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["TotpResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        /** @description Reverification: the session's multi_factor verified within 10 minutes, or 403 with code session_reverification_required. */
+        delete: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/totp/attempt_verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AttemptTotpVerificationInput"];
+                    "text/json": components["schemas"]["AttemptTotpVerificationInput"];
+                    "application/*+json": components["schemas"]["AttemptTotpVerificationInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["BackupCodesResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/backup_codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Reverification: the session's multi_factor verified within 10 minutes, or 403 with code session_reverification_required. */
+        post: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["BackupCodesResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/external_accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["ListPageOfConnectedIdentity"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** @description Reverification: the session's first_factor verified within 10 minutes, or 403 with code session_reverification_required. */
+        post: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConnectExternalAccountInput"];
+                    "text/json": components["schemas"]["ConnectExternalAccountInput"];
+                    "application/*+json": components["schemas"]["ConnectExternalAccountInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["ExternalAccountConnectionResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/external_accounts/{externalAccountId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** @description Reverification: the session's first_factor verified within 10 minutes, or 403 with code session_reverification_required. */
+        delete: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path: {
+                    externalAccountId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The resource does not exist, or the caller cannot see it. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Reverification: the session's first_factor verified within 60 minutes, or 403 with code session_reverification_required. */
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                    cursor?: string;
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["ListPageOfAccountSessionSummary"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/sessions/{sessionId}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Reverification: the session's multi_factor verified within 10 minutes, or 403 with code session_reverification_required. */
+        post: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path: {
+                    sessionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -639,7 +2009,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/account/organizations/{organizationId}/invitations/{invitationId}": {
+    "/v1/me/sessions/revoke_all": {
         parameters: {
             query?: never;
             header?: never;
@@ -648,21 +2018,21 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post?: never;
-        delete: {
+        /** @description Reverification: the session's multi_factor verified within 10 minutes, or 403 with code session_reverification_required. */
+        post: {
             parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    organizationId: string;
-                    invitationId: string;
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
                 };
+                header?: never;
+                path?: never;
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
-                200: {
+                /** @description No Content */
+                204: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -670,15 +2040,6 @@ export interface paths {
                 };
                 /** @description The request is invalid. */
                 400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The resource does not exist, or the caller cannot see it. */
-                404: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -697,82 +2058,27 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/account/organizations/{organizationId}/memberships/{userId}": {
+    "/v1/me/api_keys": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put: {
+        get: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
                 header?: never;
-                path: {
-                    organizationId: string;
-                    userId: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["OrganizationMembershipInput"];
-                    "text/json": components["schemas"]["OrganizationMembershipInput"];
-                    "application/*+json": components["schemas"]["OrganizationMembershipInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The resource does not exist, or the caller cannot see it. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    organizationId: string;
-                    userId: string;
-                };
+                path?: never;
                 cookie?: never;
             };
             requestBody?: never;
@@ -782,19 +2088,53 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["ListPageOfApiKeyResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
                 };
-                /** @description The request is invalid. */
-                400: {
+            };
+        };
+        put?: never;
+        /** @description Reverification: the session's multi_factor verified within 10 minutes, or 403 with code session_reverification_required. */
+        post: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateUserApiKeyInput"];
+                    "text/json": components["schemas"]["CreateUserApiKeyInput"];
+                    "application/*+json": components["schemas"]["CreateUserApiKeyInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
+                        "application/json": {
+                            data: components["schemas"]["CreatedApiKeyResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
                     };
                 };
-                /** @description The resource does not exist, or the caller cannot see it. */
-                404: {
+                /** @description The request is invalid. */
+                400: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -813,12 +2153,13 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/account/organizations/{organizationId}/leave": {
+    "/v1/me/api_keys/{keyId}/revoke": {
         parameters: {
             query?: never;
             header?: never;
@@ -829,7 +2170,137 @@ export interface paths {
         put?: never;
         post: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path: {
+                    keyId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RevokeUserApiKeyInput"];
+                    "text/json": components["schemas"]["RevokeUserApiKeyInput"];
+                    "application/*+json": components["schemas"]["RevokeUserApiKeyInput"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The resource does not exist, or the caller cannot see it. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/organization_memberships": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    search?: string;
+                    limit?: number;
+                    cursor?: string;
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["ListPageOfUserOrganizationMembershipResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/organization_memberships/{organizationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
                 header?: never;
                 path: {
                     organizationId: string;
@@ -838,8 +2309,126 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The resource does not exist, or the caller cannot see it. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The change conflicts with the resource's state. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/organization_invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                    cursor?: string;
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
                 /** @description OK */
                 200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["ListPageOfUserOrganizationInvitationResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+                /** @description The request is invalid. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/organization_invitations/{invitationId}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: {
+                    /** @description The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session. */
+                    _pisti_session_id?: string;
+                };
+                header?: never;
+                path: {
+                    invitationId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -996,6 +2585,46 @@ export interface paths {
                     content: {
                         "application/json": {
                             data: components["schemas"]["ClientState"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/client/csrf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["CsrfTokenResponse"];
                             meta: {
                                 requestId: string;
                             };
@@ -2509,7 +4138,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/account/security/connections": {
+    "/v1/client/sessions/{sessionId}/verify": {
         parameters: {
             query?: never;
             header?: never;
@@ -2520,85 +4149,8 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["ConnectProviderInput"];
-                    "text/json": components["schemas"]["ConnectProviderInput"];
-                    "application/*+json": components["schemas"]["ConnectProviderInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/security/connections/{externalId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
                 path: {
-                    externalId: string;
+                    sessionId: string;
                 };
                 cookie?: never;
             };
@@ -2609,7 +4161,14 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["SessionVerificationResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
                 };
                 /** @description The request is invalid. */
                 400: {
@@ -2629,133 +4188,23 @@ export interface paths {
                         "application/problem+json": components["schemas"]["ApiProblem"];
                     };
                 };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
             };
         };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/api-keys": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            data: components["schemas"]["ApiKeyResponse"][];
-                            meta: {
-                                requestId: string;
-                            };
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["CreateUserApiKeyInput"];
-                    "text/json": components["schemas"]["CreateUserApiKeyInput"];
-                    "application/*+json": components["schemas"]["CreateUserApiKeyInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            data: components["schemas"]["CreatedApiKeyResponse"];
-                            meta: {
-                                requestId: string;
-                            };
-                        };
-                    };
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/api-keys/{keyId}/revoke": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
         put?: never;
         post: {
             parameters: {
                 query?: never;
                 header?: never;
                 path: {
-                    keyId: string;
+                    sessionId: string;
                 };
                 cookie?: never;
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["RevokeUserApiKeyInput"];
-                    "text/json": components["schemas"]["RevokeUserApiKeyInput"];
-                    "application/*+json": components["schemas"]["RevokeUserApiKeyInput"];
+                    "application/json": components["schemas"]["CreateSessionVerificationInput"];
+                    "text/json": components["schemas"]["CreateSessionVerificationInput"];
+                    "application/*+json": components["schemas"]["CreateSessionVerificationInput"];
                 };
             };
             responses: {
@@ -2764,7 +4213,14 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["SessionVerificationResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
                 };
                 /** @description The request is invalid. */
                 400: {
@@ -2801,118 +4257,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/account/csrf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/sessions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: {
-                    page?: number;
-                    pageSize?: number;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/sessions/{sessionId}/revoke": {
+    "/v1/client/sessions/{sessionId}/verify/prepare_first_factor": {
         parameters: {
             query?: never;
             header?: never;
@@ -2930,14 +4275,27 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PrepareFactorInput"];
+                    "text/json": components["schemas"]["PrepareFactorInput"];
+                    "application/*+json": components["schemas"]["PrepareFactorInput"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["SessionVerificationResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
                 };
                 /** @description The request is invalid. */
                 400: {
@@ -2974,1046 +4332,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/account/sessions/revoke-all": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["SecurityPasswordInput"];
-                    "text/json": components["schemas"]["SecurityPasswordInput"];
-                    "application/*+json": components["schemas"]["SecurityPasswordInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/email/request": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["ChangeEmailInput"];
-                    "text/json": components["schemas"]["ChangeEmailInput"];
-                    "application/*+json": components["schemas"]["ChangeEmailInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/email/complete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["AccountCodeInput"];
-                    "text/json": components["schemas"]["AccountCodeInput"];
-                    "application/*+json": components["schemas"]["AccountCodeInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/deletion/request": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/deletion/complete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["AccountCodeInput"];
-                    "text/json": components["schemas"]["AccountCodeInput"];
-                    "application/*+json": components["schemas"]["AccountCodeInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/security": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/security/reauthenticate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["SecurityProofInput"];
-                    "text/json": components["schemas"]["SecurityProofInput"];
-                    "application/*+json": components["schemas"]["SecurityProofInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/security/reauthenticate/request": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/security/authenticator/enroll": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["SecurityProofInput"];
-                    "text/json": components["schemas"]["SecurityProofInput"];
-                    "application/*+json": components["schemas"]["SecurityProofInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/security/authenticator/confirm": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["AuthenticatorEnrollmentInput"];
-                    "text/json": components["schemas"]["AuthenticatorEnrollmentInput"];
-                    "application/*+json": components["schemas"]["AuthenticatorEnrollmentInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/security/authenticator/remove": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["SecurityProofInput"];
-                    "text/json": components["schemas"]["SecurityProofInput"];
-                    "application/*+json": components["schemas"]["SecurityProofInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/security/recovery-codes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["SecurityProofInput"];
-                    "text/json": components["schemas"]["SecurityProofInput"];
-                    "application/*+json": components["schemas"]["SecurityProofInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/security/passkeys/options": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["PasskeyNameInput"];
-                    "text/json": components["schemas"]["PasskeyNameInput"];
-                    "application/*+json": components["schemas"]["PasskeyNameInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/security/passkeys": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["PasskeyCredentialInput"];
-                    "text/json": components["schemas"]["PasskeyCredentialInput"];
-                    "application/*+json": components["schemas"]["PasskeyCredentialInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/security/passkeys/{passkeyId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    passkeyId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The resource does not exist, or the caller cannot see it. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/identifiers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/identifiers/email": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["AddEmailInput"];
-                    "text/json": components["schemas"]["AddEmailInput"];
-                    "application/*+json": components["schemas"]["AddEmailInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/identifiers/email/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["VerifyEmailInput"];
-                    "text/json": components["schemas"]["VerifyEmailInput"];
-                    "application/*+json": components["schemas"]["VerifyEmailInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The request is invalid. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-                /** @description The change conflicts with the resource's state. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblem"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/account/identifiers/{identifierId}/primary": {
+    "/v1/client/sessions/{sessionId}/verify/attempt_first_factor": {
         parameters: {
             query?: never;
             header?: never;
@@ -4027,18 +4346,31 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    identifierId: string;
+                    sessionId: string;
                 };
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AttemptFactorInput"];
+                    "text/json": components["schemas"]["AttemptFactorInput"];
+                    "application/*+json": components["schemas"]["AttemptFactorInput"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["SessionVerificationResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
                 };
                 /** @description The request is invalid. */
                 400: {
@@ -4075,7 +4407,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/account/identifiers/{identifierId}": {
+    "/v1/client/sessions/{sessionId}/verify/prepare_second_factor": {
         parameters: {
             query?: never;
             header?: never;
@@ -4084,24 +4416,36 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post?: never;
-        delete: {
+        post: {
             parameters: {
                 query?: never;
                 header?: never;
                 path: {
-                    identifierId: string;
+                    sessionId: string;
                 };
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PrepareFactorInput"];
+                    "text/json": components["schemas"]["PrepareFactorInput"];
+                    "application/*+json": components["schemas"]["PrepareFactorInput"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["SessionVerificationResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
                 };
                 /** @description The request is invalid. */
                 400: {
@@ -4132,12 +4476,13 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/account/identifiers/username": {
+    "/v1/client/sessions/{sessionId}/verify/attempt_second_factor": {
         parameters: {
             query?: never;
             header?: never;
@@ -4145,18 +4490,21 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: {
+        put?: never;
+        post: {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    sessionId: string;
+                };
                 cookie?: never;
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["SetUsernameInput"];
-                    "text/json": components["schemas"]["SetUsernameInput"];
-                    "application/*+json": components["schemas"]["SetUsernameInput"];
+                    "application/json": components["schemas"]["AttemptFactorInput"];
+                    "text/json": components["schemas"]["AttemptFactorInput"];
+                    "application/*+json": components["schemas"]["AttemptFactorInput"];
                 };
             };
             responses: {
@@ -4165,10 +4513,26 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["SessionVerificationResponse"];
+                            meta: {
+                                requestId: string;
+                            };
+                        };
+                    };
                 };
                 /** @description The request is invalid. */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblem"];
+                    };
+                };
+                /** @description The resource does not exist, or the caller cannot see it. */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -4187,7 +4551,6 @@ export interface paths {
                 };
             };
         };
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4198,18 +4561,23 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        AcceptOrganizationInvitationInput: {
-            token: string;
-        };
-        AccountCodeInput: {
-            requestId: string;
-            code: string;
-        };
-        ActiveOrganizationInput: {
-            organizationId?: null | string;
-        };
-        AddEmailInput: {
-            emailAddress: string;
+        AccountSessionSummary: {
+            id: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastSeenAt: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** Format: date-time */
+            endedAt: null | string;
+            current: boolean;
+            /** Format: date-time */
+            idleExpiresAt: string;
+            /** @enum {string} */
+            status: "active" | "expired" | "signed_out" | "revoked";
+            device: string;
+            ipAddress: null | string;
         };
         ApiKeyResponse: {
             id: string;
@@ -4247,6 +4615,9 @@ export interface components {
                 [key: string]: string[];
             };
         };
+        AttemptEmailVerificationInput: {
+            code: string;
+        };
         AttemptFactorInput: {
             strategy: string;
             password?: null | string;
@@ -4254,16 +4625,19 @@ export interface components {
             emailCode?: null | string;
             credential?: unknown;
         };
-        AuthenticatorEnrollmentInput: {
-            enrollmentId: string;
+        AttemptPasskeyVerificationInput: {
+            credential: components["schemas"]["JsonElement"];
+        };
+        AttemptTotpVerificationInput: {
             code: string;
         };
-        ChangeEmailInput: {
-            identifier: string;
-            currentPassword?: null | string;
-            code?: null | string;
-            requestId?: null | string;
-            emailCode?: null | string;
+        BackupCodesResponse: {
+            /** @enum {string} */
+            object: "backup_code";
+            codes: string[];
+        };
+        ChangePasswordInput: {
+            newPassword: string;
         };
         ClientAttemptEnvelopeOfClientAttemptResponse: {
             response: components["schemas"]["ClientAttemptResponse"];
@@ -4293,13 +4667,37 @@ export interface components {
             /** Format: date-time */
             resendAvailableAt: string;
         };
-        ConnectProviderInput: {
+        ConnectedIdentity: {
+            id: string;
             providerId: string;
+            provider: string;
+            displayName: string;
+            email: null | string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        ConnectExternalAccountInput: {
+            strategy: string;
             redirectUrl: string;
         };
         CreatedApiKeyResponse: {
             apiKey: components["schemas"]["ApiKeyResponse"];
             secret: string;
+        };
+        CreateEmailAddressInput: {
+            emailAddress: string;
+        };
+        CreateMemberOrganizationInput: {
+            name: string;
+            slug: string;
+            imageUrl?: null | string;
+        };
+        CreatePasskeyInput: {
+            name: string;
+        };
+        CreateSessionVerificationInput: {
+            /** @enum {string} */
+            level: "first_factor" | "multi_factor";
         };
         CreateSignInInput: {
             identifier?: null | string;
@@ -4311,6 +4709,10 @@ export interface components {
             name: string;
             description?: null | string;
             secondsUntilExpiration?: null | string;
+        };
+        CsrfTokenResponse: {
+            token: string;
+            headerName: string;
         };
         EmailCodeInput: {
             identifier: string;
@@ -4356,6 +4758,11 @@ export interface components {
             /** @enum {string} */
             username: "off" | "optional" | "required";
         };
+        ExternalAccountConnectionResponse: {
+            /** @enum {string} */
+            object: "external_account";
+            externalVerificationRedirectUrl: string;
+        };
         FirstFactorVerification: {
             strategy: string;
             /** @enum {string} */
@@ -4378,30 +4785,117 @@ export interface components {
             privacyUrl?: null | string;
             termsUrl?: null | string;
         };
+        InvitingOrganizationResponse: {
+            id: string;
+            name: string;
+            slug: string;
+            imageUrl: null | string;
+        };
         JsonElement: Record<string, unknown>;
         JsonObject: Record<string, unknown>;
+        ListPageOfAccountSessionSummary: {
+            items: components["schemas"]["AccountSessionSummary"][];
+            nextCursor: null | string;
+            hasMore: boolean;
+        };
+        ListPageOfApiKeyResponse: {
+            items: components["schemas"]["ApiKeyResponse"][];
+            nextCursor: null | string;
+            hasMore: boolean;
+        };
+        ListPageOfConnectedIdentity: {
+            items: components["schemas"]["ConnectedIdentity"][];
+            nextCursor: null | string;
+            hasMore: boolean;
+        };
+        ListPageOfOrganizationInvitationResponse: {
+            items: components["schemas"]["OrganizationInvitationResponse"][];
+            nextCursor: null | string;
+            hasMore: boolean;
+        };
+        ListPageOfOrganizationMemberResponse: {
+            items: components["schemas"]["OrganizationMemberResponse"][];
+            nextCursor: null | string;
+            hasMore: boolean;
+        };
         ListPageOfOrganizationRoleResponse: {
             items: components["schemas"]["OrganizationRoleResponse"][];
             nextCursor: null | string;
             hasMore: boolean;
         };
-        OrganizationInput: {
+        ListPageOfPasskeyResponse: {
+            items: components["schemas"]["PasskeyResponse"][];
+            nextCursor: null | string;
+            hasMore: boolean;
+        };
+        ListPageOfUserEmailAddressResponse: {
+            items: components["schemas"]["UserEmailAddressResponse"][];
+            nextCursor: null | string;
+            hasMore: boolean;
+        };
+        ListPageOfUserOrganizationInvitationResponse: {
+            items: components["schemas"]["UserOrganizationInvitationResponse"][];
+            nextCursor: null | string;
+            hasMore: boolean;
+        };
+        ListPageOfUserOrganizationMembershipResponse: {
+            items: components["schemas"]["UserOrganizationMembershipResponse"][];
+            nextCursor: null | string;
+            hasMore: boolean;
+        };
+        MeResponse: {
+            id: string;
+            /** @enum {string} */
+            object: "user";
+            firstName: string;
+            lastName: string;
+            fullName: null | string;
+            username: null | string;
+            imageUrl: null | string;
+            hasImage: boolean;
+            primaryEmailAddressId: null | string;
+            emailAddresses: components["schemas"]["UserEmailAddressResponse"][];
+            passwordEnabled: boolean;
+            totpEnabled: boolean;
+            backupCodeEnabled: boolean;
+            twoFactorEnabled: boolean;
+            publicMetadata: components["schemas"]["JsonObject"];
+            unsafeMetadata: components["schemas"]["JsonObject"];
             /** Format: date-time */
-            expectedUpdatedAt?: null | string;
-            name: string;
-            slug: string;
-            /** Format: uri */
-            imageUrl?: null | string;
-            /** Format: int32 */
-            maxMemberships?: null | number;
-            publicMetadata?: null | components["schemas"]["JsonElement"];
-            privateMetadata?: null | components["schemas"]["JsonElement"];
+            lastSignInAt: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
         };
         OrganizationInvitationInput: {
             email: string;
             role?: null | string;
             /** Format: int32 */
             lifetimeDays?: number;
+        };
+        OrganizationInvitationResponse: {
+            id: string;
+            organizationId: string;
+            email: string;
+            role: string;
+            roleName: string;
+            /** @enum {string} */
+            status: "pending" | "accepted" | "revoked" | "expired";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        OrganizationMemberResponse: {
+            id: string;
+            organizationId: string;
+            userId: string;
+            email: null | string;
+            role: string;
+            roleName: string;
+            /** Format: date-time */
+            createdAt: string;
         };
         OrganizationMembershipInput: {
             role: string;
@@ -4415,6 +4909,20 @@ export interface components {
             description: null | string;
             /** @enum {string} */
             type: "system" | "user";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        OrganizationResponse: {
+            id: string;
+            instanceId: string;
+            name: string;
+            slug: string;
+            imageUrl: null | string;
+            /** Format: int32 */
+            maxMemberships: null | number;
+            publicMetadata: components["schemas"]["JsonElement"];
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -4434,18 +4942,37 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
-        PasskeyCredentialInput: {
-            requestId: string;
-            credential: components["schemas"]["JsonElement"];
-        };
-        PasskeyNameInput: {
+        PasskeyResponse: {
+            id: string;
+            /** @enum {string} */
+            object: "passkey";
             name: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastUsedAt: null | string;
+        };
+        PasskeyVerificationResponse: {
+            /** @enum {string} */
+            status: "unverified";
+            options: components["schemas"]["JsonElement"];
         };
         PasswordResetCompleteInput: {
             requestId: string;
             code: string;
             password: string;
             authenticatorCode?: null | string;
+        };
+        PendingPasskeyResponse: {
+            id: string;
+            /** @enum {string} */
+            object: "passkey";
+            name: string;
+            verification: components["schemas"]["PasskeyVerificationResponse"];
+        };
+        PrepareEmailVerificationInput: {
+            /** @enum {string} */
+            strategy: "email_code";
         };
         PrepareFactorInput: {
             strategy: string;
@@ -4464,18 +4991,15 @@ export interface components {
             authenticatorUri: null | string;
             emailCodeRequired: boolean;
         };
-        SecurityPasswordInput: {
-            password: string;
-            currentPassword?: null | string;
-            code?: null | string;
-            requestId?: null | string;
-            emailCode?: null | string;
-        };
-        SecurityProofInput: {
-            password?: null | string;
-            code?: null | string;
-            requestId?: null | string;
-            emailCode?: null | string;
+        SentInvitationResponse: {
+            id: string;
+            token: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @enum {string} */
+            deliveryStatus: "queued";
+            /** Format: date-time */
+            queuedAt: string;
         };
         SessionState: {
             id: string;
@@ -4485,6 +5009,7 @@ export interface components {
             lastActiveAt: string;
             /** Format: date-time */
             expireAt: string;
+            factorVerificationAge: number[];
         };
         SessionTokenResponse: {
             jwt: string;
@@ -4499,8 +5024,21 @@ export interface components {
             imageUrl: null | string;
             username: null | string;
         };
-        SetUsernameInput: {
-            username: null | string;
+        SessionVerificationResponse: {
+            id: string;
+            /** @enum {string} */
+            object: "session_verification";
+            /** @enum {string} */
+            status: "needs_first_factor" | "needs_second_factor" | "complete";
+            /** @enum {string} */
+            level: "first_factor" | "multi_factor";
+            sessionId: string;
+            supportedFirstFactors: components["schemas"]["ClientFactor"][];
+            supportedSecondFactors: components["schemas"]["ClientFactor"][];
+            firstFactorVerification: null | components["schemas"]["FirstFactorVerification"];
+            factorVerificationAge: number[];
+            /** Format: date-time */
+            expiresAt: string;
         };
         SignInResponse: {
             id: string;
@@ -4553,20 +5091,78 @@ export interface components {
             /** @enum {string} */
             status: "prepared" | "unverified";
         };
+        TotpResponse: {
+            /** @enum {string} */
+            object: "totp";
+            secret: string;
+            uri: string;
+            verified: boolean;
+            /** Format: date-time */
+            expiresAt: string;
+        };
         TouchSessionInput: {
             organizationId?: null | string;
         };
-        UpdateOwnProfileInput: {
+        UpdateMeInput: {
             /** Format: date-time */
             expectedUpdatedAt?: null | string;
-            firstName: string;
-            lastName: string;
+            firstName?: null | string;
+            lastName?: null | string;
             imageUrl?: null | string;
-            unsafeMetadata: components["schemas"]["JsonElement"];
+            unsafeMetadata?: null | components["schemas"]["JsonElement"];
+            username?: null | string;
+            primaryEmailAddressId?: null | string;
         };
-        VerifyEmailInput: {
-            requestId: string;
-            code: string;
+        UpdateMemberOrganizationInput: {
+            name?: null | string;
+            slug?: null | string;
+            imageUrl?: null | string;
+            /** Format: date-time */
+            expectedUpdatedAt?: null | string;
+        };
+        UserEmailAddressResponse: {
+            id: string;
+            /** @enum {string} */
+            object: "email_address";
+            emailAddress: string;
+            primary: boolean;
+            verification: components["schemas"]["UserEmailVerificationResponse"];
+        };
+        UserEmailVerificationResponse: {
+            /** @enum {string} */
+            status: "verified" | "unverified";
+            /** @enum {string} */
+            strategy: "email_code";
+            /** Format: date-time */
+            verifiedAt: null | string;
+            /** Format: date-time */
+            expiresAt: null | string;
+        };
+        UserOrganizationInvitationResponse: {
+            id: string;
+            /** @enum {string} */
+            object: "organization_invitation";
+            emailAddress: string;
+            publicOrganizationData: components["schemas"]["InvitingOrganizationResponse"];
+            role: string;
+            roleName: string;
+            /** @enum {string} */
+            status: "pending";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        UserOrganizationMembershipResponse: {
+            id: string;
+            /** @enum {string} */
+            object: "organization_membership";
+            organization: components["schemas"]["OrganizationResponse"];
+            role: string;
+            roleName: string;
+            permissions: string[];
+            /** Format: date-time */
+            createdAt: string;
         };
     };
     responses: never;

@@ -5091,7 +5091,9 @@ export interface components {
             /** Format: date-time */
             authenticatedAt: string;
             /** Format: date-time */
-            mfaAuthenticatedAt: null | string;
+            firstFactorVerifiedAt: string;
+            /** Format: date-time */
+            secondFactorVerifiedAt: null | string;
             /** Format: date-time */
             endedAt: null | string;
             /** Format: date-time */

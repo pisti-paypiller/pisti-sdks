@@ -7987,7 +7987,8 @@
           "expireAt",
           "abandonAt",
           "authenticatedAt",
-          "mfaAuthenticatedAt",
+          "firstFactorVerifiedAt",
+          "secondFactorVerifiedAt",
           "endedAt",
           "createdAt"
         ],
@@ -8030,7 +8031,11 @@
             "type": "string",
             "format": "date-time"
           },
-          "mfaAuthenticatedAt": {
+          "firstFactorVerifiedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "secondFactorVerifiedAt": {
             "type": [
               "null",
               "string"

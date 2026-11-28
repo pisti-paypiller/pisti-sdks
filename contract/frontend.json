@@ -12,145 +12,37 @@
     }
   ],
   "paths": {
-    "/v1/account/profile": {
-      "get": {
+    "/v1/organizations": {
+      "post": {
         "tags": [
-          "OwnProfile"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "OwnProfile"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateOwnProfileInput"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateOwnProfileInput"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateOwnProfileInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/organizations": {
-      "get": {
-        "tags": [
-          "OrganizationAccount"
+          "OrganizationMembers"
         ],
         "parameters": [
           {
-            "name": "paged",
+            "name": "_pisti_session_id",
             "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
             "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "maximum": 100,
-              "minimum": 1,
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "schema": {
-              "maxLength": 512,
-              "minLength": 0,
-              "type": "string"
-            }
-          },
-          {
-            "name": "search",
-            "in": "query",
-            "schema": {
-              "maxLength": 200,
-              "minLength": 0,
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
           }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "OrganizationAccount"
         ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/OrganizationInput"
+                "$ref": "#/components/schemas/CreateMemberOrganizationInput"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/OrganizationInput"
+                "$ref": "#/components/schemas/CreateMemberOrganizationInput"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/OrganizationInput"
+                "$ref": "#/components/schemas/CreateMemberOrganizationInput"
               }
             }
           },
@@ -158,7 +50,34 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OrganizationResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
             "description": "The request is invalid.",
@@ -183,124 +102,10 @@
         }
       }
     },
-    "/v1/account/organizations/accept-invitation": {
-      "post": {
-        "tags": [
-          "OrganizationAccount"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AcceptOrganizationInvitationInput"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AcceptOrganizationInvitationInput"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/AcceptOrganizationInvitationInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/organizations/active": {
-      "put": {
-        "tags": [
-          "OrganizationAccount"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ActiveOrganizationInput"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ActiveOrganizationInput"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/ActiveOrganizationInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      },
+    "/v1/organizations/{organizationId}": {
       "get": {
         "tags": [
-          "OrganizationAccount"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/v1/account/organizations/{organizationId}": {
-      "put": {
-        "tags": [
-          "OrganizationAccount"
+          "OrganizationMembers"
         ],
         "parameters": [
           {
@@ -311,23 +116,109 @@
               "pattern": "^(org)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
+          },
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OrganizationResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist, or the caller cannot see it.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "OrganizationMembers"
+        ],
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^(org)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/OrganizationInput"
+                "$ref": "#/components/schemas/UpdateMemberOrganizationInput"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/OrganizationInput"
+                "$ref": "#/components/schemas/UpdateMemberOrganizationInput"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/OrganizationInput"
+                "$ref": "#/components/schemas/UpdateMemberOrganizationInput"
               }
             }
           },
@@ -335,7 +226,34 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OrganizationResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
             "description": "The request is invalid.",
@@ -371,8 +289,9 @@
       },
       "delete": {
         "tags": [
-          "OrganizationAccount"
+          "OrganizationMembers"
         ],
+        "description": "Reverification: the session's first_factor verified within 10 minutes, or 403 with code session_reverification_required.",
         "parameters": [
           {
             "name": "organizationId",
@@ -382,11 +301,20 @@
               "pattern": "^(org)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
+          },
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
           },
           "400": {
             "description": "The request is invalid.",
@@ -421,10 +349,10 @@
         }
       }
     },
-    "/v1/account/organizations/{organizationId}/memberships": {
+    "/v1/organizations/{organizationId}/memberships": {
       "get": {
         "tags": [
-          "OrganizationAccount"
+          "OrganizationMembers"
         ],
         "parameters": [
           {
@@ -437,10 +365,12 @@
             }
           },
           {
-            "name": "paged",
+            "name": "search",
             "in": "query",
             "schema": {
-              "type": "boolean"
+              "maxLength": 200,
+              "minLength": 0,
+              "type": "string"
             }
           },
           {
@@ -450,7 +380,8 @@
               "maximum": 100,
               "minimum": 1,
               "type": "integer",
-              "format": "int32"
+              "format": "int32",
+              "default": 50
             }
           },
           {
@@ -463,18 +394,45 @@
             }
           },
           {
-            "name": "search",
+            "name": "_pisti_session_id",
             "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
             "schema": {
-              "maxLength": 200,
-              "minLength": 0,
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ListPageOfOrganizationMemberResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
             "description": "The request is invalid.",
@@ -499,10 +457,10 @@
         }
       }
     },
-    "/v1/account/organizations/{organizationId}/roles": {
-      "get": {
+    "/v1/organizations/{organizationId}/memberships/{userId}": {
+      "patch": {
         "tags": [
-          "OrganizationAccount"
+          "OrganizationMembers"
         ],
         "parameters": [
           {
@@ -511,6 +469,461 @@
             "required": true,
             "schema": {
               "pattern": "^(org)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^(user)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationMembershipInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationMembershipInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationMembershipInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist, or the caller cannot see it.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "OrganizationMembers"
+        ],
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^(org)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^(user)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist, or the caller cannot see it.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/organizations/{organizationId}/invitations": {
+      "get": {
+        "tags": [
+          "OrganizationMembers"
+        ],
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^(org)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "maxLength": 200,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "maxLength": 512,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ListPageOfOrganizationInvitationResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist, or the caller cannot see it.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "OrganizationMembers"
+        ],
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^(org)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationInvitationInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationInvitationInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationInvitationInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/SentInvitationResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist, or the caller cannot see it.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/organizations/{organizationId}/invitations/{invitationId}/revoke": {
+      "post": {
+        "tags": [
+          "OrganizationMembers"
+        ],
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^(org)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "invitationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^(inv|orginv)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist, or the caller cannot see it.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/organizations/{organizationId}/roles": {
+      "get": {
+        "tags": [
+          "OrganizationMembers"
+        ],
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^(org)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
           }
@@ -569,28 +982,1570 @@
         }
       }
     },
-    "/v1/account/organizations/{organizationId}/invitations": {
+    "/v1/me": {
       "get": {
         "tags": [
-          "OrganizationAccount"
+          "Me"
         ],
         "parameters": [
           {
-            "name": "organizationId",
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MeResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Me"
+        ],
+        "description": "Reverification when it sets username or primaryEmailAddressId: the session's first_factor verified within 10 minutes, or 403 with code session_reverification_required.",
+        "parameters": [
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MeResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Me"
+        ],
+        "description": "Reverification: the session's multi_factor verified within 10 minutes, or 403 with code session_reverification_required.",
+        "parameters": [
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/change_password": {
+      "post": {
+        "tags": [
+          "Me"
+        ],
+        "description": "Reverification: the session's multi_factor verified within 10 minutes, or 403 with code session_reverification_required.",
+        "parameters": [
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ClientState"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/email_addresses": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "parameters": [
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ListPageOfUserEmailAddressResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Me"
+        ],
+        "description": "Reverification: the session's first_factor verified within 10 minutes, or 403 with code session_reverification_required.",
+        "parameters": [
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmailAddressInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmailAddressInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmailAddressInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UserEmailAddressResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/email_addresses/{emailAddressId}": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "parameters": [
+          {
+            "name": "emailAddressId",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^(org)_[0-9A-Za-z]{11}$",
+              "pattern": "^(idn)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
           },
           {
-            "name": "paged",
+            "name": "_pisti_session_id",
             "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
             "schema": {
-              "type": "boolean"
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UserEmailAddressResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
             }
           },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist, or the caller cannot see it.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Me"
+        ],
+        "description": "Reverification: the session's first_factor verified within 10 minutes, or 403 with code session_reverification_required.",
+        "parameters": [
+          {
+            "name": "emailAddressId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^(idn)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist, or the caller cannot see it.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/email_addresses/{emailAddressId}/prepare_verification": {
+      "post": {
+        "tags": [
+          "Me"
+        ],
+        "parameters": [
+          {
+            "name": "emailAddressId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^(idn)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareEmailVerificationInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareEmailVerificationInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareEmailVerificationInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UserEmailAddressResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist, or the caller cannot see it.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/email_addresses/{emailAddressId}/attempt_verification": {
+      "post": {
+        "tags": [
+          "Me"
+        ],
+        "parameters": [
+          {
+            "name": "emailAddressId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^(idn)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttemptEmailVerificationInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttemptEmailVerificationInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttemptEmailVerificationInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UserEmailAddressResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist, or the caller cannot see it.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/passkeys": {
+      "get": {
+        "tags": [
+          "MeSecurity"
+        ],
+        "parameters": [
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ListPageOfPasskeyResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "MeSecurity"
+        ],
+        "description": "Reverification: the session's multi_factor verified within 10 minutes, or 403 with code session_reverification_required.",
+        "parameters": [
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePasskeyInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePasskeyInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePasskeyInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PendingPasskeyResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/passkeys/{passkeyId}/attempt_verification": {
+      "post": {
+        "tags": [
+          "MeSecurity"
+        ],
+        "description": "Reverification: the session's multi_factor verified within 10 minutes, or 403 with code session_reverification_required.",
+        "parameters": [
+          {
+            "name": "passkeyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^(passkey)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttemptPasskeyVerificationInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttemptPasskeyVerificationInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttemptPasskeyVerificationInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PasskeyResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist, or the caller cannot see it.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/passkeys/{passkeyId}": {
+      "delete": {
+        "tags": [
+          "MeSecurity"
+        ],
+        "description": "Reverification: the session's multi_factor verified within 10 minutes, or 403 with code session_reverification_required.",
+        "parameters": [
+          {
+            "name": "passkeyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^(passkey)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist, or the caller cannot see it.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/totp": {
+      "post": {
+        "tags": [
+          "MeSecurity"
+        ],
+        "description": "Reverification: the session's multi_factor verified within 10 minutes, or 403 with code session_reverification_required.",
+        "parameters": [
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TotpResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "MeSecurity"
+        ],
+        "description": "Reverification: the session's multi_factor verified within 10 minutes, or 403 with code session_reverification_required.",
+        "parameters": [
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/totp/attempt_verification": {
+      "post": {
+        "tags": [
+          "MeSecurity"
+        ],
+        "parameters": [
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttemptTotpVerificationInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttemptTotpVerificationInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttemptTotpVerificationInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/BackupCodesResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/backup_codes": {
+      "post": {
+        "tags": [
+          "MeSecurity"
+        ],
+        "description": "Reverification: the session's multi_factor verified within 10 minutes, or 403 with code session_reverification_required.",
+        "parameters": [
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/BackupCodesResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/external_accounts": {
+      "get": {
+        "tags": [
+          "MeSecurity"
+        ],
+        "parameters": [
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ListPageOfConnectedIdentity"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "MeSecurity"
+        ],
+        "description": "Reverification: the session's first_factor verified within 10 minutes, or 403 with code session_reverification_required.",
+        "parameters": [
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectExternalAccountInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectExternalAccountInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectExternalAccountInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ExternalAccountConnectionResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/external_accounts/{externalAccountId}": {
+      "delete": {
+        "tags": [
+          "MeSecurity"
+        ],
+        "description": "Reverification: the session's first_factor verified within 10 minutes, or 403 with code session_reverification_required.",
+        "parameters": [
+          {
+            "name": "externalAccountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^(eac)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist, or the caller cannot see it.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/sessions": {
+      "get": {
+        "tags": [
+          "MeSessions"
+        ],
+        "description": "Reverification: the session's first_factor verified within 60 minutes, or 403 with code session_reverification_required.",
+        "parameters": [
           {
             "name": "limit",
             "in": "query",
@@ -598,7 +2553,8 @@
               "maximum": 100,
               "minimum": 1,
               "type": "integer",
-              "format": "int32"
+              "format": "int32",
+              "default": 50
             }
           },
           {
@@ -611,18 +2567,45 @@
             }
           },
           {
-            "name": "search",
+            "name": "_pisti_session_id",
             "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
             "schema": {
-              "maxLength": 200,
-              "minLength": 0,
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ListPageOfAccountSessionSummary"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
             "description": "The request is invalid.",
@@ -633,57 +2616,39 @@
                 }
               }
             }
-          },
-          "404": {
-            "description": "The resource does not exist, or the caller cannot see it.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
           }
         }
-      },
+      }
+    },
+    "/v1/me/sessions/{sessionId}/revoke": {
       "post": {
         "tags": [
-          "OrganizationAccount"
+          "MeSessions"
         ],
+        "description": "Reverification: the session's multi_factor verified within 10 minutes, or 403 with code session_reverification_required.",
         "parameters": [
           {
-            "name": "organizationId",
+            "name": "sessionId",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^(org)_[0-9A-Za-z]{11}$",
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OrganizationInvitationInput"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OrganizationInvitationInput"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/OrganizationInvitationInput"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
           },
           "400": {
             "description": "The request is invalid.",
@@ -718,10 +2683,364 @@
         }
       }
     },
-    "/v1/account/organizations/{organizationId}/invitations/{invitationId}": {
+    "/v1/me/sessions/revoke_all": {
+      "post": {
+        "tags": [
+          "MeSessions"
+        ],
+        "description": "Reverification: the session's multi_factor verified within 10 minutes, or 403 with code session_reverification_required.",
+        "parameters": [
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/api_keys": {
+      "get": {
+        "tags": [
+          "MeSessions"
+        ],
+        "parameters": [
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ListPageOfApiKeyResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "MeSessions"
+        ],
+        "description": "Reverification: the session's multi_factor verified within 10 minutes, or 403 with code session_reverification_required.",
+        "parameters": [
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserApiKeyInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserApiKeyInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserApiKeyInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CreatedApiKeyResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/api_keys/{keyId}/revoke": {
+      "post": {
+        "tags": [
+          "MeSessions"
+        ],
+        "parameters": [
+          {
+            "name": "keyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^(ak)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeUserApiKeyInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeUserApiKeyInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeUserApiKeyInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist, or the caller cannot see it.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/organization_memberships": {
+      "get": {
+        "tags": [
+          "MeOrganizations"
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "maxLength": 200,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "maxLength": 512,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ListPageOfUserOrganizationMembershipResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/organization_memberships/{organizationId}": {
       "delete": {
         "tags": [
-          "OrganizationAccount"
+          "MeOrganizations"
         ],
         "parameters": [
           {
@@ -733,6 +3052,139 @@
               "type": "string"
             }
           },
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist, or the caller cannot see it.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/organization_invitations": {
+      "get": {
+        "tags": [
+          "MeOrganizations"
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "maxLength": 512,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ListPageOfUserOrganizationInvitationResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/organization_invitations/{invitationId}/accept": {
+      "post": {
+        "tags": [
+          "MeOrganizations"
+        ],
+        "parameters": [
           {
             "name": "invitationId",
             "in": "path",
@@ -741,206 +3193,20 @@
               "pattern": "^(inv|orginv)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "The resource does not exist, or the caller cannot see it.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/organizations/{organizationId}/memberships/{userId}": {
-      "put": {
-        "tags": [
-          "OrganizationAccount"
-        ],
-        "parameters": [
-          {
-            "name": "organizationId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "pattern": "^(org)_[0-9A-Za-z]{11}$",
-              "type": "string"
-            }
           },
           {
-            "name": "userId",
-            "in": "path",
-            "required": true,
+            "name": "_pisti_session_id",
+            "in": "query",
+            "description": "The browser client's session the request acts as. Required with the browser client (its cookie, or outside production its X-Pisti-Client header); with a session token as the bearer credential, it may be left out and must otherwise name the token's own session.",
             "schema": {
-              "pattern": "^(user)_[0-9A-Za-z]{11}$",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OrganizationMembershipInput"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OrganizationMembershipInput"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/OrganizationMembershipInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "The resource does not exist, or the caller cannot see it.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "OrganizationAccount"
-        ],
-        "parameters": [
-          {
-            "name": "organizationId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "pattern": "^(org)_[0-9A-Za-z]{11}$",
-              "type": "string"
-            }
-          },
-          {
-            "name": "userId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "pattern": "^(user)_[0-9A-Za-z]{11}$",
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "The resource does not exist, or the caller cannot see it.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/organizations/{organizationId}/leave": {
-      "post": {
-        "tags": [
-          "OrganizationAccount"
-        ],
-        "parameters": [
-          {
-            "name": "organizationId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "pattern": "^(org)_[0-9A-Za-z]{11}$",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
           },
           "400": {
             "description": "The request is invalid.",
@@ -1098,6 +3364,45 @@
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/ClientState"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/client/csrf": {
+      "get": {
+        "tags": [
+          "FrontendApi"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CsrfTokenResponse"
                     },
                     "meta": {
                       "required": [
@@ -2844,36 +5149,37 @@
         }
       }
     },
-    "/v1/account/security/connections": {
-      "get": {
-        "tags": [
-          "ExternalAccount"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      },
+    "/v1/client/sessions/{sessionId}/verify": {
       "post": {
         "tags": [
-          "ExternalAccount"
+          "SessionVerification"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
         ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ConnectProviderInput"
+                "$ref": "#/components/schemas/CreateSessionVerificationInput"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/ConnectProviderInput"
+                "$ref": "#/components/schemas/CreateSessionVerificationInput"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/ConnectProviderInput"
+                "$ref": "#/components/schemas/CreateSessionVerificationInput"
               }
             }
           },
@@ -2881,50 +5187,34 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
+            "description": "OK",
             "content": {
-              "application/problem+json": {
+              "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/SessionVerificationResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/security/connections/{externalId}": {
-      "delete": {
-        "tags": [
-          "ExternalAccount"
-        ],
-        "parameters": [
-          {
-            "name": "externalId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "pattern": "^(eac)_[0-9A-Za-z]{11}$",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
           },
           "400": {
             "description": "The request is invalid.",
@@ -2957,270 +5247,10 @@
             }
           }
         }
-      }
-    },
-    "/v1/account/api-keys": {
-      "get": {
-        "tags": [
-          "OwnApiKeys"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/ApiKeyResponse"
-                      }
-                    },
-                    "meta": {
-                      "required": [
-                        "requestId"
-                      ],
-                      "type": "object",
-                      "properties": {
-                        "requestId": {
-                          "type": "string"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
       },
-      "post": {
-        "tags": [
-          "OwnApiKeys"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateUserApiKeyInput"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateUserApiKeyInput"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateUserApiKeyInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/CreatedApiKeyResponse"
-                    },
-                    "meta": {
-                      "required": [
-                        "requestId"
-                      ],
-                      "type": "object",
-                      "properties": {
-                        "requestId": {
-                          "type": "string"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/api-keys/{keyId}/revoke": {
-      "post": {
-        "tags": [
-          "OwnApiKeys"
-        ],
-        "parameters": [
-          {
-            "name": "keyId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "pattern": "^(ak)_[0-9A-Za-z]{11}$",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RevokeUserApiKeyInput"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RevokeUserApiKeyInput"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/RevokeUserApiKeyInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "The resource does not exist, or the caller cannot see it.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/csrf": {
       "get": {
         "tags": [
-          "Account"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/v1/account": {
-      "get": {
-        "tags": [
-          "Account"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/v1/account/sessions": {
-      "get": {
-        "tags": [
-          "Account"
-        ],
-        "parameters": [
-          {
-            "name": "page",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "default": 1
-            }
-          },
-          {
-            "name": "pageSize",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "default": 25
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/sessions/{sessionId}/revoke": {
-      "post": {
-        "tags": [
-          "Account"
+          "SessionVerification"
         ],
         "parameters": [
           {
@@ -3235,7 +5265,34 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/SessionVerificationResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
             "description": "The request is invalid.",
@@ -3256,729 +5313,76 @@
                 }
               }
             }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
           }
         }
       }
     },
-    "/v1/account/sessions/revoke-all": {
+    "/v1/client/sessions/{sessionId}/verify/prepare_first_factor": {
       "post": {
         "tags": [
-          "Account"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/password": {
-      "post": {
-        "tags": [
-          "Account"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SecurityPasswordInput"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SecurityPasswordInput"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/SecurityPasswordInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/email/request": {
-      "post": {
-        "tags": [
-          "Account"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChangeEmailInput"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChangeEmailInput"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChangeEmailInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/email/complete": {
-      "post": {
-        "tags": [
-          "Account"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AccountCodeInput"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AccountCodeInput"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/AccountCodeInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/deletion/request": {
-      "post": {
-        "tags": [
-          "Account"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/deletion/complete": {
-      "post": {
-        "tags": [
-          "Account"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AccountCodeInput"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AccountCodeInput"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/AccountCodeInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/security": {
-      "get": {
-        "tags": [
-          "AccountSecurity"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/v1/account/security/reauthenticate": {
-      "post": {
-        "tags": [
-          "AccountSecurity"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SecurityProofInput"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SecurityProofInput"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/SecurityProofInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/security/reauthenticate/request": {
-      "post": {
-        "tags": [
-          "AccountSecurity"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/security/authenticator/enroll": {
-      "post": {
-        "tags": [
-          "AccountSecurity"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SecurityProofInput"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SecurityProofInput"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/SecurityProofInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/security/authenticator/confirm": {
-      "post": {
-        "tags": [
-          "AccountSecurity"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AuthenticatorEnrollmentInput"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AuthenticatorEnrollmentInput"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/AuthenticatorEnrollmentInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/security/authenticator/remove": {
-      "post": {
-        "tags": [
-          "AccountSecurity"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SecurityProofInput"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SecurityProofInput"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/SecurityProofInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/security/recovery-codes": {
-      "post": {
-        "tags": [
-          "AccountSecurity"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SecurityProofInput"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SecurityProofInput"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/SecurityProofInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/security/passkeys/options": {
-      "post": {
-        "tags": [
-          "AccountSecurity"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PasskeyNameInput"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PasskeyNameInput"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/PasskeyNameInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/security/passkeys": {
-      "post": {
-        "tags": [
-          "AccountSecurity"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PasskeyCredentialInput"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PasskeyCredentialInput"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/PasskeyCredentialInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "tags": [
-          "AccountSecurity"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/v1/account/security/passkeys/{passkeyId}": {
-      "delete": {
-        "tags": [
-          "AccountSecurity"
+          "SessionVerification"
         ],
         "parameters": [
           {
-            "name": "passkeyId",
+            "name": "sessionId",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^(passkey)_[0-9A-Za-z]{11}$",
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareFactorInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareFactorInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareFactorInput"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/SessionVerificationResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
             "description": "The request is invalid.",
@@ -4013,248 +5417,37 @@
         }
       }
     },
-    "/v1/account/identifiers": {
-      "get": {
-        "tags": [
-          "Identifier"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/v1/account/identifiers/email": {
+    "/v1/client/sessions/{sessionId}/verify/attempt_first_factor": {
       "post": {
         "tags": [
-          "Identifier"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AddEmailInput"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AddEmailInput"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/AddEmailInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/identifiers/email/verify": {
-      "post": {
-        "tags": [
-          "Identifier"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VerifyEmailInput"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VerifyEmailInput"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/VerifyEmailInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/identifiers/{identifierId}/primary": {
-      "post": {
-        "tags": [
-          "Identifier"
+          "SessionVerification"
         ],
         "parameters": [
           {
-            "name": "identifierId",
+            "name": "sessionId",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^(idn)_[0-9A-Za-z]{11}$",
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
               "type": "string"
             }
           }
         ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "The resource does not exist, or the caller cannot see it.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/identifiers/{identifierId}": {
-      "delete": {
-        "tags": [
-          "Identifier"
-        ],
-        "parameters": [
-          {
-            "name": "identifierId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "pattern": "^(idn)_[0-9A-Za-z]{11}$",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request is invalid.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "The resource does not exist, or the caller cannot see it.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The change conflicts with the resource's state.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiProblem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/account/identifiers/username": {
-      "put": {
-        "tags": [
-          "Identifier"
-        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SetUsernameInput"
+                "$ref": "#/components/schemas/AttemptFactorInput"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/SetUsernameInput"
+                "$ref": "#/components/schemas/AttemptFactorInput"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/SetUsernameInput"
+                "$ref": "#/components/schemas/AttemptFactorInput"
               }
             }
           },
@@ -4262,10 +5455,247 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/SessionVerificationResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
             "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist, or the caller cannot see it.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/client/sessions/{sessionId}/verify/prepare_second_factor": {
+      "post": {
+        "tags": [
+          "SessionVerification"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareFactorInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareFactorInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareFactorInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/SessionVerificationResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist, or the caller cannot see it.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The change conflicts with the resource's state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/client/sessions/{sessionId}/verify/attempt_second_factor": {
+      "post": {
+        "tags": [
+          "SessionVerification"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^(sess)_[0-9A-Za-z]{11}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttemptFactorInput"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttemptFactorInput"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttemptFactorInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/SessionVerificationResponse"
+                    },
+                    "meta": {
+                      "required": [
+                        "requestId"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The resource does not exist, or the caller cannot see it.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4290,52 +5720,67 @@
   },
   "components": {
     "schemas": {
-      "AcceptOrganizationInvitationInput": {
+      "AccountSessionSummary": {
         "required": [
-          "token"
+          "id",
+          "createdAt",
+          "lastSeenAt",
+          "expiresAt",
+          "endedAt",
+          "current",
+          "idleExpiresAt",
+          "status",
+          "device",
+          "ipAddress"
         ],
         "type": "object",
         "properties": {
-          "token": {
-            "type": "string"
-          }
-        }
-      },
-      "AccountCodeInput": {
-        "required": [
-          "requestId",
-          "code"
-        ],
-        "type": "object",
-        "properties": {
-          "requestId": {
+          "id": {
             "type": "string"
           },
-          "code": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "current": {
+            "type": "boolean"
+          },
+          "idleExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "expired",
+              "signed_out",
+              "revoked"
+            ],
             "type": "string"
-          }
-        }
-      },
-      "ActiveOrganizationInput": {
-        "type": "object",
-        "properties": {
-          "organizationId": {
-            "pattern": "^(org)_[0-9A-Za-z]{11}$",
+          },
+          "device": {
+            "type": "string"
+          },
+          "ipAddress": {
             "type": [
               "null",
               "string"
             ]
-          }
-        }
-      },
-      "AddEmailInput": {
-        "required": [
-          "emailAddress"
-        ],
-        "type": "object",
-        "properties": {
-          "emailAddress": {
-            "type": "string"
           }
         }
       },
@@ -4486,6 +5931,17 @@
           }
         }
       },
+      "AttemptEmailVerificationInput": {
+        "required": [
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        }
+      },
       "AttemptFactorInput": {
         "required": [
           "strategy"
@@ -4516,53 +5972,57 @@
           "credential": {}
         }
       },
-      "AuthenticatorEnrollmentInput": {
+      "AttemptPasskeyVerificationInput": {
         "required": [
-          "enrollmentId",
+          "credential"
+        ],
+        "type": "object",
+        "properties": {
+          "credential": {
+            "$ref": "#/components/schemas/JsonElement"
+          }
+        }
+      },
+      "AttemptTotpVerificationInput": {
+        "required": [
           "code"
         ],
         "type": "object",
         "properties": {
-          "enrollmentId": {
-            "type": "string"
-          },
           "code": {
             "type": "string"
           }
         }
       },
-      "ChangeEmailInput": {
+      "BackupCodesResponse": {
         "required": [
-          "identifier"
+          "object",
+          "codes"
         ],
         "type": "object",
         "properties": {
-          "identifier": {
+          "object": {
+            "enum": [
+              "backup_code"
+            ],
             "type": "string"
           },
-          "currentPassword": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "code": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "requestId": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "emailCode": {
-            "type": [
-              "null",
-              "string"
-            ]
+          "codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ChangePasswordInput": {
+        "required": [
+          "newPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "newPassword": {
+            "type": "string"
           }
         }
       },
@@ -4681,15 +6141,49 @@
           }
         }
       },
-      "ConnectProviderInput": {
+      "ConnectedIdentity": {
         "required": [
+          "id",
           "providerId",
+          "provider",
+          "displayName",
+          "email",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ConnectExternalAccountInput": {
+        "required": [
+          "strategy",
           "redirectUrl"
         ],
         "type": "object",
         "properties": {
-          "providerId": {
-            "pattern": "^(idp)_[0-9A-Za-z]{11}$",
+          "strategy": {
             "type": "string"
           },
           "redirectUrl": {
@@ -4708,6 +6202,64 @@
             "$ref": "#/components/schemas/ApiKeyResponse"
           },
           "secret": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateEmailAddressInput": {
+        "required": [
+          "emailAddress"
+        ],
+        "type": "object",
+        "properties": {
+          "emailAddress": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateMemberOrganizationInput": {
+        "required": [
+          "name",
+          "slug"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CreatePasskeyInput": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateSessionVerificationInput": {
+        "required": [
+          "level"
+        ],
+        "type": "object",
+        "properties": {
+          "level": {
+            "enum": [
+              "first_factor",
+              "multi_factor"
+            ],
             "type": "string"
           }
         }
@@ -4768,6 +6320,21 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "CsrfTokenResponse": {
+        "required": [
+          "token",
+          "headerName"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "headerName": {
+            "type": "string"
           }
         }
       },
@@ -4966,6 +6533,24 @@
           }
         }
       },
+      "ExternalAccountConnectionResponse": {
+        "required": [
+          "object",
+          "externalVerificationRedirectUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "object": {
+            "enum": [
+              "external_account"
+            ],
+            "type": "string"
+          },
+          "externalVerificationRedirectUrl": {
+            "type": "string"
+          }
+        }
+      },
       "FirstFactorVerification": {
         "required": [
           "strategy",
@@ -5089,11 +6674,162 @@
           }
         }
       },
+      "InvitingOrganizationResponse": {
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "imageUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "JsonElement": {
         "type": "object"
       },
       "JsonObject": {
         "type": "object"
+      },
+      "ListPageOfAccountSessionSummary": {
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccountSessionSummary"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ListPageOfApiKeyResponse": {
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiKeyResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ListPageOfConnectedIdentity": {
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectedIdentity"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ListPageOfOrganizationInvitationResponse": {
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationInvitationResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ListPageOfOrganizationMemberResponse": {
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationMemberResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
       },
       "ListPageOfOrganizationRoleResponse": {
         "required": [
@@ -5120,68 +6856,210 @@
           }
         }
       },
-      "OrganizationInput": {
+      "ListPageOfPasskeyResponse": {
         "required": [
-          "name",
-          "slug"
+          "items",
+          "nextCursor",
+          "hasMore"
         ],
         "type": "object",
         "properties": {
-          "expectedUpdatedAt": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PasskeyResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ListPageOfUserEmailAddressResponse": {
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserEmailAddressResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ListPageOfUserOrganizationInvitationResponse": {
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserOrganizationInvitationResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ListPageOfUserOrganizationMembershipResponse": {
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserOrganizationMembershipResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MeResponse": {
+        "required": [
+          "id",
+          "object",
+          "firstName",
+          "lastName",
+          "fullName",
+          "username",
+          "imageUrl",
+          "hasImage",
+          "primaryEmailAddressId",
+          "emailAddresses",
+          "passwordEnabled",
+          "totpEnabled",
+          "backupCodeEnabled",
+          "twoFactorEnabled",
+          "publicMetadata",
+          "unsafeMetadata",
+          "lastSignInAt",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "enum": [
+              "user"
+            ],
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "username": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "imageUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasImage": {
+            "type": "boolean"
+          },
+          "primaryEmailAddressId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emailAddresses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserEmailAddressResponse"
+            }
+          },
+          "passwordEnabled": {
+            "type": "boolean"
+          },
+          "totpEnabled": {
+            "type": "boolean"
+          },
+          "backupCodeEnabled": {
+            "type": "boolean"
+          },
+          "twoFactorEnabled": {
+            "type": "boolean"
+          },
+          "publicMetadata": {
+            "$ref": "#/components/schemas/JsonObject"
+          },
+          "unsafeMetadata": {
+            "$ref": "#/components/schemas/JsonObject"
+          },
+          "lastSignInAt": {
             "type": [
               "null",
               "string"
             ],
             "format": "date-time"
           },
-          "name": {
-            "maxLength": 100,
-            "minLength": 1,
-            "type": "string"
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
           },
-          "slug": {
-            "maxLength": 100,
-            "minLength": 0,
-            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-            "type": "string"
-          },
-          "imageUrl": {
-            "maxLength": 2048,
-            "minLength": 0,
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "uri"
-          },
-          "maxMemberships": {
-            "maximum": 1000000,
-            "minimum": 1,
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int32"
-          },
-          "publicMetadata": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/JsonElement"
-              }
-            ]
-          },
-          "privateMetadata": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/JsonElement"
-              }
-            ]
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -5209,6 +7087,92 @@
             "minimum": 1,
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "OrganizationInvitationResponse": {
+        "required": [
+          "id",
+          "organizationId",
+          "email",
+          "role",
+          "roleName",
+          "status",
+          "createdAt",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "accepted",
+              "revoked",
+              "expired"
+            ],
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "OrganizationMemberResponse": {
+        "required": [
+          "id",
+          "organizationId",
+          "userId",
+          "email",
+          "role",
+          "roleName",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "role": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -5274,6 +7238,58 @@
           }
         }
       },
+      "OrganizationResponse": {
+        "required": [
+          "id",
+          "instanceId",
+          "name",
+          "slug",
+          "imageUrl",
+          "maxMemberships",
+          "publicMetadata",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "instanceId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "maxMemberships": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "publicMetadata": {
+            "$ref": "#/components/schemas/JsonElement"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "OrganizationRoleResponse": {
         "required": [
           "id",
@@ -5328,29 +7344,56 @@
           }
         }
       },
-      "PasskeyCredentialInput": {
+      "PasskeyResponse": {
         "required": [
-          "requestId",
-          "credential"
+          "id",
+          "object",
+          "name",
+          "createdAt",
+          "lastUsedAt"
         ],
         "type": "object",
         "properties": {
-          "requestId": {
+          "id": {
             "type": "string"
           },
-          "credential": {
-            "$ref": "#/components/schemas/JsonElement"
+          "object": {
+            "enum": [
+              "passkey"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
-      "PasskeyNameInput": {
+      "PasskeyVerificationResponse": {
         "required": [
-          "name"
+          "status",
+          "options"
         ],
         "type": "object",
         "properties": {
-          "name": {
+          "status": {
+            "enum": [
+              "unverified"
+            ],
             "type": "string"
+          },
+          "options": {
+            "$ref": "#/components/schemas/JsonElement"
           }
         }
       },
@@ -5376,6 +7419,46 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "PendingPasskeyResponse": {
+        "required": [
+          "id",
+          "object",
+          "name",
+          "verification"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "enum": [
+              "passkey"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "verification": {
+            "$ref": "#/components/schemas/PasskeyVerificationResponse"
+          }
+        }
+      },
+      "PrepareEmailVerificationInput": {
+        "required": [
+          "strategy"
+        ],
+        "type": "object",
+        "properties": {
+          "strategy": {
+            "enum": [
+              "email_code"
+            ],
+            "type": "string"
           }
         }
       },
@@ -5451,67 +7534,35 @@
           }
         }
       },
-      "SecurityPasswordInput": {
+      "SentInvitationResponse": {
         "required": [
-          "password"
+          "id",
+          "token",
+          "expiresAt",
+          "deliveryStatus",
+          "queuedAt"
         ],
         "type": "object",
         "properties": {
-          "password": {
+          "id": {
             "type": "string"
           },
-          "currentPassword": {
-            "type": [
-              "null",
-              "string"
-            ]
+          "token": {
+            "type": "string"
           },
-          "code": {
-            "type": [
-              "null",
-              "string"
-            ]
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
           },
-          "requestId": {
-            "type": [
-              "null",
-              "string"
-            ]
+          "deliveryStatus": {
+            "enum": [
+              "queued"
+            ],
+            "type": "string"
           },
-          "emailCode": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
-      "SecurityProofInput": {
-        "type": "object",
-        "properties": {
-          "password": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "code": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "requestId": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "emailCode": {
-            "type": [
-              "null",
-              "string"
-            ]
+          "queuedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -5521,7 +7572,8 @@
           "user",
           "organizationId",
           "lastActiveAt",
-          "expireAt"
+          "expireAt",
+          "factorVerificationAge"
         ],
         "type": "object",
         "properties": {
@@ -5544,6 +7596,13 @@
           "expireAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "factorVerificationAge": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
           }
         }
       },
@@ -5600,17 +7659,80 @@
           }
         }
       },
-      "SetUsernameInput": {
+      "SessionVerificationResponse": {
         "required": [
-          "username"
+          "id",
+          "object",
+          "status",
+          "level",
+          "sessionId",
+          "supportedFirstFactors",
+          "supportedSecondFactors",
+          "firstFactorVerification",
+          "factorVerificationAge",
+          "expiresAt"
         ],
         "type": "object",
         "properties": {
-          "username": {
-            "type": [
-              "null",
-              "string"
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "enum": [
+              "session_verification"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "needs_first_factor",
+              "needs_second_factor",
+              "complete"
+            ],
+            "type": "string"
+          },
+          "level": {
+            "enum": [
+              "first_factor",
+              "multi_factor"
+            ],
+            "type": "string"
+          },
+          "sessionId": {
+            "type": "string"
+          },
+          "supportedFirstFactors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClientFactor"
+            }
+          },
+          "supportedSecondFactors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClientFactor"
+            }
+          },
+          "firstFactorVerification": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FirstFactorVerification"
+              }
             ]
+          },
+          "factorVerificationAge": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -5892,6 +8014,37 @@
           }
         }
       },
+      "TotpResponse": {
+        "required": [
+          "object",
+          "secret",
+          "uri",
+          "verified",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "object": {
+            "enum": [
+              "totp"
+            ],
+            "type": "string"
+          },
+          "secret": {
+            "type": "string"
+          },
+          "uri": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "TouchSessionInput": {
         "type": "object",
         "properties": {
@@ -5903,12 +8056,7 @@
           }
         }
       },
-      "UpdateOwnProfileInput": {
-        "required": [
-          "firstName",
-          "lastName",
-          "unsafeMetadata"
-        ],
+      "UpdateMeInput": {
         "type": "object",
         "properties": {
           "expectedUpdatedAt": {
@@ -5921,12 +8069,18 @@
           "firstName": {
             "maxLength": 100,
             "minLength": 0,
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "lastName": {
             "maxLength": 100,
             "minLength": 0,
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "imageUrl": {
             "maxLength": 2048,
@@ -5937,22 +8091,220 @@
             ]
           },
           "unsafeMetadata": {
-            "$ref": "#/components/schemas/JsonElement"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JsonElement"
+              }
+            ]
+          },
+          "username": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "primaryEmailAddressId": {
+            "pattern": "^(idn)_[0-9A-Za-z]{11}$",
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
-      "VerifyEmailInput": {
+      "UpdateMemberOrganizationInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "slug": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "imageUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "expectedUpdatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "UserEmailAddressResponse": {
         "required": [
-          "requestId",
-          "code"
+          "id",
+          "object",
+          "emailAddress",
+          "primary",
+          "verification"
         ],
         "type": "object",
         "properties": {
-          "requestId": {
+          "id": {
             "type": "string"
           },
-          "code": {
+          "object": {
+            "enum": [
+              "email_address"
+            ],
             "type": "string"
+          },
+          "emailAddress": {
+            "type": "string"
+          },
+          "primary": {
+            "type": "boolean"
+          },
+          "verification": {
+            "$ref": "#/components/schemas/UserEmailVerificationResponse"
+          }
+        }
+      },
+      "UserEmailVerificationResponse": {
+        "required": [
+          "status",
+          "strategy",
+          "verifiedAt",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "enum": [
+              "verified",
+              "unverified"
+            ],
+            "type": "string"
+          },
+          "strategy": {
+            "enum": [
+              "email_code"
+            ],
+            "type": "string"
+          },
+          "verifiedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "UserOrganizationInvitationResponse": {
+        "required": [
+          "id",
+          "object",
+          "emailAddress",
+          "publicOrganizationData",
+          "role",
+          "roleName",
+          "status",
+          "createdAt",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "enum": [
+              "organization_invitation"
+            ],
+            "type": "string"
+          },
+          "emailAddress": {
+            "type": "string"
+          },
+          "publicOrganizationData": {
+            "$ref": "#/components/schemas/InvitingOrganizationResponse"
+          },
+          "role": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending"
+            ],
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UserOrganizationMembershipResponse": {
+        "required": [
+          "id",
+          "object",
+          "organization",
+          "role",
+          "roleName",
+          "permissions",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "enum": [
+              "organization_membership"
+            ],
+            "type": "string"
+          },
+          "organization": {
+            "$ref": "#/components/schemas/OrganizationResponse"
+          },
+          "role": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       }
@@ -5960,28 +8312,25 @@
   },
   "tags": [
     {
-      "name": "OwnProfile"
+      "name": "OrganizationMembers"
     },
     {
-      "name": "OrganizationAccount"
+      "name": "Me"
+    },
+    {
+      "name": "MeSecurity"
+    },
+    {
+      "name": "MeSessions"
+    },
+    {
+      "name": "MeOrganizations"
     },
     {
       "name": "FrontendApi"
     },
     {
-      "name": "ExternalAccount"
-    },
-    {
-      "name": "OwnApiKeys"
-    },
-    {
-      "name": "Account"
-    },
-    {
-      "name": "AccountSecurity"
-    },
-    {
-      "name": "Identifier"
+      "name": "SessionVerification"
     }
   ]
 }
