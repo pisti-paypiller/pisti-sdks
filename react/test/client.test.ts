@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { PistiClient, PistiClientError, type SessionVerification } from "../src/client.js";
+import { PistiClient, PistiClientError, reverificationOf, type SessionVerification } from "../src/client.js";
 import { describeOrganizationError } from "../src/organizations.js";
 import type { ClientState } from "../src/resources.js";
 
@@ -198,6 +198,16 @@ describe("session API routes", () => {
         expect(client.getSnapshot().sessionId).toBe(OTHER_SESSION);
     });
 
+    it("applies the client a new password returns without reading it again", async () => {
+        stubApi();
+        const client = await signedIn();
+        const calls = stubApi((sent) => (sent.url.pathname === "/v1/me/change_password" ? { data: clientState(OTHER_SESSION) } : undefined));
+        await client.me.updatePassword({ newPassword: "a long new password" });
+
+        expect(client.getSnapshot().sessionId).toBe(OTHER_SESSION);
+        expect(calls.some((call) => call.url.pathname === "/v1/client")).toBe(false);
+    });
+
     it("refuses invalid IDs before sending anything", async () => {
         const calls = stubApi();
         const client = await signedIn();
@@ -266,6 +276,24 @@ describe("CSRF", () => {
         expect(calls.some((call) => call.url.pathname === "/v1/client/csrf")).toBe(false);
     });
 
+    it("fetches a new token once the browser client changes", async () => {
+        let current = SESSION;
+        const calls = stubApi((sent) => {
+            if (sent.url.pathname === "/v1/client") return { data: clientState(current) };
+            if (sent.url.pathname === "/v1/client/sign_out") return { data: { sessions: [], lastActiveSessionId: null, clientToken: null } };
+            return undefined;
+        });
+        const client = await signedIn();
+        await client.me.revokeAllSessions();
+        await client.signOut();
+        current = OTHER_SESSION;
+        await client.load();
+        await client.me.delete();
+
+        const mutations = calls.filter((call) => call.url.pathname === "/v1/me/sessions/revoke_all" || (call.url.pathname === "/v1/me" && call.method === "DELETE"));
+        expect(mutations.map((call) => call.headers.get("x-csrf-token"))).toEqual(["csrf-1", "csrf-2"]);
+    });
+
     it("fetches a new token and retries once on csrf_invalid", async () => {
         const calls = stubApi((sent) =>
             sent.url.pathname === "/v1/me/sessions/revoke_all" && sent.headers.get("x-csrf-token") === "csrf-1"
@@ -310,7 +338,8 @@ describe("reverification", () => {
             const path = sent.url.pathname;
             if (path === "/v1/me/api_keys" && sent.method === "POST")
                 return verified ? { data: { apiKey: { id: KEY }, secret: "ak_secret" } } : required;
-            if (path === `/v1/client/sessions/${SESSION}/verify`) return { data: verification("needs_first_factor") };
+            if (path === `/v1/client/sessions/${SESSION}/verify`)
+                return { data: verification(sent.method === "GET" && verified ? "complete" : "needs_first_factor") };
             if (path.endsWith("/verify/attempt_first_factor")) return { data: verification("needs_second_factor") };
             if (path.endsWith("/verify/attempt_second_factor")) {
                 verified = true;
@@ -328,9 +357,8 @@ describe("reverification", () => {
                 const started = await client.sessionVerification.create(requirement.level);
                 expect(started.supportedFirstFactors.map((factor) => factor.strategy)).toEqual(["password", "email_code", "passkey"]);
                 await client.sessionVerification.attemptFirstFactor({ strategy: "password", password: "correct horse" });
-                await client.completeReverification(
-                    await client.sessionVerification.attemptSecondFactor({ strategy: "totp", code: "123456" }),
-                );
+                await client.sessionVerification.attemptSecondFactor({ strategy: "totp", code: "123456" });
+                await client.completeReverification();
             })();
         });
 
@@ -338,7 +366,7 @@ describe("reverification", () => {
 
         expect(created.secret).toBe("ak_secret");
         expect(asked).toEqual([{ level: "multi_factor", afterMinutes: 10 }]);
-        const steps = calls.filter((call) => call.url.pathname.includes("/verify") || call.url.pathname === "/v1/me/api_keys");
+        const steps = calls.filter((call) => (call.url.pathname.includes("/verify") && call.method === "POST") || call.url.pathname === "/v1/me/api_keys");
         expect(steps.map((call) => [call.url.pathname, call.body])).toEqual([
             ["/v1/me/api_keys", { name: "Deploy" }],
             [`/v1/client/sessions/${SESSION}/verify`, { level: "multi_factor" }],
@@ -371,10 +399,10 @@ describe("reverification", () => {
     });
 
     it("wraps the app's own calls with withReverification", async () => {
-        stubApi();
+        stubApi((sent) => (sent.url.pathname.endsWith("/verify") ? { data: verification("complete") } : undefined));
         const client = await signedIn();
         client.subscribeReverification(() => {
-            if (client.getReverificationSnapshot()) queueMicrotask(() => void client.completeReverification({ status: "complete" } as SessionVerification));
+            if (client.getReverificationSnapshot()) queueMicrotask(() => void client.completeReverification());
         });
         let attempts = 0;
         const result = await client.withReverification(async () => {
@@ -384,6 +412,91 @@ describe("reverification", () => {
 
         expect(result).toBe("done");
         expect(attempts).toBe(2);
+    });
+
+    it("re-reads the verification instead of trusting the caller, and refuses an incomplete one", async () => {
+        stubApi((sent) => {
+            if (sent.url.pathname === "/v1/me/totp") return required;
+            if (sent.url.pathname.endsWith("/verify")) return { data: verification("needs_second_factor") };
+            return undefined;
+        });
+        const client = await signedIn();
+        let refusal: unknown;
+        client.subscribeReverification(() => {
+            if (client.getReverificationSnapshot() && !refusal)
+                void client.completeReverification().catch((error: unknown) => {
+                    refusal = error;
+                    client.cancelReverification();
+                });
+        });
+
+        await expect(client.me.createTOTP()).rejects.toMatchObject({ code: "reverification_cancelled" });
+        expect(refusal).toMatchObject({ code: "verification_incomplete" });
+    });
+
+    it("escalates one step for parallel first_factor and multi_factor requests, replaying each once", async () => {
+        let verifiedLevel: string | null = null;
+        const need = (level: string) => ({
+            status: 403,
+            problem: { code: "session_reverification_required", reverification: { level, afterMinutes: 10 } },
+        });
+        const calls = stubApi((sent) => {
+            const path = sent.url.pathname;
+            if (path === "/v1/me" && sent.method === "PATCH") return verifiedLevel ? { data: {} } : need("first_factor");
+            if (path === "/v1/me/backup_codes") return verifiedLevel === "multi_factor" ? { data: { object: "backup_code", codes: ["a"] } } : need("multi_factor");
+            if (path === `/v1/client/sessions/${SESSION}/verify` && sent.method === "POST") {
+                const level = (sent.body as { level: string }).level;
+                return { data: { ...verification("needs_first_factor"), level } };
+            }
+            if (path === `/v1/client/sessions/${SESSION}/verify` && sent.method === "GET")
+                return { data: { ...verification(verifiedLevel ? "complete" : "needs_first_factor"), level: verifiedLevel ?? "first_factor" } };
+            return undefined;
+        });
+        const client = await signedIn();
+        const levels: string[] = [];
+        let finishing = false;
+        client.subscribeReverification(() => {
+            const requirement = client.getReverificationSnapshot();
+            if (!requirement) return;
+            levels.push(requirement.level);
+            // Wait until both requests have joined, then verify at the level the step asks for now.
+            if (requirement.level !== "multi_factor" || finishing) return;
+            finishing = true;
+            void (async () => {
+                await client.sessionVerification.create(requirement.level);
+                verifiedLevel = requirement.level;
+                await client.completeReverification();
+            })();
+        });
+
+        const [updated, codes] = await Promise.all([client.me.update({ username: "ada" }), client.me.createBackupCode()]);
+
+        expect(updated).toEqual({});
+        expect(codes.codes).toEqual(["a"]);
+        expect(levels).toEqual(["first_factor", "multi_factor"]);
+        expect(calls.filter((call) => call.url.pathname === "/v1/me" && call.method === "PATCH")).toHaveLength(2);
+        expect(calls.filter((call) => call.url.pathname === "/v1/me/backup_codes")).toHaveLength(2);
+        expect(calls.filter((call) => call.url.pathname.endsWith("/verify") && call.method === "POST").map((call) => call.body)).toEqual([
+            { level: "multi_factor" },
+        ]);
+    });
+
+    it("reports a dismissed passkey prompt as passkey_cancelled", async () => {
+        stubApi((sent) =>
+            sent.url.pathname.endsWith("/verify/prepare_first_factor")
+                ? { data: { ...verification("needs_first_factor"), firstFactorVerification: { strategy: "passkey", status: "unverified", externalVerificationRedirectUrl: null, passkeyOptions: { challenge: "AAAA" }, error: null } } }
+                : undefined,
+        );
+        const client = await signedIn();
+        vi.stubGlobal("navigator", { credentials: { get: async () => { throw new DOMException("The operation was aborted.", "NotAllowedError"); } } });
+
+        await expect(client.sessionVerification.passkey()).rejects.toMatchObject({ code: "passkey_cancelled", message: expect.stringMatching(/closed or timed out/) });
+    });
+
+    it("ignores a reverification code without its requirement", () => {
+        expect(reverificationOf({ code: "session_reverification_required" })).toBeNull();
+        expect(reverificationOf({ code: "session_reverification_required", reverification: { level: "first_factor" } })).toBeNull();
+        expect(reverificationOf({ code: "session_reverification_required", reverification: { level: "first_factor", afterMinutes: 5 } })).toEqual({ level: "first_factor", afterMinutes: 5 });
     });
 
     it("keeps the session's factor verification age", async () => {

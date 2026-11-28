@@ -41,11 +41,33 @@ export class PistiClientError extends Error {
 export function reverificationOf(error: unknown): ReverificationRequirement | null {
     if (!error || typeof error !== "object") return null;
     const { code, reverification } = error as { code?: unknown; reverification?: Partial<ReverificationRequirement> };
-    if (code !== "session_reverification_required") return null;
-    return {
-        level: reverification?.level === "first_factor" ? "first_factor" : "multi_factor",
-        afterMinutes: typeof reverification?.afterMinutes === "number" ? reverification.afterMinutes : 10,
-    };
+    // The problem always carries both fields; anything else is not a requirement this SDK can satisfy.
+    if (code !== "session_reverification_required" || !reverification) return null;
+    const { level, afterMinutes } = reverification;
+    if ((level !== "first_factor" && level !== "multi_factor") || typeof afterMinutes !== "number") return null;
+    return { level, afterMinutes };
+}
+
+/** The requirement that satisfies both: the stricter level and the shorter window. */
+function strictest(a: ReverificationRequirement, b: ReverificationRequirement): ReverificationRequirement {
+    const level = a.level === "multi_factor" || b.level === "multi_factor" ? "multi_factor" : "first_factor";
+    const afterMinutes = Math.min(a.afterMinutes, b.afterMinutes);
+    return level === a.level && afterMinutes === a.afterMinutes ? a : { level, afterMinutes };
+}
+
+/** Runs a WebAuthn ceremony, reporting a dismissed or timed-out prompt as `passkey_cancelled`. */
+export async function passkeyCeremony<T>(ceremony: () => Promise<T | null>): Promise<T> {
+    let result: T | null;
+    try {
+        result = await ceremony();
+    } catch (error) {
+        const name = (error as { name?: unknown } | null)?.name;
+        if (name === "NotAllowedError" || name === "AbortError")
+            throw new PistiClientError("The passkey prompt was closed or timed out. Try again.", 400, "passkey_cancelled");
+        throw error;
+    }
+    if (!result) throw new PistiClientError("No passkey was chosen.", 400, "passkey_cancelled");
+    return result;
 }
 
 /** A sign-in or sign-up in progress, as the Frontend API returns it. */
@@ -203,7 +225,8 @@ export class PistiClient {
     readonly development: boolean;
     /** The signed-in user's own resources, `/v1/me`. */
     readonly me: MeResource = new MeResource(
-        <T>(method: Parameters<SessionRequest>[0], path: string, body?: unknown) => this.sessionRequest<T>(method, path, body),
+        <T>(method: Parameters<SessionRequest>[0], path: string, body?: unknown, options?: Parameters<SessionRequest>[3]) =>
+            this.sessionRequest<T>(method, path, body, options),
         async (state) => {
             await this.apply(state, state.lastActiveSessionId ?? undefined);
             this.channel?.postMessage("changed");
@@ -358,8 +381,7 @@ export class PistiClient {
             const created = await this.signIn.create({ strategy: "passkey" });
             const options = created.firstFactorVerification?.passkeyOptions;
             if (!options) throw new PistiClientError("Passkeys aren’t available here.", 400, "strategy_not_supported");
-            const credential = await navigator.credentials.get({ publicKey: requestOptions(options) });
-            if (!credential) throw new PistiClientError("No passkey was chosen.", 400, "passkey_cancelled");
+            const credential = await passkeyCeremony(() => navigator.credentials.get({ publicKey: requestOptions(options) }));
             return this.result(await this.signIn.attemptFirstFactor(created.id, {
                 strategy: "passkey",
                 credential: assertionJson(credential as PublicKeyCredential),
@@ -469,7 +491,7 @@ export class PistiClient {
     readonly setActiveOrganization = async (organizationId: string | null): Promise<void> => {
         const sessionId = this.requireSession();
         await this.apply(
-            await this.fapi<ClientState>("POST", `client/sessions/${sessionId}/touch`, { organizationId }),
+            await this.fapi<ClientState>("POST", `client/sessions/${encodeURIComponent(sessionId)}/touch`, { organizationId }),
         );
         await this.getToken({ skipCache: true });
         this.channel?.postMessage("changed");
@@ -622,8 +644,9 @@ export class PistiClient {
             const prepared = await this.sessionVerification.prepareFirstFactor("passkey");
             const options = prepared.firstFactorVerification?.passkeyOptions;
             if (!options) throw new PistiClientError("Passkeys aren’t available here.", 400, "strategy_not_supported");
-            const credential = await navigator.credentials.get({ publicKey: requestOptions(options as unknown as PublicKeyCredentialRequestOptionsJSON) });
-            if (!credential) throw new PistiClientError("No passkey was chosen.", 400, "passkey_cancelled");
+            const credential = await passkeyCeremony(() =>
+                navigator.credentials.get({ publicKey: requestOptions(options as unknown as PublicKeyCredentialRequestOptionsJSON) }),
+            );
             return this.sessionVerification.attemptFirstFactor({ strategy: "passkey", credential: assertionJson(credential as PublicKeyCredential) });
         },
     };
@@ -643,7 +666,16 @@ export class PistiClient {
     readonly requestReverification = (requirement: ReverificationRequirement): Promise<void> => {
         if (!this.snapshot.isSignedIn)
             return Promise.reject(new PistiClientError("Sign in before verifying your identity.", 401));
-        if (this.reverification) return this.reverification.promise;
+        const pending = this.reverification;
+        if (pending) {
+            // Requests waiting together are satisfied together: a stricter one escalates the step it joins.
+            const merged = strictest(pending.requirement, requirement);
+            if (merged !== pending.requirement) {
+                pending.requirement = merged;
+                for (const listener of this.reverificationListeners) listener();
+            }
+            return pending.promise;
+        }
         if (this.reverificationListeners.size === 0)
             return Promise.reject(
                 new PistiClientError("Verify your identity to continue.", 403, "session_reverification_required", requirement),
@@ -659,11 +691,13 @@ export class PistiClient {
         return promise;
     };
 
-    /** Ends the reverification step once a verification is `complete`, so the waiting request is retried. */
-    readonly completeReverification = async (verification: SessionVerification): Promise<void> => {
+    /** Ends the reverification step once the session's verification, read again from the server, is `complete` at the
+     * level the waiting requests need, so they are retried. */
+    readonly completeReverification = async (): Promise<void> => {
         const pending = this.reverification;
         if (!pending) throw new PistiClientError("Start identity verification again.", 400);
-        if (verification.status !== "complete")
+        const verification = await this.sessionVerification.get();
+        if (verification.status !== "complete" || (pending.requirement.level === "multi_factor" && verification.level !== "multi_factor"))
             throw new PistiClientError("Finish verifying your identity first.", 400, "verification_incomplete");
         await this.load();
         await this.getToken({ skipCache: true }).catch(() => {});
@@ -735,6 +769,15 @@ export class PistiClient {
     }
 
     private async apply(state: ClientState, preferred?: string): Promise<void> {
+        // The antiforgery token is cached per browser client. ClientState has no client ID, so a client is taken to have
+        // changed when none of its sessions remain (sign-out, or a sign-in that made a new client) or its token changes.
+        const before = this.clientState;
+        if (
+            before &&
+            ((state.clientToken !== null && state.clientToken !== before.clientToken && before.clientToken !== null) ||
+                !state.sessions.some((item) => before.sessions.some((old) => old.id === item.id)))
+        )
+            this.csrf = undefined;
         this.keepClientToken(state);
         this.clientState = state;
         const session =
@@ -938,7 +981,12 @@ export class PistiClient {
      * because a browser client may hold several. `403 session_reverification_required` opens the reverification step
      * and retries; a change re-reads the client and the session token afterwards.
      */
-    private async sessionRequest<T>(method: "GET" | "POST" | "PATCH" | "DELETE", path: string, body?: unknown): Promise<T> {
+    private async sessionRequest<T>(
+        method: "GET" | "POST" | "PATCH" | "DELETE",
+        path: string,
+        body?: unknown,
+        options: { reload?: boolean } = {},
+    ): Promise<T> {
         const identity = this.snapshot.sessionId;
         if (!identity) throw new PistiClientError("Sign in before managing your account.", 401, "signed_out");
         const run = async () => {
@@ -964,7 +1012,7 @@ export class PistiClient {
             this.requireIdentity(identity);
             result = await run();
         }
-        if (method !== "GET") {
+        if (method !== "GET" && options.reload !== false) {
             await this.load();
             await this.getToken({ skipCache: true }).catch(() => {});
         }

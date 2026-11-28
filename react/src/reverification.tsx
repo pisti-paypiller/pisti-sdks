@@ -45,10 +45,19 @@ export function ReverificationDialog({ client }: { client: PistiClient }) {
         }
         if (!requirement && element.open) element.close();
     }, [requirement, client, action.reset]);
+    // A request needing both factors joined the step: start again at the stricter level.
+    useEffect(() => {
+        if (requirement && verification && verification.level !== requirement.level) {
+            setFirst(null);
+            setSecond(null);
+            setCodeSent(false);
+            void action.run(async () => setVerification(await client.sessionVerification.create(requirement.level)));
+        }
+    }, [requirement, verification, client]);
 
     const advance = async (next: SessionVerification) => {
         setVerification(next);
-        if (next.status === "complete") await client.completeReverification(next);
+        if (next.status === "complete") await client.completeReverification();
     };
     const firstFactors = (verification?.supportedFirstFactors ?? [])
         .map((factor) => factor.strategy)

@@ -1,4 +1,4 @@
-import { attestationJson, creationOptions, type PublicKeyCredentialCreationOptionsJSON } from "./client.js";
+import { attestationJson, creationOptions, passkeyCeremony, type PublicKeyCredentialCreationOptionsJSON } from "./client.js";
 import type { components } from "./generated/frontend.js";
 
 type FrontendSchemas = components["schemas"];
@@ -64,7 +64,13 @@ export type OrganizationRole = FrontendSchemas["OrganizationRoleResponse"];
 export type ClientState = FrontendSchemas["ClientState"];
 
 /** Sends one session API request as the active session; the client adds the session, CSRF and reverification. */
-export type SessionRequest = <T>(method: "GET" | "POST" | "PATCH" | "DELETE", path: string, body?: unknown) => Promise<T>;
+export type SessionRequest = <T>(
+    method: "GET" | "POST" | "PATCH" | "DELETE",
+    path: string,
+    body?: unknown,
+    /** `reload: false` skips re-reading the client after a change, for one whose response is the new client. */
+    options?: { reload?: boolean },
+) => Promise<T>;
 
 /** Checks the shape of a public ID (`org_…`, `passkey_…`); the API checks that its prefix fits. */
 const publicId = (value: string): string => {
@@ -115,7 +121,8 @@ export class MeResource {
     /** Sets or changes the password, ending every other session and API key. This browser stays signed in on a
      * new session. Needs both factors. */
     updatePassword = async (input: { newPassword: string }): Promise<void> => {
-        await this.applyClient(await this.request<ClientState>("POST", "/v1/me/change_password", input));
+        // The response is the browser client with the replacement session: apply it as it is, without re-reading.
+        await this.applyClient(await this.request<ClientState>("POST", "/v1/me/change_password", input, { reload: false }));
     };
 
     // Email addresses
@@ -130,10 +137,11 @@ export class MeResource {
     /** Creates a passkey: the browser makes one for this account and Pisti registers it. Needs both factors. */
     createPasskey = async (input: { name: string }): Promise<Passkey> => {
         const pending = await this.request<FrontendSchemas["PendingPasskeyResponse"]>("POST", "/v1/me/passkeys", input);
-        const credential = await navigator.credentials.create({
-            publicKey: creationOptions(pending.verification.options as unknown as PublicKeyCredentialCreationOptionsJSON),
-        });
-        if (!credential) throw new Error("No passkey was created.");
+        const credential = await passkeyCeremony(() =>
+            navigator.credentials.create({
+                publicKey: creationOptions(pending.verification.options as unknown as PublicKeyCredentialCreationOptionsJSON),
+            }),
+        );
         return this.request("POST", `/v1/me/passkeys/${publicId(pending.id)}/attempt_verification`, {
             credential: attestationJson(credential as PublicKeyCredential),
         });
@@ -230,10 +238,11 @@ export class OrganizationResource {
     getInvitations = (id: string, page: DirectoryQuery = {}): Promise<CursorPage<OrganizationInvitation>> =>
         this.request("GET", `/v1/organizations/${publicId(id)}/invitations` + query(page));
     /** Invites someone into a role, by key (`org:member`); without one, the environment's default role. */
-    inviteMember = (id: string, input: { emailAddress: string; role?: string }): Promise<SentInvitation> =>
+    inviteMember = (id: string, input: { emailAddress: string; role?: string; lifetimeDays?: number }): Promise<SentInvitation> =>
         this.request("POST", `/v1/organizations/${publicId(id)}/invitations`, {
             email: input.emailAddress,
             ...(input.role ? { role: input.role } : {}),
+            ...(input.lifetimeDays === undefined ? {} : { lifetimeDays: input.lifetimeDays }),
         });
     revokeInvitation = (id: string, invitationId: string): Promise<void> =>
         this.request("POST", `/v1/organizations/${publicId(id)}/invitations/${publicId(invitationId)}/revoke`);

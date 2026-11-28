@@ -68,7 +68,8 @@ export interface SignedInAuthObject extends AuthObjectBase {
     orgSlug: string | null;
     orgRole: string | null;
     orgPermissions: string[] | null;
-    /** Minutes since the first and second factor were verified; -1 when never in this session. */
+    /** Minutes since the first and second factor were verified (the token's `fva` plus its age); -1 when never in this
+     * session. A `multi_factor` reverification check never passes while the second is -1. */
     factorVerificationAge: [number, number];
 }
 

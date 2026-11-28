@@ -150,6 +150,17 @@ describe("authObject", () => {
         expect(missing.has({ reverification: "lax" })).toBe(false);
     });
 
+    it("ages fva by the time since the token was minted", () => {
+        const old = authObject(claims({ iat: minutesAgo(8), fva: [5, 5] }), "token");
+
+        expect(old.factorVerificationAge).toEqual([13, 13]);
+        expect(old.has({ reverification: "strict_mfa" })).toBe(false);
+        expect(old.has({ reverification: "moderate" })).toBe(true);
+        const fresh = authObject(claims({ iat: minutesAgo(0), fva: [5, -1] }), "token");
+        expect(fresh.factorVerificationAge).toEqual([5, -1]);
+        expect(fresh.has({ reverification: "strict_mfa" })).toBe(false);
+    });
+
     it("reports a failed check as the Frontend API's reverification requirement", () => {
         expect(reverificationRequirement("strict_mfa")).toEqual({ level: "multi_factor", afterMinutes: 10 });
         expect(reverificationRequirement("moderate")).toEqual({ level: "multi_factor", afterMinutes: 60 });
