@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PistiClient, PistiClientError, reverificationOf, type SessionVerification } from "../src/client.js";
 import { describeOrganizationError } from "../src/organizations.js";
+import { message } from "../src/auth.js";
 import type { ClientState } from "../src/resources.js";
 
 const SESSION = "sess_0Hk3pQ9xZb2";
@@ -589,6 +590,33 @@ describe("organization errors", () => {
         expect(denied).toMatchObject({ status: 403 });
         expect(describeOrganizationError(missing).message).toMatch(/no longer a member/);
         expect(describeOrganizationError(denied).message).toMatch(/role .* doesn’t allow/);
+    });
+
+    it("names the permission an organization_permission_denied problem carries", async () => {
+        stubApi((sent) =>
+            sent.url.pathname === `/v1/organizations/${ORG}/invitations`
+                ? { status: 403, problem: { code: "organization_permission_denied", permission: "org:sys_memberships:manage" } }
+                : undefined,
+        );
+        const client = await signedIn();
+        const denied = await client.organizations.inviteMember(ORG, { emailAddress: "b@example.com" }).catch((error: unknown) => error);
+
+        expect(denied).toMatchObject({ status: 403, code: "organization_permission_denied", permission: "org:sys_memberships:manage" });
+        expect(describeOrganizationError(denied).message).toBe(
+            "Your role in this organization doesn’t allow that (it needs org:sys_memberships:manage).",
+        );
+    });
+
+    it("explains an invitation that is no longer valid on sign-up", async () => {
+        stubApi((sent) =>
+            sent.url.pathname === "/v1/client/sign_ups" ? { status: 404, problem: { code: "invitation_not_found", detail: "Not found." } } : undefined,
+        );
+        const client = new PistiClient({ publishableKey: key(LIVE_HOST, "live") });
+        const failure = await client.signUp.create({ emailAddress: "a@example.com", invitationToken: "t" }).catch((error: unknown) => error);
+
+        expect(failure).toMatchObject({ status: 404, code: "invitation_not_found" });
+        expect(message(failure)).toBe("This invitation is no longer valid. Ask for a new one.");
+        expect(message(new PistiClientError("Other.", 400, "invalid_code"))).toBe("Other.");
     });
 
     it("keeps specific 403s, such as outranked or organizations_disabled", () => {

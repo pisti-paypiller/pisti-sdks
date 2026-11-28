@@ -42,7 +42,10 @@ export interface SignUpProps {
     className?: string | undefined;
 }
 
-function message(error: unknown): string {
+/** What to show for a failed step; coded problems get their own wording. */
+export function message(error: unknown): string {
+    if (error instanceof PistiClientError && error.code === "invitation_not_found")
+        return "This invitation is no longer valid. Ask for a new one.";
     return error instanceof Error ? error.message : "Something went wrong. Try again.";
 }
 

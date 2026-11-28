@@ -19,6 +19,14 @@ export function describeOrganizationError(error: unknown): Error {
     if (error instanceof PistiClientError) {
         if (error.status === 404)
             return new PistiClientError("This organization isn’t available: it was deleted, or you are no longer a member.", 404, error.code);
+        if (error.code === "organization_permission_denied")
+            return new PistiClientError(
+                `Your role in this organization doesn’t allow that${error.permission ? ` (it needs ${error.permission})` : ""}.`,
+                403,
+                error.code,
+                undefined,
+                error.permission,
+            );
         if (error.status === 403 && (!error.code || error.code === "forbidden"))
             return new PistiClientError("Your role in this organization doesn’t allow that.", 403, error.code);
     }

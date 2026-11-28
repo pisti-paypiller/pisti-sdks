@@ -31,6 +31,8 @@ export class PistiClientError extends Error {
         readonly code?: string,
         /** Set on `403 session_reverification_required`: what to verify before retrying. */
         readonly reverification?: ReverificationRequirement,
+        /** Set on `403 organization_permission_denied`: the permission the member's role lacks. */
+        readonly permission?: string,
     ) {
         super(message);
         this.name = "PistiClientError";
@@ -1056,6 +1058,7 @@ export class PistiClient {
                 code?: string;
                 errors?: Record<string, string[]>;
                 reverification?: ReverificationRequirement;
+                permission?: unknown;
             };
             const validation = problem.errors ? Object.values(problem.errors).flat().join(" ") : "";
             const requirement = reverificationOf(problem);
@@ -1063,7 +1066,8 @@ export class PistiClient {
                 validation || problem.detail || problem.title || "The request could not be completed.",
                 response.status,
                 problem.code,
-                ...(requirement ? [requirement] : []),
+                requirement ?? undefined,
+                typeof problem.permission === "string" ? problem.permission : undefined,
             );
         } catch {
             return new PistiClientError(
