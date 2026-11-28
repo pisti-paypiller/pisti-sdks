@@ -19,7 +19,7 @@ An application environment has two kinds of key:
 - **Publishable key** (`pk_test_…` / `pk_live_…`): base64url of the environment's own host
   followed by `$`, for example `https://auth.acme.com$` in production or
   `https://quiet-fox-12.<dev-domain>$` for a development environment. Safe for browsers. The
-  host serves the environment's Frontend API and account API (`/v1/…`), and with a trailing
+  host serves the environment's Frontend API and session API (`/v1/…`), and with a trailing
   slash it is the environment's issuer (`https://auth.acme.com/`).
 - **Secret key** (`sk_test_…` / `sk_live_…`): an environment API key created under API keys
   in the console. It authenticates the backend API (`/v1/instance`, `/v1/users`, `/v1/organizations`,
@@ -52,12 +52,29 @@ An application environment has two kinds of key:
    `authenticateRequest(request)` from `@pisti-paypiller/backend` does the same for Fetch API runtimes.
    A page request whose cookie expired gets the handshake (`pisti-backend/docs/authentication.md#handshake`): a
    redirect through the Frontend API that refreshes `__session` and returns to the page.
-5. Account and organization components call `/v1/account/*` on the environment's host with
-   the session token as a bearer credential, including adding passkeys
-   (`useAccount().addPasskey(name)`), connecting providers (`useAccount().connect(id)`), and
-   managing email addresses and the username (`useAccount().identifiers()`, `addEmailAddress`,
-   `verifyEmailAddress`, `makePrimaryEmailAddress`, `removeEmailAddress`, `setUsername`).
-   Where the environment uses usernames, `<SignIn />` accepts one and `<SignUp />` asks for it.
+5. Account and organization components call the session API on the environment's host
+   (`pisti-backend/docs/api.md#the-session-api`): `/v1/me/…` for the user's own resources and
+   `/v1/organizations/{id}/…` for what members manage, through `client.me` (`useMe()`) and
+   `client.organizations` (`useOrganizationList()`), named like Clerk's `User` and `Organization`:
+   `me.update()`, `me.createEmailAddress()` and the address's `prepareVerification()`/`attemptVerification()`,
+   `me.createPasskey()`, `me.createTOTP()`/`verifyTOTP()`, `me.createBackupCode()`, `me.createExternalAccount()`,
+   `me.getSessions()`, `me.createApiKey()`, `me.updatePassword()`, `me.getOrganizationMemberships()`,
+   `organizations.getMemberships(id)` and so on. Where the environment uses usernames, `<SignIn />` accepts one
+   and `<SignUp />` asks for it.
+6. Every session API request names the session it acts as with `_pisti_session_id` (a browser may hold several)
+   and authenticates with the browser client: its `pisti_client` cookie or, in development, the `X-Pisti-Client`
+   header. Cookie mutations also send the antiforgery token from `GET /v1/client/csrf` in `X-CSRF-TOKEN`; the SDK
+   caches it and fetches a new one when a request is refused with `csrf_invalid`. Reverification (`/v1/client/sessions/{id}/verify…`) is
+   checked the same way; `touch` checks only the origin and needs no token. The SDK never uses a bearer token
+   on the session API. A new password returns the browser client, and the SDK switches to its new
+   `lastActiveSessionId`. The active organization is set with `touch` and read from `GET /v1/client`.
+7. A sensitive action answers `403 session_reverification_required` with `reverification: { level, afterMinutes }`.
+   The provider then shows the reverification step, which verifies the session through
+   `client.sessionVerification` (`POST /v1/client/sessions/{id}/verify`, then prepare and attempt the first
+   factor, by password, email code or passkey, and the second, by authenticator or backup code), and the SDK retries
+   the request. `useReverification(fn)` does the same for your own calls, and `useSession().session.factorVerificationAge`
+   says how recently each factor was verified. In an organization, a non-member gets `404` and a member whose role
+   does not allow an action gets `403`; the components say which.
 
 See authentication (`pisti-backend/docs/authentication.md#frontend-api`) for the endpoint list and token claims.
 
@@ -135,14 +152,14 @@ and custom ones are `org:<feature>:<action>`. Memberships and invitations name a
 `roles` and `permissions`. Session tokens carry the active organization's role key (`orgRole`) and every permission it
 grants (`orgPermissions`, system and custom), so `has({ permission: "org:invoices:create" })` and
 `has({ role: "org:admin" })` work offline. In React, `<OrganizationProfile />` offers the roles the server says the member
-may give (`organizations.assignableRoles(id)`), `useOrganizationSettings()` reads the environment's organization
+may give (`organizations.getRoles(id)`), `useOrganizationSettings()` reads the environment's organization
 settings, and the organization components render nothing while the environment has organizations off (its
 organization routes then answer `403 organizations_disabled`).
 
 ## API contract
 
 The SDKs build against two public documents from pisti-backend: `openapi/backend.json` (the Backend
-API, used by `@pisti-paypiller/backend`) and `openapi/frontend.json` (the Frontend and account API,
+API, used by `@pisti-paypiller/backend`) and `openapi/frontend.json` (the Frontend API and its session API,
 used by `@pisti-paypiller/react`). The internal console and staff documents are never pulled here.
 Copies are committed in `contract/`, and the TypeScript generated from them by `openapi-typescript`
 (a pinned devDependency) in `backend/src/generated/backend.ts` and `react/src/generated/frontend.ts`.

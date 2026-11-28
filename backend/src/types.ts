@@ -19,7 +19,10 @@ export interface SessionClaims {
     /** Present only when the environment includes profile claims in session tokens (console → Settings). */
     name?: string;
     auth_time?: number;
+    /** When a second factor was last verified on the session. */
     mfa_authenticated_at?: number;
+    /** The factor verification age: minutes since the first and the second factor were last verified, -1 for never. */
+    fva?: [number, number];
     org_id?: string;
     org_slug?: string;
     org_role?: string;
@@ -65,7 +68,8 @@ export interface SignedInAuthObject extends AuthObjectBase {
     orgSlug: string | null;
     orgRole: string | null;
     orgPermissions: string[] | null;
-    /** Minutes since the first and second factor were verified; -1 when never in this session. */
+    /** Minutes since the first and second factor were verified (the token's `fva` plus its age); -1 when never in this
+     * session. A `multi_factor` reverification check never passes while the second is -1. */
     factorVerificationAge: [number, number];
 }
 

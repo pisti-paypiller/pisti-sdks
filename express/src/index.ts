@@ -5,6 +5,7 @@ import {
     acceptedTokenTypes,
     authenticateRequest,
     createPistiClient,
+    reverificationRequirement,
     signedOutAuthObject,
     unauthenticatedObject,
     type AcceptsToken,
@@ -161,7 +162,9 @@ export function requireAuth(options: RequireAuthOptions = {}): RequestHandler {
             if ((permission || role) && !auth.has({ permission, role }))
                 return sendProblem(req, res, new PistiError(403, "You don’t have permission to do this.", "forbidden"));
             if (reverification && !auth.has({ reverification }))
-                return sendProblem(req, res, new PistiError(403, "Confirm it’s you to continue.", "reverification_required"));
+                return sendProblem(req, res, new PistiError(403, "Verify your identity to continue.", "session_reverification_required"), {
+                    reverification: reverificationRequirement(reverification),
+                });
         } else if (permission || role || reverification)
             return sendProblem(req, res, new PistiError(403, "This route needs a signed-in user.", "forbidden"));
         next();
@@ -182,7 +185,7 @@ export const pistiClient: PistiClient = new Proxy({} as PistiClient, {
     },
 });
 
-function sendProblem(req: Request, res: Response, error: unknown): void {
+function sendProblem(req: Request, res: Response, error: unknown, extensions: Record<string, unknown> = {}): void {
     const status = error instanceof PistiError ? error.status : 503;
     const requestId = randomUUID();
     res.setHeader("X-Request-ID", requestId);
@@ -198,10 +201,11 @@ function sendProblem(req: Request, res: Response, error: unknown): void {
             instance: req.path,
             requestId,
             ...(error instanceof PistiError && error.code ? { code: error.code } : {}),
+            ...extensions,
         });
 }
 
-export { createPistiClient, verifyToken, PistiError, PistiAPIResponseError } from "@pisti-paypiller/backend";
+export { createPistiClient, verifyToken, reverificationRequirement, PistiError, PistiAPIResponseError } from "@pisti-paypiller/backend";
 export type {
     AuthObject,
     SignedInAuthObject,

@@ -223,6 +223,19 @@ const presets = {
     lax: { level: "second_factor", afterMinutes: 1440 },
 } as const;
 
+/**
+ * The requirement a failed `reverification` check reports, in the shape of the Frontend API's
+ * `403 session_reverification_required` problem, so `@pisti-paypiller/react`'s `useReverification` can verify the
+ * session and retry. Its verification has two levels: `second_factor` becomes `multi_factor`, which also asks for
+ * the second factor only from users who have one.
+ */
+export function reverificationRequirement(
+    reverification: NonNullable<CheckAuthorizationParams["reverification"]>,
+): { level: "first_factor" | "multi_factor"; afterMinutes: number } {
+    const { level, afterMinutes } = typeof reverification === "string" ? presets[reverification] : reverification;
+    return { level: level === "first_factor" ? "first_factor" : "multi_factor", afterMinutes };
+}
+
 /** Builds the auth object for verified session claims. */
 export function authObject(claims: SessionClaims, token: string): AuthObject {
     const permissions = Array.isArray(claims.org_permissions)
@@ -230,20 +243,28 @@ export function authObject(claims: SessionClaims, token: string): AuthObject {
         : typeof claims.org_permissions === "string"
           ? [claims.org_permissions]
           : null;
-    const now = Date.now() / 1000;
-    const age = (time: unknown) => (typeof time === "number" ? Math.floor((now - time) / 60) : -1);
-    const factorVerificationAge: [number, number] = [age(claims.auth_time), age(claims.mfa_authenticated_at)];
+    // `fva` counts from the session's last verification of each factor, which reverification renews; `auth_time` does not move.
+    const minutes = (value: unknown) => (typeof value === "number" && Number.isInteger(value) && value >= -1 ? value : -1);
+    const fva = Array.isArray(claims.fva) ? claims.fva : [];
+    const minted: [number, number] = [minutes(fva[0]), minutes(fva[1])];
+    // `fva` is the age when the token was minted; add the minutes since `iat`, on the clock verification uses (Date.now).
+    const agedNow = (): [number, number] => {
+        const elapsed = typeof claims.iat === "number" ? Math.max(0, Math.floor((Date.now() / 1000 - claims.iat) / 60)) : 0;
+        return [minted[0] < 0 ? -1 : minted[0] + elapsed, minted[1] < 0 ? -1 : minted[1] + elapsed];
+    };
+    const factorVerificationAge = agedNow();
     const orgRole = typeof claims.org_role === "string" ? claims.org_role : null;
     const has = ({ permission, role, reverification }: CheckAuthorizationParams): boolean => {
         if (permission && !permissions?.includes(permission)) return false;
         if (role && orgRole !== role) return false;
         if (reverification) {
             const { level, afterMinutes } = typeof reverification === "string" ? presets[reverification] : reverification;
-            const [first, second] = factorVerificationAge;
+            const [first, second] = agedNow();
             const fresh = (minutes: number) => minutes >= 0 && minutes <= afterMinutes;
             if (level === "first_factor" && !fresh(first)) return false;
             // Sign-in enforces enrolled authenticators, so a session without one never had a second factor.
             if (level === "second_factor" && !(second < 0 ? fresh(first) : fresh(second))) return false;
+            // multi_factor needs both, so it never passes for a user without a second factor (as in Clerk).
             if (level === "multi_factor" && !(fresh(first) && fresh(second))) return false;
         }
         return Boolean(permission || role || reverification);

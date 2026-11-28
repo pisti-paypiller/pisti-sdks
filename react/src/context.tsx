@@ -37,8 +37,6 @@ export interface PistiProviderProps extends PistiClientOptions {
     children: ReactNode;
     /** Colors, radius and font for every Pisti component. */
     appearance?: PistiAppearance;
-    /** Handles `#pisti_invitation=` organization invitation links before rendering your app. Defaults to true. */
-    handleInvitations?: boolean;
 }
 
 /**
@@ -49,7 +47,6 @@ export function PistiProvider({
     publishableKey,
     children,
     appearance,
-    handleInvitations = true,
     ...navigation
 }: PistiProviderProps) {
     const client = useMemo(() => new PistiClient({ ...(publishableKey ? { publishableKey } : {}), ...navigation }), [publishableKey]);
@@ -72,7 +69,7 @@ export function PistiProvider({
         : undefined;
     const content = (
         <>
-            {handleInvitations ? <InvitationGate client={client}>{children}</InvitationGate> : children}
+            {children}
             <ModalHost client={client} />
             <ReverificationDialog client={client} />
         </>
@@ -117,76 +114,6 @@ function ModalHost({ client }: { client: PistiClient }) {
     );
 }
 
-function InvitationGate({ client, children }: { client: PistiClient; children: ReactNode }) {
-    const snapshot = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getServerSnapshot);
-    const [organizationsEnabled, setOrganizationsEnabled] = useState(true);
-    useEffect(() => {
-        let active = true;
-        client.loadEnvironment().then((value) => active && setOrganizationsEnabled(value.organizations !== null), () => {});
-        return () => {
-            active = false;
-        };
-    }, [client]);
-    const [token, setToken] = useState<string | null>(null);
-    const [pending, setPending] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    // The token arrives in the fragment, so it never reaches your server's logs or a Referer header.
-    useEffect(() => {
-        setToken(new URLSearchParams(window.location.hash.slice(1)).get("pisti_invitation"));
-    }, []);
-    if (!token || !organizationsEnabled) return children;
-    const clear = () => {
-        const url = new URL(window.location.href);
-        const fragment = new URLSearchParams(url.hash.slice(1));
-        fragment.delete("pisti_invitation");
-        url.hash = fragment.toString();
-        window.history.replaceState(window.history.state, "", url.href);
-        setToken(null);
-    };
-    const valid = /^[a-fA-F0-9]{64}$/.test(token);
-    if (snapshot.isLoaded && !snapshot.isSignedIn) return <SignIn forceRedirectUrl={window.location.href} />;
-    return (
-        <section className="pisti-ui pisti-card">
-            <header className="pisti-card-header">
-                <h1>Join your organization</h1>
-                <p className="pisti-muted">
-                    {snapshot.user ? <>Signed in as {snapshot.user.primaryEmailAddress?.emailAddress}.</> : "Loading your account…"}
-                </p>
-            </header>
-            {(!valid || error) && (
-                <p className="pisti-notice pisti-error" role="alert">
-                    {!valid ? "This invitation link is invalid." : error}
-                </p>
-            )}
-            <div className="pisti-form">
-                <button
-                    type="button"
-                    disabled={pending || !valid || !snapshot.isSignedIn}
-                    onClick={() => {
-                        setPending(true);
-                        setError(null);
-                        client.organizations
-                            .acceptInvitation(token)
-                            .then(() => client.getToken({ skipCache: true }))
-                            .then(clear, (failure: unknown) =>
-                                setError(failure instanceof Error ? failure.message : "The invitation could not be accepted."),
-                            )
-                            .finally(() => setPending(false));
-                    }}
-                >
-                    {pending ? "Joining…" : "Accept invitation"}
-                </button>
-                <button type="button" className="pisti-secondary" disabled={pending} onClick={() => void client.signOut()}>
-                    Use a different account
-                </button>
-                <button type="button" className="pisti-link" onClick={clear}>
-                    Not now
-                </button>
-            </div>
-        </section>
-    );
-}
-
 /** The Pisti client: openSignIn(), openUserProfile(), redirectToSignIn(), signOut(), getToken() and more. */
 export function usePisti(): PistiClient {
     const client = useContext(PistiContext);
@@ -215,10 +142,11 @@ export function useUser() {
     return { isLoaded, isSignedIn, user, error, reload };
 }
 
-/** The current session: its id and the signed-in user. */
+/** The current session: its id, the signed-in user and its `factorVerificationAge` (minutes since the first and second
+ * factor were last verified, `-1` for never). */
 export function useSession() {
-    const { isLoaded, isSignedIn, sessionId, user } = useAuth();
-    return { isLoaded, isSignedIn, session: sessionId && user ? { id: sessionId, user } : null };
+    const { isLoaded, isSignedIn, sessionId, user, factorVerificationAge } = useAuth();
+    return { isLoaded, isSignedIn, session: sessionId && user ? { id: sessionId, user, factorVerificationAge } : null };
 }
 
 /** Low-level sign-in steps, for building your own sign-in form. */
@@ -235,10 +163,17 @@ export function useAuthenticatedFetch(): PistiClient["authenticatedFetch"] {
     return usePisti().authenticatedFetch;
 }
 
-export function useAccount() {
-    return usePisti().account;
+/** The signed-in user's own resources (`/v1/me`): profile, email addresses, passkeys, authenticator, backup codes,
+ * provider accounts, sessions, API keys and organization memberships. */
+export function useMe() {
+    return usePisti().me;
 }
 
+/**
+ * Wraps `operation` like Clerk's `useReverification`: when it fails with `session_reverification_required` (any error
+ * whose `code` is that, with `reverification: { level, afterMinutes }`), the provider shows the reverification step
+ * and `operation` runs again once the session is verified. Pisti's own resources already do this.
+ */
 export function useReverification<Arguments extends unknown[], Result>(operation: (...args: Arguments) => Promise<Result>) {
     const client = usePisti();
     return useCallback((...args: Arguments): Promise<Result> => client.withReverification(() => operation(...args)), [client, operation]);

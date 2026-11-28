@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useAccount, useAuth } from "./context.js";
+import { useAuth, useMe } from "./context.js";
 import { ActionNotice, ErrorNotice, Loading, useAction, useResource } from "./ui.js";
 
 const lifetimes = [
@@ -14,12 +14,12 @@ const lifetimes = [
  * Your backend accepts them with `getAuth(req, { acceptsToken: "api_key" })`.
  */
 export function APIKeys({ className = "" }: { className?: string }) {
-    const account = useAccount();
+    const me = useMe();
     const { isLoaded, isSignedIn } = useAuth();
-    const keys = useResource(account.apiKeys);
+    const keys = useResource(me.getApiKeys);
     const action = useAction();
     const [creating, setCreating] = useState(false);
-    const [secret, setSecret] = useState<{ name: string; value: string } | null>(null);
+    const [secret, setSecret] = useState<{ id: string; name: string; value: string } | null>(null);
     const [copied, setCopied] = useState(false);
     if (!isLoaded) return <Loading />;
     if (!isSignedIn) return <p>Sign in to manage your API keys.</p>;
@@ -31,11 +31,11 @@ export function APIKeys({ className = "" }: { className?: string }) {
         const lifetime = lifetimes[Number(form.get("lifetime") ?? 0)]?.seconds ?? null;
         if (!name) return;
         void action.run(async () => {
-            const created = await account.createApiKey({
+            const created = await me.createApiKey({
                 name,
                 ...(lifetime ? { secondsUntilExpiration: lifetime } : {}),
             });
-            setSecret({ name: created.apiKey.name, value: created.secret });
+            setSecret({ id: created.apiKey.id, name: created.apiKey.name, value: created.secret });
             setCopied(false);
             setCreating(false);
             keys.reload();
@@ -74,9 +74,9 @@ export function APIKeys({ className = "" }: { className?: string }) {
             {keys.isLoading && <Loading />}
             <ErrorNotice error={keys.error} retry={keys.reload} />
             <ActionNotice action={action} />
-            {keys.data?.length === 0 && !creating && <p>You have no API keys yet.</p>}
+            {keys.data?.every((key) => key.revoked) && !creating && <p>You have no API keys yet.</p>}
             <ul className="pisti-list">
-                {keys.data?.map((key) => (
+                {keys.data?.filter((key) => !key.revoked).map((key) => (
                     <li key={key.id}>
                         <div>
                             {key.name}
@@ -96,7 +96,9 @@ export function APIKeys({ className = "" }: { className?: string }) {
                             disabled={action.isPending}
                             onClick={() =>
                                 void action.run(async () => {
-                                    await account.revokeApiKey(key.id);
+                                    await me.revokeApiKey(key.id);
+                                    // A revoked key's secret is useless and should not stay on screen.
+                                    setSecret((shown) => (shown?.id === key.id ? null : shown));
                                     keys.reload();
                                 }, "API key revoked.")
                             }

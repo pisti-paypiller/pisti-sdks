@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useId, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useState, type FormEvent } from "react";
 import { APIKeys } from "./api-keys.js";
-import { useAccount, useAuth, usePisti } from "./context.js";
+import { useAuth, useMe, usePisti } from "./context.js";
 import type { EnvironmentConfig } from "./types.js";
-import type { AuthenticatorEnrollment, SecurityProof } from "./resources.js";
+import type { UserEmailAddress, Me, TOTP } from "./resources.js";
 import {
     ActionNotice,
     ErrorNotice,
@@ -19,7 +19,7 @@ function downloadRecoveryCodes(codes: string[]) {
     const url = URL.createObjectURL(
         new Blob(
             [
-                "Pisti recovery codes\nKeep this file private. Each code works once.\n\n" +
+                "Pisti backup codes\nKeep this file private. Each code works once.\n\n" +
                     codes.join("\n") +
                     "\n",
             ],
@@ -28,144 +28,50 @@ function downloadRecoveryCodes(codes: string[]) {
     );
     const link = document.createElement("a");
     link.href = url;
-    link.download = "pisti-recovery-codes.txt";
+    link.download = "pisti-backup-codes.txt";
     document.body.append(link);
     link.click();
     link.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-/** Collects the proof that every security change needs in the same request: the current password or
- * an email code, plus an authenticator or recovery code when one is enrolled. `children` holds the
- * operation's own fields, read from the form passed to `onSubmit`. */
-function ProofForm({
-    label,
-    onSubmit,
-    message,
-    hasPassword = true,
-    children,
-}: {
-    label: string;
-    onSubmit: (proof: SecurityProof, form: HTMLFormElement) => Promise<void>;
-    message: string;
-    hasPassword?: boolean | undefined;
-    children?: ReactNode;
-}) {
-    const account = useAccount();
-    const id = useId();
-    const action = useAction();
-    const [requestId, setRequestId] = useState<string | null>(null);
-    const submit = (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        const form = event.currentTarget;
-        void action.run(async () => {
-            const code = value(form, "factor");
-            await onSubmit(
-                {
-                    ...(requestId
-                        ? { requestId, emailCode: value(form, "emailCode") }
-                        : { password: value(form, "password") }),
-                    ...(code ? { code } : {}),
-                },
-                form,
-            );
-            form.reset();
-            setRequestId(null);
-        }, message);
-    };
+function Codes({ codes, onDone }: { codes: string[]; onDone: () => void }) {
     return (
-        <form onSubmit={submit} className="pisti-form">
-            <fieldset disabled={action.isPending}>
-                <legend>{label}</legend>
-                {children}
-                {requestId ? (
-                    <label htmlFor={id + "-email"}>
-                        Email verification code
-                        <input
-                            id={id + "-email"}
-                            name="emailCode"
-                            inputMode="numeric"
-                            pattern="[0-9]{6}"
-                            maxLength={6}
-                            autoComplete="one-time-code"
-                            required
-                        />
-                    </label>
-                ) : hasPassword ? (
-                    <label htmlFor={id + "-password"}>
-                        Current password
-                        <input
-                            id={id + "-password"}
-                            name="password"
-                            type="password"
-                            maxLength={128}
-                            autoComplete="current-password"
-                            required
-                        />
-                    </label>
-                ) : (
-                    <p className="pisti-muted">
-                        Confirm it's you with a code sent to your verified email.
-                    </p>
-                )}
-                <button
-                    type="button"
-                    className="pisti-secondary"
-                    onClick={() =>
-                        void action.run(async () => {
-                            const request =
-                                await account.requestReauthentication();
-                            setRequestId(request.requestId);
-                        }, "Check your verified email for a code.")
-                    }
-                >
-                    {requestId
-                        ? "Send a new email code"
-                        : hasPassword
-                          ? "Use an email code instead"
-                          : "Send an email code"}
-                </button>
-                <label htmlFor={id + "-factor"}>
-                    Authenticator or recovery code
-                    <input
-                        id={id + "-factor"}
-                        name="factor"
-                        maxLength={64}
-                        autoComplete="one-time-code"
-                    />
-                </label>
-                <p className="pisti-muted">
-                    Enter your second factor if an authenticator is already
-                    enrolled.
-                </p>
-                <button type="submit" disabled={!hasPassword && !requestId}>
-                    {action.isPending ? "Verifying…" : label}
-                </button>
-            </fieldset>
-            <ActionNotice action={action} />
-        </form>
+        <div className="pisti-notice" role="status">
+            <h4>Save your backup codes</h4>
+            <p>These codes are shown only now. Keep them somewhere safe outside this browser; each works once.</p>
+            <pre>{codes.join("\n")}</pre>
+            <button type="button" className="pisti-secondary" onClick={() => downloadRecoveryCodes(codes)}>
+                Download backup codes
+            </button>
+            <button type="button" className="pisti-secondary" onClick={onDone}>
+                I've saved my codes
+            </button>
+        </div>
     );
 }
 
 function AccountProfile() {
-    const account = useAccount();
-    const profile = useResource(account.get);
+    const me = useMe();
+    const profile = useResource(me.get);
+    const environment = useEnvironmentConfig();
     const action = useAction();
-    const { user } = useAuth();
     const id = useId();
     if (profile.isLoading && !profile.data) return <Loading />;
-    if (!profile.data)
-        return <ErrorNotice error={profile.error} retry={profile.reload} />;
+    if (!profile.data) return <ErrorNotice error={profile.error} retry={profile.reload} />;
     const data = profile.data;
+    const usernames = environment?.signUp.username ?? "off";
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const form = event.currentTarget;
+        const username = value(form, "username").trim();
         void action.run(async () => {
-            await account.update({
+            await me.update({
                 firstName: value(form, "firstName"),
                 lastName: value(form, "lastName"),
-                imageUrl: value(form, "imageUrl") || null,
-                unsafeMetadata: data.unsafeMetadata,
+                imageUrl: value(form, "imageUrl"),
+                // Changing the username needs a recent first factor, so it is sent only when it changed.
+                ...(usernames !== "off" && username !== (data.username ?? "") ? { username } : {}),
                 expectedUpdatedAt: data.updatedAt,
             });
             profile.reload();
@@ -174,66 +80,57 @@ function AccountProfile() {
     return (
         <section>
             <h2>Profile</h2>
-            <p className="pisti-muted">{user?.primaryEmailAddress?.emailAddress}</p>
+            <p className="pisti-muted">{data.emailAddresses.find((address) => address.id === data.primaryEmailAddressId)?.emailAddress}</p>
             <form className="pisti-form" onSubmit={submit} key={data.updatedAt}>
                 <fieldset disabled={action.isPending}>
                     <legend>Personal information</legend>
                     <div className="pisti-grid">
                         <label htmlFor={id + "-first"}>
                             First name
-                            <input
-                                id={id + "-first"}
-                                name="firstName"
-                                defaultValue={data.firstName}
-                                maxLength={100}
-                                autoComplete="given-name"
-                            />
+                            <input id={id + "-first"} name="firstName" defaultValue={data.firstName} maxLength={100} autoComplete="given-name" />
                         </label>
                         <label htmlFor={id + "-last"}>
                             Last name
-                            <input
-                                id={id + "-last"}
-                                name="lastName"
-                                defaultValue={data.lastName}
-                                maxLength={100}
-                                autoComplete="family-name"
-                            />
+                            <input id={id + "-last"} name="lastName" defaultValue={data.lastName} maxLength={100} autoComplete="family-name" />
                         </label>
                     </div>
                     <label htmlFor={id + "-image"}>
                         Profile image URL
-                        <input
-                            id={id + "-image"}
-                            name="imageUrl"
-                            type="url"
-                            defaultValue={data.imageUrl ?? ""}
-                            maxLength={2048}
-                        />
+                        <input id={id + "-image"} name="imageUrl" type="url" defaultValue={data.imageUrl ?? ""} maxLength={2048} />
                     </label>
-                    <button type="submit">
-                        {action.isPending ? "Saving…" : "Save profile"}
-                    </button>
+                    {usernames !== "off" && (
+                        <label htmlFor={id + "-username"}>
+                            Username
+                            <input
+                                id={id + "-username"}
+                                name="username"
+                                defaultValue={data.username ?? ""}
+                                minLength={3}
+                                maxLength={64}
+                                autoComplete="username"
+                                required={usernames === "required"}
+                            />
+                        </label>
+                    )}
+                    <button type="submit">{action.isPending ? "Saving…" : "Save profile"}</button>
                 </fieldset>
                 <ActionNotice action={action} />
-                <ErrorNotice error={profile.error} retry={profile.reload} />
             </form>
         </section>
     );
 }
 
 function AccountSessions() {
-    const account = useAccount();
-    const [page, setPage] = useState(1);
-    const load = useCallback(() => account.sessions(page, 10), [account, page]);
+    const me = useMe();
+    const [cursors, setCursors] = useState<string[]>([]);
+    const cursor = cursors[cursors.length - 1];
+    const load = useCallback(() => me.getSessions({ limit: 10, ...(cursor ? { cursor } : {}) }), [me, cursor]);
     const query = useResource(load);
     const action = useAction();
     return (
         <section>
             <h2>Sessions</h2>
-            <p className="pisti-muted">
-                Revoke sessions you no longer use. Recent identity verification
-                is required.
-            </p>
+            <p className="pisti-muted">Your devices. Seeing and ending them may ask you to verify your identity.</p>
             {query.isLoading && <Loading />}
             <ErrorNotice error={query.error} retry={query.reload} />
             <ActionNotice action={action} />
@@ -243,41 +140,29 @@ function AccountSessions() {
                         {query.data.items.map((session) => (
                             <li key={session.id}>
                                 <div>
-                                    <strong>
-                                        {session.current
-                                            ? "This session"
-                                            : "Application session"}
-                                    </strong>
+                                    <strong>{session.current ? "This device" : session.device}</strong>
                                     <p className="pisti-muted">
-                                        {session.device}
-                                        {session.ipAddress
-                                            ? ` · ${session.ipAddress}`
-                                            : ""}
+                                        {session.current ? session.device : ""}
+                                        {session.ipAddress ? `${session.current ? " · " : ""}${session.ipAddress}` : ""}
                                     </p>
                                     <p className="pisti-muted">
-                                        Last active{" "}
-                                        {new Date(
-                                            session.lastSeenAt,
-                                        ).toLocaleString()}
-                                        {session.status === "revoked" ? " · Revoked" : ""}
+                                        Last active {new Date(session.lastSeenAt).toLocaleString()}
+                                        {session.status !== "active" ? ` · ${session.status.replace("_", " ")}` : ""}
                                     </p>
                                 </div>
-                                {!session.endedAt && (
+                                {session.status === "active" && !session.current && (
                                     <button
                                         type="button"
                                         className="pisti-secondary"
                                         disabled={action.isPending}
                                         onClick={() =>
                                             void action.run(async () => {
-                                                await account.revokeSession(
-                                                    session.id,
-                                                );
+                                                await me.revokeSession(session.id);
                                                 query.reload();
                                             }, "The session has ended.")
                                         }
                                     >
-                                        Revoke
-                                        {session.current ? " this session" : ""}
+                                        Sign out
                                     </button>
                                 )}
                             </li>
@@ -288,33 +173,22 @@ function AccountSessions() {
                         <button
                             type="button"
                             className="pisti-secondary"
-                            disabled={page === 1 || query.isLoading}
-                            onClick={() => setPage(page - 1)}
+                            disabled={cursors.length === 0 || query.isLoading}
+                            onClick={() => setCursors(cursors.slice(0, -1))}
                         >
                             Previous
                         </button>
-                        <span>Page {page}</span>
                         <button
                             type="button"
                             className="pisti-secondary"
-                            disabled={
-                                page * 10 >= query.data.totalCount ||
-                                query.isLoading
-                            }
-                            onClick={() => setPage(page + 1)}
+                            disabled={!query.data.hasMore || !query.data.nextCursor || query.isLoading}
+                            onClick={() => query.data?.nextCursor && setCursors([...cursors, query.data.nextCursor])}
                         >
                             Next
                         </button>
                     </div>
-                    <button
-                        type="button"
-                        className="pisti-danger"
-                        disabled={action.isPending}
-                        onClick={() =>
-                            void action.run(account.revokeAllSessions)
-                        }
-                    >
-                        Sign out all sessions
+                    <button type="button" className="pisti-danger" disabled={action.isPending} onClick={() => void action.run(me.revokeAllSessions)}>
+                        Sign out everywhere
                     </button>
                 </>
             )}
@@ -323,28 +197,24 @@ function AccountSessions() {
 }
 
 function AccountPasskeys() {
-    const account = useAccount();
-    const { user } = useAuth();
-    const query = useResource(account.passkeys);
+    const me = useMe();
+    const pisti = usePisti();
+    const query = useResource(me.getPasskeys);
     const action = useAction();
-    if (!user) return null;
-    const supported = typeof window !== "undefined" && "PublicKeyCredential" in window;
+    const supported = pisti.passkeysAvailable;
     return (
         <section className="pisti-section">
             <h3>Passkeys</h3>
-            <p className="pisti-muted">
-                Use a fingerprint, face, device PIN or security key instead of a
-                password.
-            </p>
+            <p className="pisti-muted">Use a fingerprint, face, device PIN or security key instead of a password.</p>
             {supported && (
                 <form
                     className="pisti-row"
                     onSubmit={(event) => {
                         event.preventDefault();
                         const form = event.currentTarget;
-                        const name = String(new FormData(form).get("name") ?? "").trim() || "Passkey";
+                        const name = value(form, "name").trim() || "Passkey";
                         void action.run(async () => {
-                            await account.addPasskey(name);
+                            await me.createPasskey({ name });
                             form.reset();
                             query.reload();
                         }, "Passkey added.");
@@ -365,7 +235,9 @@ function AccountPasskeys() {
                     <li key={passkey.id}>
                         <div>
                             {passkey.name}
-                            <p className="pisti-muted">{passkey.rpId}</p>
+                            <p className="pisti-muted">
+                                {passkey.lastUsedAt ? `Last used ${new Date(passkey.lastUsedAt).toLocaleDateString()}` : "Never used"}
+                            </p>
                         </div>
                         <button
                             type="button"
@@ -373,7 +245,7 @@ function AccountPasskeys() {
                             disabled={action.isPending}
                             onClick={() =>
                                 void action.run(async () => {
-                                    await account.removePasskey(passkey.id);
+                                    await me.deletePasskey(passkey.id);
                                     query.reload();
                                 }, "Passkey removed.")
                             }
@@ -387,53 +259,70 @@ function AccountPasskeys() {
     );
 }
 
-function AccountIdentifiersSection() {
-    const account = useAccount();
-    const query = useResource(account.identifiers);
+function AccountEmailAddresses({ profile }: { profile: { data: Me | null; reload: () => void } }) {
+    const me = useMe();
+    const query = useResource(me.getEmailAddresses);
     const action = useAction();
-    const [pending, setPending] = useState<{ requestId: string; emailAddress: string } | null>(null);
-    const data = query.data;
+    const [pending, setPending] = useState<UserEmailAddress | null>(null);
+    const reload = () => {
+        query.reload();
+        profile.reload();
+    };
     return (
         <section className="pisti-section">
             <h3>Email addresses</h3>
-            <p className="pisti-muted">
-                Sign in with any of them. Pisti writes to your primary address.
-            </p>
+            <p className="pisti-muted">Sign in with any verified address. Pisti writes to your primary address.</p>
             {query.isLoading && <Loading />}
             <ErrorNotice error={query.error} retry={query.reload} />
             <ActionNotice action={action} />
             <ul className="pisti-list">
-                {data?.emailAddresses.map((address) => (
+                {query.data?.map((address) => (
                     <li key={address.id}>
                         <div>
                             {address.emailAddress}
                             <p className="pisti-muted">
-                                {address.primary ? "Primary" : address.verified ? "Verified" : "Not verified"}
+                                {address.primary ? "Primary" : address.verification.status === "verified" ? "Verified" : "Not verified"}
                             </p>
                         </div>
                         {!address.primary && (
                             <div className="pisti-row">
-                                {address.verified && (
+                                {address.verification.status === "verified" ? (
                                     <button
                                         type="button"
                                         className="pisti-secondary"
                                         disabled={action.isPending}
-                                        onClick={() => void action.run(async () => {
-                                            await account.makePrimaryEmailAddress(address.id);
-                                            query.reload();
-                                        }, "Primary address changed.")}
+                                        onClick={() =>
+                                            void action.run(async () => {
+                                                await me.update({ primaryEmailAddressId: address.id });
+                                                reload();
+                                            }, "Primary address changed.")
+                                        }
                                     >
                                         Make primary
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        className="pisti-secondary"
+                                        disabled={action.isPending}
+                                        onClick={() =>
+                                            void action.run(async () => setPending(await address.prepareVerification()), "Check that inbox for a code.")
+                                        }
+                                    >
+                                        Verify
                                     </button>
                                 )}
                                 <button
                                     type="button"
                                     className="pisti-secondary"
                                     disabled={action.isPending}
-                                    onClick={() => void action.run(async () => {
-                                        await account.removeEmailAddress(address.id);
-                                        query.reload();
-                                    }, "Address removed.")}
+                                    onClick={() =>
+                                        void action.run(async () => {
+                                            await address.destroy();
+                                            if (pending?.id === address.id) setPending(null);
+                                            reload();
+                                        }, "Address removed.")
+                                    }
                                 >
                                     Remove
                                 </button>
@@ -447,85 +336,64 @@ function AccountIdentifiersSection() {
                 onSubmit={(event) => {
                     event.preventDefault();
                     const form = event.currentTarget;
-                    const values = new FormData(form);
                     void action.run(async () => {
                         if (pending) {
-                            await account.verifyEmailAddress(pending.requestId, String(values.get("code") ?? "").trim());
+                            await pending.attemptVerification({ code: value(form, "code").trim() });
                             setPending(null);
-                            query.reload();
                         } else {
-                            const emailAddress = String(values.get("emailAddress") ?? "").trim();
-                            const sent = await account.addEmailAddress(emailAddress);
-                            setPending({ requestId: sent.requestId, emailAddress });
+                            setPending(await me.createEmailAddress({ emailAddress: value(form, "emailAddress").trim() }));
                         }
                         form.reset();
-                    }, pending ? "Address added." : "");
+                        reload();
+                    }, pending ? "Address verified." : "Check that inbox for a code.");
                 }}
             >
                 {pending ? (
-                    <input name="code" aria-label={`Code sent to ${pending.emailAddress}`} placeholder="6-digit code" inputMode="numeric" pattern="[0-9]{6}" required />
+                    <input
+                        name="code"
+                        aria-label={`Code sent to ${pending.emailAddress}`}
+                        placeholder="6-digit code"
+                        inputMode="numeric"
+                        pattern="[0-9]{6}"
+                        autoComplete="one-time-code"
+                        required
+                    />
                 ) : (
-                    <input name="emailAddress" type="email" aria-label="Email address to add" placeholder="Add an email address" required />
+                    <input name="emailAddress" type="email" aria-label="Email address to add" placeholder="Add an email address" maxLength={254} required />
                 )}
                 <button type="submit" className="pisti-secondary" disabled={action.isPending}>
                     {pending ? "Verify" : "Add"}
                 </button>
+                {pending && (
+                    <button type="button" className="pisti-link" onClick={() => setPending(null)}>
+                        Cancel
+                    </button>
+                )}
             </form>
-            {data && data.usernameMode !== "off" && (
-                <>
-                    <h3>Username</h3>
-                    <form
-                        className="pisti-row"
-                        onSubmit={(event) => {
-                            event.preventDefault();
-                            const username = String(new FormData(event.currentTarget).get("username") ?? "").trim();
-                            void action.run(async () => {
-                                await account.setUsername(username || null);
-                                query.reload();
-                            }, username ? "Username saved." : "Username removed.");
-                        }}
-                    >
-                        <input
-                            name="username"
-                            aria-label="Username"
-                            key={data.username ?? ""}
-                            defaultValue={data.username ?? ""}
-                            minLength={3}
-                            maxLength={64}
-                            required={data.usernameMode === "required"}
-                        />
-                        <button type="submit" className="pisti-secondary" disabled={action.isPending}>
-                            Save
-                        </button>
-                    </form>
-                </>
-            )}
         </section>
     );
 }
 
 function AccountConnections() {
-    const account = useAccount();
-    const { user, reload } = useAuth();
+    const me = useMe();
     const environment = useEnvironmentConfig();
-    const query = useResource(account.connections);
+    const query = useResource(me.getExternalAccounts);
     const action = useAction();
-    if (!user) return null;
     const connected = typeof location !== "undefined" ? new URLSearchParams(location.search).get("__pisti_connection") : null;
     const available = (environment?.signIn.providers ?? []).filter(
-        (provider) => !query.data?.some((connection) => connection.providerId === provider.strategy.slice("oauth_".length)),
+        (provider) => !query.data?.some((connection) => "oauth_" + connection.providerId === provider.strategy),
     );
     return (
         <section className="pisti-section">
             <h3>Connected accounts</h3>
-            <p className="pisti-muted">
-                Sign in with a provider you connect here. Connecting needs a
-                recent sign-in; disconnecting ends all your sessions.
-            </p>
+            <p className="pisti-muted">Sign in with a provider you connect here. Disconnecting one ends all your sessions.</p>
             {connected && (
                 <p className="pisti-notice" role="status">
-                    {connected === "connected" ? "Provider connected." : connected === "connection_in_use"
-                        ? "That provider account is already connected to another user." : "The provider couldn’t be connected. Try again."}
+                    {connected === "connected"
+                        ? "Provider connected."
+                        : connected === "connection_in_use"
+                          ? "That provider account is already connected to another user."
+                          : "The provider couldn’t be connected. Try again."}
                 </p>
             )}
             {available.map((provider) => (
@@ -534,7 +402,12 @@ function AccountConnections() {
                     type="button"
                     className="pisti-secondary"
                     disabled={action.isPending}
-                    onClick={() => void action.run(async () => { await account.connect(provider.strategy.slice("oauth_".length)); }, "")}
+                    onClick={() =>
+                        void action.run(async () => {
+                            const started = await me.createExternalAccount({ strategy: provider.strategy, redirectUrl: location.href });
+                            location.assign(started.externalVerificationRedirectUrl);
+                        })
+                    }
                 >
                     Connect {provider.name}
                 </button>
@@ -548,23 +421,13 @@ function AccountConnections() {
                     <li key={connection.id}>
                         <div>
                             <strong>{connection.displayName}</strong>
-                            {connection.email && (
-                                <p className="pisti-muted">
-                                    {connection.email}
-                                </p>
-                            )}
+                            {connection.email && <p className="pisti-muted">{connection.email}</p>}
                         </div>
                         <button
                             type="button"
                             className="pisti-secondary"
                             disabled={action.isPending}
-                            onClick={() =>
-                                void action.run(async () => {
-                                    await account.disconnect(connection.id);
-                                    await reload();
-                                    query.reload();
-                                }, "Provider disconnected. Sign in again using another method.")
-                            }
+                            onClick={() => void action.run(() => me.deleteExternalAccount(connection.id))}
                         >
                             Disconnect and sign out
                         </button>
@@ -575,361 +438,173 @@ function AccountConnections() {
     );
 }
 
-function AccountSecurity() {
-    const account = useAccount();
-    const query = useResource(account.security);
+function AccountTwoStep({ profile }: { profile: { data: Me | null; reload: () => void } }) {
+    const me = useMe();
+    const environment = useEnvironmentConfig();
     const action = useAction();
-    const [enrollment, setEnrollment] =
-        useState<AuthenticatorEnrollment | null>(null);
-    const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
-    const [emailRequest, setEmailRequest] = useState<string | null>(null);
-    const [deactivationRequest, setDeactivationRequest] = useState<
-        string | null
-    >(null);
+    const id = useId();
+    const [totp, setTotp] = useState<TOTP | null>(null);
+    const [codes, setCodes] = useState<string[]>([]);
+    const data = profile.data;
+    if (!data) return null;
+    return (
+        <section className="pisti-section">
+            <h3>Two-step verification</h3>
+            <p className="pisti-muted">
+                {data.totpEnabled ? "Authenticator app enabled." : "Protect your account with an authenticator app."}
+                {environment?.requireMfa ? " Your application requires this protection." : ""}
+            </p>
+            <ActionNotice action={action} />
+            {!totp && (
+                <button
+                    type="button"
+                    className="pisti-secondary"
+                    disabled={action.isPending}
+                    onClick={() =>
+                        void action.run(async () => {
+                            setTotp(await me.createTOTP());
+                            setCodes([]);
+                        }, "Add the setup key to your authenticator app.")
+                    }
+                >
+                    {data.totpEnabled ? "Replace authenticator" : "Set up authenticator"}
+                </button>
+            )}
+            {totp && (
+                <form
+                    className="pisti-form"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        const form = event.currentTarget;
+                        void action.run(async () => {
+                            setCodes((await me.verifyTOTP({ code: value(form, "code") })).codes);
+                            setTotp(null);
+                            form.reset();
+                            profile.reload();
+                        }, "Authenticator enabled. Your other devices were signed out.");
+                    }}
+                >
+                    <fieldset disabled={action.isPending}>
+                        <legend>Confirm authenticator</legend>
+                        <label htmlFor={id + "-key"}>
+                            Setup key
+                            <input id={id + "-key"} value={totp.secret} readOnly autoComplete="off" />
+                        </label>
+                        <p className="pisti-muted">
+                            Use “Enter a setup key” in your authenticator app, or <a href={totp.uri}>open it in the app</a>. This setup
+                            expires at {new Date(totp.expiresAt).toLocaleTimeString()}.
+                        </p>
+                        <label htmlFor={id + "-code"}>
+                            Authenticator code
+                            <input id={id + "-code"} name="code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} autoComplete="one-time-code" required />
+                        </label>
+                        <div className="pisti-actions">
+                            <button type="submit">Confirm authenticator</button>
+                            <button type="button" className="pisti-secondary" onClick={() => setTotp(null)}>
+                                Cancel setup
+                            </button>
+                        </div>
+                    </fieldset>
+                </form>
+            )}
+            {data.totpEnabled && !totp && (
+                <div className="pisti-actions">
+                    <button
+                        type="button"
+                        className="pisti-secondary"
+                        disabled={action.isPending}
+                        onClick={() =>
+                            void action.run(async () => {
+                                setCodes((await me.createBackupCode()).codes);
+                                profile.reload();
+                            }, "Your previous backup codes no longer work.")
+                        }
+                    >
+                        {data.backupCodeEnabled ? "Replace backup codes" : "Create backup codes"}
+                    </button>
+                    {!environment?.requireMfa && (
+                        <button
+                            type="button"
+                            className="pisti-danger"
+                            disabled={action.isPending}
+                            onClick={() => void action.run(() => me.disableTOTP())}
+                        >
+                            Remove authenticator and sign out
+                        </button>
+                    )}
+                </div>
+            )}
+            {codes.length > 0 && <Codes codes={codes} onDone={() => setCodes([])} />}
+        </section>
+    );
+}
+
+function AccountSecurity() {
+    const me = useMe();
+    const profile = useResource(me.get);
+    const environment = useEnvironmentConfig();
+    const action = useAction();
     const id = useId();
     return (
         <section>
             <h2>Security</h2>
-            {query.isLoading && <Loading />}
-            <ErrorNotice error={query.error} retry={query.reload} />
-            <ActionNotice action={action} />
-            <AccountIdentifiersSection />
+            <p className="pisti-muted">Changes here may ask you to verify your identity first.</p>
+            {profile.isLoading && !profile.data && <Loading />}
+            <ErrorNotice error={profile.error} retry={profile.reload} />
+            <AccountEmailAddresses profile={profile} />
             <AccountPasskeys />
             <AccountConnections />
-            <ProofForm
-                hasPassword={query.data?.hasPassword}
-                label="Verify identity"
-                message="Your identity has been verified."
-                onSubmit={async (proof) => {
-                    await account.reauthenticate(proof);
-                    query.reload();
-                }}
-            />
-            <section className="pisti-section">
-                <h3>Two-step verification</h3>
-                <p className="pisti-muted">
-                    {query.data?.authenticatorEnabled
-                        ? "Authenticator enabled."
-                        : "Protect your account with an authenticator app."}
-                    {query.data?.authenticatorRequired
-                        ? " Your application requires this protection."
-                        : ""}
-                </p>
-                {!enrollment && (
-                    <ProofForm
-                        hasPassword={query.data?.hasPassword}
-                        label={
-                            query.data?.authenticatorEnabled
-                                ? "Replace authenticator"
-                                : "Set up authenticator"
-                        }
-                        message="Add the setup key to your authenticator app."
-                        onSubmit={async (proof) => {
-                            setEnrollment(
-                                await account.enrollAuthenticator(proof),
-                            );
-                            setRecoveryCodes([]);
-                        }}
-                    />
-                )}
-                {enrollment && (
+            <AccountTwoStep profile={profile} />
+            {environment?.signIn.password && profile.data && (
+                <details className="pisti-section">
+                    <summary>{profile.data.passwordEnabled ? "Change password" : "Set a password"}</summary>
+                    <p className="pisti-muted">Saving a password signs out your other devices; this one stays signed in.</p>
                     <form
                         className="pisti-form"
                         onSubmit={(event) => {
                             event.preventDefault();
                             const form = event.currentTarget;
                             void action.run(async () => {
-                                const result =
-                                    await account.confirmAuthenticator(
-                                        enrollment.enrollmentId,
-                                        value(form, "code"),
-                                    );
-                                setRecoveryCodes(result.recoveryCodes);
-                                setEnrollment(null);
+                                await me.updatePassword({ newPassword: value(form, "newPassword") });
                                 form.reset();
-                                query.reload();
-                            }, "Authenticator enabled.");
+                                profile.reload();
+                            }, "Your password has been saved. Your other devices were signed out; this one stays signed in.");
                         }}
                     >
                         <fieldset disabled={action.isPending}>
-                            <legend>Confirm authenticator</legend>
-                            <label htmlFor={id + "-key"}>
-                                Setup key
-                                <input
-                                    id={id + "-key"}
-                                    value={enrollment.setupKey}
-                                    readOnly
-                                    autoComplete="off"
-                                />
+                            <label htmlFor={id + "-new"}>
+                                New password
+                                <input id={id + "-new"} name="newPassword" type="password" minLength={15} maxLength={128} autoComplete="new-password" required />
                             </label>
-                            <p className="pisti-muted">
-                                Use “Enter a setup key” in your authenticator
-                                app. This setup expires shortly.
-                            </p>
-                            <label htmlFor={id + "-code"}>
-                                Authenticator code
-                                <input
-                                    id={id + "-code"}
-                                    name="code"
-                                    inputMode="numeric"
-                                    pattern="[0-9]{6}"
-                                    maxLength={6}
-                                    autoComplete="one-time-code"
-                                    required
-                                />
-                            </label>
-                            <div className="pisti-actions">
-                                <button type="submit">
-                                    Confirm authenticator
-                                </button>
-                                <button
-                                    type="button"
-                                    className="pisti-secondary"
-                                    onClick={() => setEnrollment(null)}
-                                >
-                                    Cancel setup
-                                </button>
-                            </div>
+                            <button type="submit">Save password</button>
                         </fieldset>
                     </form>
-                )}
-                {query.data?.authenticatorEnabled && (
-                    <details>
-                        <summary>
-                            Recovery codes and authenticator removal
-                        </summary>
-                        <p className="pisti-muted">
-                            {query.data.recoveryCodesRemaining} unused recovery
-                            codes remain. Each authenticator code is accepted
-                            once; wait for a fresh code between operations.
-                        </p>
-                        <ProofForm
-                            hasPassword={query.data.hasPassword}
-                            label="Generate new recovery codes"
-                            message="Previous recovery codes have been replaced."
-                            onSubmit={async (proof) => {
-                                setRecoveryCodes(
-                                    (
-                                        await account.regenerateRecoveryCodes(
-                                            proof,
-                                        )
-                                    ).recoveryCodes,
-                                );
-                                query.reload();
-                            }}
-                        />
-                        {!query.data.authenticatorRequired && (
-                            <ProofForm
-                                hasPassword={query.data.hasPassword}
-                                label="Remove authenticator and sign out"
-                                message="Authenticator removed."
-                                onSubmit={async (proof) => {
-                                    await account.removeAuthenticator(proof);
-                                    query.reload();
-                                }}
-                            />
-                        )}
-                    </details>
-                )}
-                {recoveryCodes.length > 0 && (
-                    <div className="pisti-notice" role="status">
-                        <h4>Save your recovery codes</h4>
-                        <p>
-                            These codes are shown only now. Keep them somewhere
-                            safe outside this browser.
-                        </p>
-                        <pre>{recoveryCodes.join("\n")}</pre>
-                        <button
-                            type="button"
-                            className="pisti-secondary"
-                            onClick={() => downloadRecoveryCodes(recoveryCodes)}
-                        >
-                            Download recovery codes
-                        </button>
-                        <button
-                            type="button"
-                            className="pisti-secondary"
-                            onClick={() => setRecoveryCodes([])}
-                        >
-                            I've saved my codes
-                        </button>
-                    </div>
-                )}
-            </section>
-            {query.data?.passwordEnabled && (
-                <details className="pisti-section">
-                    <summary>
-                        {query.data.hasPassword
-                            ? "Change password"
-                            : "Set a password"}
-                    </summary>
-                    <p className="pisti-muted">
-                        Changing your password signs out your other devices; this one stays signed in.
-                    </p>
-                    <ProofForm
-                        hasPassword={query.data.hasPassword}
-                        label={
-                            query.data.hasPassword
-                                ? "Change password and sign out"
-                                : "Set password and sign out"
-                        }
-                        message="Your password has been saved."
-                        onSubmit={(proof, form) =>
-                            account.setPassword(value(form, "password"), proof)
-                        }
-                    >
-                        <label htmlFor={id + "-new"}>
-                            New password
-                            <input
-                                id={id + "-new"}
-                                name="password"
-                                type="password"
-                                minLength={15}
-                                maxLength={128}
-                                autoComplete="new-password"
-                                required
-                            />
-                        </label>
-                    </ProofForm>
                 </details>
             )}
             <details className="pisti-section">
-                <summary>Change email</summary>
-                <p className="pisti-muted">
-                    Verify your new address. Your previous address receives a
-                    security notification. Your old email will stop working and
-                    all sessions will end.
-                </p>
-                {!emailRequest ? (
-                    <ProofForm
-                        hasPassword={query.data?.hasPassword}
-                        label="Send verification code"
-                        message="Check your new email for a code."
-                        onSubmit={async (proof, form) => {
-                            setEmailRequest(
-                                (
-                                    await account.requestEmailChange(
-                                        value(form, "email"),
-                                        proof,
-                                    )
-                                ).requestId,
-                            );
-                        }}
-                    >
-                        <label htmlFor={id + "-email"}>
-                            New email
-                            <input
-                                id={id + "-email"}
-                                name="email"
-                                type="email"
-                                maxLength={254}
-                                autoComplete="email"
-                                required
-                            />
-                        </label>
-                    </ProofForm>
-                ) : (
-                    <form
-                        className="pisti-form"
-                        onSubmit={(event) => {
-                            event.preventDefault();
-                            const form = event.currentTarget;
-                            void action.run(async () => {
-                                await account.completeEmailChange(
-                                    emailRequest,
-                                    value(form, "code"),
-                                );
-                                form.reset();
-                            });
-                        }}
-                    >
-                        <fieldset disabled={action.isPending}>
-                            <label htmlFor={id + "-email-code"}>
-                                Email verification code
-                                <input
-                                    id={id + "-email-code"}
-                                    name="code"
-                                    pattern="[0-9]{6}"
-                                    maxLength={6}
-                                    autoComplete="one-time-code"
-                                    required
-                                />
-                            </label>
-                            <button type="submit">
-                                Change email and sign out
-                            </button>
-                            <button
-                                type="button"
-                                className="pisti-secondary"
-                                onClick={() => setEmailRequest(null)}
-                            >
-                                Start again
-                            </button>
-                        </fieldset>
-                    </form>
-                )}
-            </details>
-            <details className="pisti-section">
                 <summary>Deactivate account</summary>
                 <p className="pisti-muted">
-                    Deactivation signs you out everywhere. Your account is
-                    permanently deleted after 30 days; until then you can
+                    Deactivation signs you out everywhere. Your account is permanently deleted after 30 days; until then you can
                     reactivate it from the sign-in page with an email code.
                 </p>
-                {!deactivationRequest ? (
-                    <button
-                        type="button"
-                        className="pisti-danger"
-                        disabled={action.isPending}
-                        onClick={() =>
-                            void action.run(async () => {
-                                setDeactivationRequest(
-                                    (await account.requestDeactivation())
-                                        .requestId,
-                                );
-                            }, "A confirmation code will be sent to your email.")
-                        }
-                    >
-                        Request deactivation code
-                    </button>
-                ) : (
-                    <form
-                        className="pisti-form"
-                        onSubmit={(event) => {
-                            event.preventDefault();
-                            const form = event.currentTarget;
-                            void action.run(async () => {
-                                await account.deactivate(
-                                    deactivationRequest,
-                                    value(form, "code"),
-                                );
-                                form.reset();
-                            });
-                        }}
-                    >
-                        <fieldset disabled={action.isPending}>
-                            <label htmlFor={id + "-delete-code"}>
-                                Email confirmation code
-                                <input
-                                    id={id + "-delete-code"}
-                                    name="code"
-                                    pattern="[0-9]{6}"
-                                    maxLength={6}
-                                    autoComplete="one-time-code"
-                                    required
-                                />
-                            </label>
-                            <label>
-                                <input type="checkbox" required /> I understand
-                                that I will lose access to this account.
-                            </label>
-                            <button type="submit" className="pisti-danger">
-                                Deactivate account
-                            </button>
-                        </fieldset>
-                    </form>
-                )}
+                <form
+                    className="pisti-form"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        void action.run(() => me.delete());
+                    }}
+                >
+                    <fieldset disabled={action.isPending}>
+                        <label>
+                            <input type="checkbox" required /> I understand that I will lose access to this account.
+                        </label>
+                        <button type="submit" className="pisti-danger">
+                            Deactivate account
+                        </button>
+                    </fieldset>
+                </form>
             </details>
+            <ActionNotice action={action} />
         </section>
     );
 }
@@ -942,7 +617,7 @@ export function UserProfile({
     /** Adds an "API keys" page with <APIKeys />. */
     apiKeys?: boolean;
 }) {
-    const { isLoaded, isSignedIn, error, user, sessionId } = useAuth();
+    const { isLoaded, isSignedIn, error, user } = useAuth();
     const [page, setPage] = useState<"profile" | "security" | "sessions" | "api keys">(
         "profile",
     );
@@ -954,7 +629,8 @@ export function UserProfile({
     if (!isSignedIn) return <p>Sign in to manage your account.</p>;
     return (
         <div
-            key={user?.id + ":" + sessionId}
+            // Keyed by user, not session: a new password replaces the session, and its confirmation must stay on screen.
+            key={user?.id}
             className={"pisti-ui pisti-account " + className}
         >
             <header>

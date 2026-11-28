@@ -1,6 +1,6 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { PistiError } from "../src/errors.js";
-import { authenticateRequest, authObject, HANDSHAKE_PARAMETER, verifyToken } from "../src/tokens.js";
+import { authenticateRequest, authObject, HANDSHAKE_PARAMETER, reverificationRequirement, verifyToken } from "../src/tokens.js";
 import type { SessionClaims } from "../src/types.js";
 import { API_ORIGIN, APP_ORIGIN, HOST_ORIGIN, KINDS, publishableKey, sessionClaims, sign, signingKey, type SigningKey } from "./support.js";
 
@@ -132,16 +132,43 @@ describe("authObject", () => {
     });
 
     it("requires a recent second factor for strict reverification", () => {
-        const recent = authObject(claims({ auth_time: minutesAgo(1), mfa_authenticated_at: minutesAgo(1) }), "token");
-        const stale = authObject(claims({ auth_time: minutesAgo(1), mfa_authenticated_at: minutesAgo(30) }), "token");
+        const recent = authObject(claims({ auth_time: minutesAgo(90), fva: [1, 1] }), "token");
+        const stale = authObject(claims({ auth_time: minutesAgo(1), fva: [1, 30] }), "token");
 
         expect(recent.has({ reverification: "strict" })).toBe(true);
         expect(stale.has({ reverification: "strict" })).toBe(false);
         expect(stale.has({ reverification: "moderate" })).toBe(true);
     });
 
+    it("reads the factor ages from fva, not from the sign-in time", () => {
+        const reverified = authObject(claims({ auth_time: minutesAgo(600), fva: [3, 3] }), "token");
+        const missing = authObject(claims({ auth_time: minutesAgo(1) }), "token");
+
+        expect(reverified.factorVerificationAge).toEqual([3, 3]);
+        expect(reverified.has({ reverification: "strict_mfa" })).toBe(true);
+        expect(missing.factorVerificationAge).toEqual([-1, -1]);
+        expect(missing.has({ reverification: "lax" })).toBe(false);
+    });
+
+    it("ages fva by the time since the token was minted", () => {
+        const old = authObject(claims({ iat: minutesAgo(8), fva: [5, 5] }), "token");
+
+        expect(old.factorVerificationAge).toEqual([13, 13]);
+        expect(old.has({ reverification: "strict_mfa" })).toBe(false);
+        expect(old.has({ reverification: "moderate" })).toBe(true);
+        const fresh = authObject(claims({ iat: minutesAgo(0), fva: [5, -1] }), "token");
+        expect(fresh.factorVerificationAge).toEqual([5, -1]);
+        expect(fresh.has({ reverification: "strict_mfa" })).toBe(false);
+    });
+
+    it("reports a failed check as the Frontend API's reverification requirement", () => {
+        expect(reverificationRequirement("strict_mfa")).toEqual({ level: "multi_factor", afterMinutes: 10 });
+        expect(reverificationRequirement("moderate")).toEqual({ level: "multi_factor", afterMinutes: 60 });
+        expect(reverificationRequirement({ level: "first_factor", afterMinutes: 5 })).toEqual({ level: "first_factor", afterMinutes: 5 });
+    });
+
     it("falls back to the first factor for users without a second one, except for strict_mfa", () => {
-        const auth = authObject(claims({ auth_time: minutesAgo(2) }), "token");
+        const auth = authObject(claims({ auth_time: minutesAgo(2), fva: [2, -1] }), "token");
 
         expect(auth.has({ reverification: "strict" })).toBe(true);
         expect(auth.has({ reverification: "strict_mfa" })).toBe(false);

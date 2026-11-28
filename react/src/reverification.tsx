@@ -1,56 +1,90 @@
-import {
-    useEffect,
-    useId,
-    useRef,
-    useState,
-    useSyncExternalStore,
-    type FormEvent,
-} from "react";
-import type { PistiClient } from "./client.js";
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
+import type { PistiClient, SessionVerification } from "./client.js";
 import { useAction } from "./async-state.js";
 
+type FirstFactor = "password" | "email_code" | "passkey";
+type SecondFactor = "totp" | "backup_code";
+
+const labels: Record<FirstFactor | SecondFactor, string> = {
+    password: "Password",
+    email_code: "Email code",
+    passkey: "Passkey",
+    totp: "Authenticator app",
+    backup_code: "Backup code",
+};
+
+/**
+ * The reverification step: opens when a session API request answers `403 session_reverification_required`, verifies
+ * the session at the level it asked for (`/v1/client/sessions/{id}/verify`), and lets the request run again.
+ */
 export function ReverificationDialog({ client }: { client: PistiClient }) {
-    const required = useSyncExternalStore(
+    const requirement = useSyncExternalStore(
         client.subscribeReverification,
         client.getReverificationSnapshot,
         client.getServerReverificationSnapshot,
     );
     const dialog = useRef<HTMLDialogElement>(null);
-    const form = useRef<HTMLFormElement>(null);
     const id = useId();
     const action = useAction();
-    const [requestId, setRequestId] = useState<string | null>(null);
+    const [verification, setVerification] = useState<SessionVerification | null>(null);
+    const [first, setFirst] = useState<FirstFactor | null>(null);
+    const [second, setSecond] = useState<SecondFactor | null>(null);
+    const [codeSent, setCodeSent] = useState(false);
+
     useEffect(() => {
         const element = dialog.current;
         if (!element) return;
-        if (required && !element.open) {
+        if (requirement && !element.open) {
             action.reset();
+            setVerification(null);
+            setFirst(null);
+            setSecond(null);
+            setCodeSent(false);
             element.showModal();
+            void action.run(async () => setVerification(await client.sessionVerification.create(requirement.level)));
         }
-        if (!required && element.open) {
-            element.close();
-            form.current?.reset();
-            setRequestId(null);
+        if (!requirement && element.open) element.close();
+    }, [requirement, client, action.reset]);
+    // A request needing both factors joined the step: start again at the stricter level.
+    useEffect(() => {
+        if (requirement && verification && verification.level !== requirement.level) {
+            setFirst(null);
+            setSecond(null);
+            setCodeSent(false);
+            void action.run(async () => setVerification(await client.sessionVerification.create(requirement.level)));
         }
-    }, [required, action.reset]);
+    }, [requirement, verification, client]);
+
+    const advance = async (next: SessionVerification) => {
+        setVerification(next);
+        if (next.status === "complete") await client.completeReverification();
+    };
+    const firstFactors = (verification?.supportedFirstFactors ?? [])
+        .map((factor) => factor.strategy)
+        .filter((strategy): strategy is FirstFactor => strategy in labels && strategy !== "totp" && strategy !== "backup_code")
+        .filter((strategy) => strategy !== "passkey" || client.passkeysAvailable);
+    const secondFactors = (verification?.supportedSecondFactors ?? [])
+        .map((factor) => factor.strategy)
+        .filter((strategy): strategy is SecondFactor => strategy === "totp" || strategy === "backup_code");
+    const firstFactor = first ?? firstFactors[0] ?? null;
+    const secondFactor = second ?? secondFactors[0] ?? null;
+
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        const element = event.currentTarget;
-        const fields = new FormData(element);
-        const code = String(fields.get("factor") ?? "");
+        const form = event.currentTarget;
+        const field = (name: string) => String(new FormData(form).get(name) ?? "").trim();
         void action.run(async () => {
-            await client.completeReverification({
-                ...(requestId
-                    ? {
-                          requestId,
-                          emailCode: String(fields.get("emailCode") ?? ""),
-                      }
-                    : { password: String(fields.get("password") ?? "") }),
-                ...(code ? { code } : {}),
-            });
-            element.reset();
+            if (verification?.status === "needs_first_factor" && firstFactor === "password")
+                await advance(await client.sessionVerification.attemptFirstFactor({ strategy: "password", password: field("password") }));
+            else if (verification?.status === "needs_first_factor" && firstFactor === "email_code")
+                await advance(await client.sessionVerification.attemptFirstFactor({ strategy: "email_code", code: field("code") }));
+            else if (verification?.status === "needs_second_factor" && secondFactor)
+                await advance(await client.sessionVerification.attemptSecondFactor({ strategy: secondFactor, code: field("code") }));
+            form.reset();
         });
     };
+
+    const step = verification?.status;
     return (
         <dialog
             ref={dialog}
@@ -58,104 +92,124 @@ export function ReverificationDialog({ client }: { client: PistiClient }) {
             aria-labelledby={id + "-title"}
             onCancel={() => client.cancelReverification()}
             onClose={() => {
-                if (client.getReverificationSnapshot())
-                    client.cancelReverification();
+                if (client.getReverificationSnapshot()) client.cancelReverification();
             }}
         >
             <h2 id={id + "-title"}>Verify your identity</h2>
             <p className="pisti-muted">
-                Confirm it's you before continuing with this action.
+                {step === "needs_second_factor"
+                    ? "Enter a code from your authenticator app, or a backup code."
+                    : "Confirm it's you before continuing with this action."}
             </p>
-            <form ref={form} className="pisti-form" onSubmit={submit}>
-                <fieldset disabled={action.isPending}>
-                    {requestId ? (
-                        <label htmlFor={id + "-email"}>
-                            Email verification code
-                            <input
-                                id={id + "-email"}
-                                name="emailCode"
-                                inputMode="numeric"
-                                pattern="[0-9]{6}"
-                                maxLength={6}
-                                autoComplete="one-time-code"
-                                required
-                            />
-                        </label>
-                    ) : (
+            {!verification && action.isPending && <p role="status">Loading…</p>}
+            {step === "needs_first_factor" && firstFactors.length > 1 && (
+                <div className="pisti-row" role="group" aria-label="Verification method">
+                    {firstFactors.map((strategy) => (
+                        <button
+                            key={strategy}
+                            type="button"
+                            className="pisti-secondary"
+                            aria-pressed={firstFactor === strategy}
+                            onClick={() => {
+                                setFirst(strategy);
+                                setCodeSent(false);
+                                action.reset();
+                            }}
+                        >
+                            {labels[strategy]}
+                        </button>
+                    ))}
+                </div>
+            )}
+            {step === "needs_second_factor" && secondFactors.length > 1 && (
+                <div className="pisti-row" role="group" aria-label="Second factor">
+                    {secondFactors.map((strategy) => (
+                        <button
+                            key={strategy}
+                            type="button"
+                            className="pisti-secondary"
+                            aria-pressed={secondFactor === strategy}
+                            onClick={() => setSecond(strategy)}
+                        >
+                            {labels[strategy]}
+                        </button>
+                    ))}
+                </div>
+            )}
+            <form className="pisti-form" onSubmit={submit}>
+                <fieldset disabled={action.isPending || !verification}>
+                    {step === "needs_first_factor" && firstFactor === "password" && (
                         <label htmlFor={id + "-password"}>
-                            Current password
+                            Password
+                            <input id={id + "-password"} name="password" type="password" maxLength={128} autoComplete="current-password" required />
+                        </label>
+                    )}
+                    {step === "needs_first_factor" && firstFactor === "email_code" &&
+                        (codeSent ? (
+                            <label htmlFor={id + "-code"}>
+                                Email verification code
+                                <input id={id + "-code"} name="code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} autoComplete="one-time-code" required />
+                            </label>
+                        ) : null)}
+                    {step === "needs_first_factor" && firstFactor === "email_code" && (
+                        <button
+                            type="button"
+                            className="pisti-secondary"
+                            onClick={() =>
+                                void action.run(async () => {
+                                    setVerification(await client.sessionVerification.prepareFirstFactor("email_code"));
+                                    setCodeSent(true);
+                                }, "Check your primary email for a code.")
+                            }
+                        >
+                            {codeSent ? "Send another code" : "Email me a code"}
+                        </button>
+                    )}
+                    {step === "needs_first_factor" && firstFactor === "passkey" && (
+                        <button
+                            type="button"
+                            onClick={() => void action.run(async () => advance(await client.sessionVerification.passkey()))}
+                        >
+                            Use a passkey
+                        </button>
+                    )}
+                    {step === "needs_second_factor" && secondFactor && (
+                        <label htmlFor={id + "-second"}>
+                            {secondFactor === "totp" ? "Authenticator code" : "Backup code"}
                             <input
-                                id={id + "-password"}
-                                name="password"
-                                type="password"
-                                maxLength={128}
-                                autoComplete="current-password"
+                                id={id + "-second"}
+                                name="code"
+                                maxLength={64}
+                                autoComplete="one-time-code"
+                                {...(secondFactor === "totp" ? { inputMode: "numeric" as const, pattern: "[0-9]{6}" } : {})}
                                 required
                             />
                         </label>
                     )}
-                    <button
-                        type="button"
-                        className="pisti-secondary"
-                        onClick={() =>
-                            void action.run(async () => {
-                                setRequestId(
-                                    (
-                                        await client.account.requestReauthentication()
-                                    ).requestId,
-                                );
-                            })
-                        }
-                    >
-                        {requestId
-                            ? "Send another email code"
-                            : "Use an email code instead"}
-                    </button>
-                    <label htmlFor={id + "-factor"}>
-                        Authenticator or recovery code
-                        <input
-                            id={id + "-factor"}
-                            name="factor"
-                            maxLength={64}
-                            autoComplete="one-time-code"
-                        />
-                    </label>
-                    <p className="pisti-muted">
-                        Required if you have enrolled an authenticator.
-                    </p>
+                    {step === "needs_first_factor" && firstFactors.length === 0 && (
+                        <p className="pisti-notice pisti-error">No verification method is available for this account.</p>
+                    )}
                     {action.error && (
                         <p className="pisti-notice pisti-error" role="alert">
                             {action.error.message}
                         </p>
                     )}
+                    {action.success && (
+                        <p className="pisti-notice" role="status">
+                            {action.success}
+                        </p>
+                    )}
                     <div className="pisti-actions">
-                        <button type="submit">
-                            {action.isPending
-                                ? "Verifying…"
-                                : "Verify and continue"}
-                        </button>
-                        <button
-                            type="button"
-                            className="pisti-secondary"
-                            onClick={() => client.cancelReverification()}
-                        >
+                        {(step === "needs_second_factor" ||
+                            (step === "needs_first_factor" && (firstFactor === "password" || (firstFactor === "email_code" && codeSent)))) && (
+                            <button type="submit">{action.isPending ? "Verifying…" : "Verify and continue"}</button>
+                        )}
+                        <button type="button" className="pisti-secondary" onClick={() => client.cancelReverification()}>
                             Cancel
                         </button>
                     </div>
                 </fieldset>
             </form>
-            <button
-                type="button"
-                className="pisti-secondary"
-                disabled={action.isPending}
-                onClick={() => void action.run(() => client.reauthenticate())}
-            >
-                Use a passkey or another method
-            </button>
-            <p className="pisti-muted">
-                Using another sign-in method returns you to the application,
-                where you can retry your action.
-            </p>
         </dialog>
     );
 }

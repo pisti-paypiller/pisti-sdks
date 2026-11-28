@@ -104,7 +104,6 @@ Each prop falls back to an environment variable, so most apps pass none.
 | `allowedRedirectOrigins` | — | Your app's origin |
 | `routerPush`, `routerReplace` | — | Full page navigation |
 | `appearance` | — | `{ variables: { colorPrimary, colorPrimaryText, colorBackground, colorText, colorTextSecondary, colorBorder, borderRadius, fontFamily } }` |
-| `handleInvitations` | — | `true`: handles `#pisti_invitation=` organization invitation links |
 
 ## Components
 
@@ -118,9 +117,9 @@ Each prop falls back to an environment variable, so most apps pass none.
 | `<UserButton />` | Avatar menu. `userProfileMode="navigation"` with `userProfileUrl` for your own page, or `"modal"` (default). `showName`. |
 | `<RedirectToSignIn />`, `<RedirectToSignUp />` | Redirect on render |
 | `<PistiLoaded>`, `<PistiLoading>` | Render after and before the session is known |
-| `<UserProfile apiKeys? />` | Profile, email, password, two-step verification, recovery codes, devices; with `apiKeys`, an API keys page |
+| `<UserProfile apiKeys? />` | Profile and username, email addresses, passkeys, connected accounts, password, authenticator app, backup codes, devices and deactivation; with `apiKeys`, an API keys page. Sensitive changes open the reverification step first |
 | `<APIKeys />` | Lets the user create, copy and revoke `ak_…` keys for your API. Your backend accepts them with `acceptsToken: "api_key"`. |
-| `<OrganizationSwitcher />`, `<CreateOrganization />`, `<OrganizationProfile />`, `<AcceptOrganizationInvitation />` | Organizations, members and invitations, in the environment's roles. Nothing renders while the environment has organizations off; `<CreateOrganization />` says so while users may not create them |
+| `<OrganizationSwitcher />`, `<CreateOrganization />`, `<OrganizationProfile />`, `<OrganizationInvitations />` | Organizations, members and invitations, in the environment's roles; `<OrganizationInvitations />` lists the user's pending invitations to accept. A non-member's `404` and a member's `403` for an action their role does not allow are explained (`describeOrganizationError`). Nothing renders while the environment has organizations off; `<CreateOrganization />` says so while users may not create them. Invitation emails link to the hosted pages |
 
 ## Hooks
 
@@ -128,14 +127,15 @@ Each prop falls back to an environment variable, so most apps pass none.
 | --- | --- |
 | `useAuth()` | `isLoaded`, `isSignedIn`, `userId`, `sessionId`, `orgId`, `orgSlug`, `orgRole`, `sessionClaims`, `has({ permission, role })`, `getToken()`, `signOut()` |
 | `useUser()` | `user`: `id`, `firstName`, `lastName`, `fullName`, `primaryEmailAddress.emailAddress`, `imageUrl`, `hasImage` |
-| `useSession()` | `session`: `id` and `user` |
+| `useSession()` | `session`: `id`, `user` and `factorVerificationAge` (minutes since each factor was verified, `-1` for never) |
 | `usePisti()` | The client: `openSignIn()`, `openSignUp()`, `openUserProfile()`, `closeModal()`, `redirectToSignIn()`, `navigate()`, `signOut()`, `getToken()` |
 | `useAuthenticatedFetch()` | `fetch` with the session token as `Authorization: Bearer`; retries once on 401 |
 | `useSignIn()`, `useSignUp()` | The individual steps, for fully custom forms |
 | `useOrganization()` | Active organization, its role key (`org:admin`), permissions (system `org:sys_…` and custom), `setActive(id \| null)` |
 | `useOrganizationSettings()` | `isLoaded`, `enabled`, `allowUserCreation`, `membershipLimit`, from `/v1/environment` |
-| `useOrganizationList()`, `useAccount()` | Organization and account resources |
-| `useReverification(fn)` | Runs `fn`, asking for the password again if the server needs a recent sign-in |
+| `useMe()` | The user's own resources, `/v1/me`: `get`, `update`, `delete`, `updatePassword`, `getEmailAddresses`, `createEmailAddress` (then `prepareVerification`, `attemptVerification`, `destroy` on the address), `getPasskeys`, `createPasskey`, `deletePasskey`, `createTOTP`, `verifyTOTP`, `disableTOTP`, `createBackupCode`, `getExternalAccounts`, `createExternalAccount`, `deleteExternalAccount`, `getSessions`, `revokeSession`, `revokeAllSessions`, `getApiKeys`, `createApiKey`, `revokeApiKey`, `getOrganizationMemberships`, `leaveOrganization`, `getOrganizationInvitations`, `acceptOrganizationInvitation` |
+| `useOrganizationList()` | What members manage, `/v1/organizations`: `create`, `get`, `update`, `destroy`, `getMemberships`, `updateMember`, `removeMember`, `getInvitations`, `inviteMember`, `revokeInvitation`, `getRoles` |
+| `useReverification(fn)` | Runs `fn`; when it fails with `session_reverification_required`, shows the reverification step (password, email code or passkey, then authenticator or backup code, as the level needs) and runs it again. `useMe()` and `useOrganizationList()` already do this |
 
 ## Calling your API
 
@@ -151,6 +151,10 @@ expired cookie with a handshake instead of treating the visitor as signed out. F
 `useAuthenticatedFetch()` or `getToken()`. Verify the token on the server with
 [`@pisti-paypiller/express`](../express/README.md) or [`@pisti-paypiller/backend`](../backend/README.md).
 `<Show>` and `isSignedIn` only control rendering; your API must enforce access.
+
+The account and organization resources call the session API (`/v1/me`, `/v1/organizations`) on the environment's
+host as the active session (`_pisti_session_id`), with the browser client's cookie (or the development header) and,
+for cookie mutations, the antiforgery token from `/v1/client/csrf`. See `docs/sdk.md` for the details.
 
 ## Deploying
 
