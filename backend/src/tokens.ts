@@ -230,9 +230,10 @@ export function authObject(claims: SessionClaims, token: string): AuthObject {
         : typeof claims.org_permissions === "string"
           ? [claims.org_permissions]
           : null;
-    const now = Date.now() / 1000;
-    const age = (time: unknown) => (typeof time === "number" ? Math.floor((now - time) / 60) : -1);
-    const factorVerificationAge: [number, number] = [age(claims.auth_time), age(claims.mfa_authenticated_at)];
+    // `fva` counts from the session's last verification of each factor, which reverification renews; `auth_time` does not move.
+    const minutes = (value: unknown) => (typeof value === "number" && Number.isInteger(value) && value >= -1 ? value : -1);
+    const fva = Array.isArray(claims.fva) ? claims.fva : [];
+    const factorVerificationAge: [number, number] = [minutes(fva[0]), minutes(fva[1])];
     const orgRole = typeof claims.org_role === "string" ? claims.org_role : null;
     const has = ({ permission, role, reverification }: CheckAuthorizationParams): boolean => {
         if (permission && !permissions?.includes(permission)) return false;

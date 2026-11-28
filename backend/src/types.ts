@@ -19,7 +19,10 @@ export interface SessionClaims {
     /** Present only when the environment includes profile claims in session tokens (console → Settings). */
     name?: string;
     auth_time?: number;
+    /** When a second factor was last verified on the session. */
     mfa_authenticated_at?: number;
+    /** The factor verification age: minutes since the first and the second factor were last verified, -1 for never. */
+    fva?: [number, number];
     org_id?: string;
     org_slug?: string;
     org_role?: string;

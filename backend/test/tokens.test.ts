@@ -132,16 +132,26 @@ describe("authObject", () => {
     });
 
     it("requires a recent second factor for strict reverification", () => {
-        const recent = authObject(claims({ auth_time: minutesAgo(1), mfa_authenticated_at: minutesAgo(1) }), "token");
-        const stale = authObject(claims({ auth_time: minutesAgo(1), mfa_authenticated_at: minutesAgo(30) }), "token");
+        const recent = authObject(claims({ auth_time: minutesAgo(90), fva: [1, 1] }), "token");
+        const stale = authObject(claims({ auth_time: minutesAgo(1), fva: [1, 30] }), "token");
 
         expect(recent.has({ reverification: "strict" })).toBe(true);
         expect(stale.has({ reverification: "strict" })).toBe(false);
         expect(stale.has({ reverification: "moderate" })).toBe(true);
     });
 
+    it("reads the factor ages from fva, not from the sign-in time", () => {
+        const reverified = authObject(claims({ auth_time: minutesAgo(600), fva: [3, 3] }), "token");
+        const missing = authObject(claims({ auth_time: minutesAgo(1) }), "token");
+
+        expect(reverified.factorVerificationAge).toEqual([3, 3]);
+        expect(reverified.has({ reverification: "strict_mfa" })).toBe(true);
+        expect(missing.factorVerificationAge).toEqual([-1, -1]);
+        expect(missing.has({ reverification: "lax" })).toBe(false);
+    });
+
     it("falls back to the first factor for users without a second one, except for strict_mfa", () => {
-        const auth = authObject(claims({ auth_time: minutesAgo(2) }), "token");
+        const auth = authObject(claims({ auth_time: minutesAgo(2), fva: [2, -1] }), "token");
 
         expect(auth.has({ reverification: "strict" })).toBe(true);
         expect(auth.has({ reverification: "strict_mfa" })).toBe(false);

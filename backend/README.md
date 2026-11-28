@@ -77,7 +77,10 @@ A token of a type the route doesn't accept is signed out with `reason: "token-ty
 
 `has({ permission, role, reverification })` on session auth objects matches Clerk's, including
 the reverification presets `"strict_mfa"`, `"strict"`, `"moderate"` and `"lax"` or
-`{ level, afterMinutes }`.
+`{ level, afterMinutes }`. It reads `factorVerificationAge` from the token's `fva` claim: minutes since the
+session last verified its first and second factor (at sign-in, or since by reverification), `-1` for one never
+verified. Backend API sessions (`Session`) carry the same moments as `firstFactorVerifiedAt` and
+`secondFactorVerifiedAt`, in webhook payloads too.
 
 ## Backend API
 
